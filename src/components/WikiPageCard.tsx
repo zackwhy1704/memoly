@@ -1,9 +1,9 @@
 import { WikiPage } from '@/lib/api';
 
 const CERTAINTY_STYLE: Record<string, { label: string; cls: string }> = {
-  VERIFIED: { label: 'Verified', cls: 'bg-green-100 text-green-700' },
-  INFERRED: { label: 'Inferred', cls: 'bg-amber-100 text-amber-700' },
-  CONFLICTED: { label: 'Conflict ⚠', cls: 'bg-red-100 text-red-700' },
+  VERIFIED: { label: 'Verified', cls: 'bg-ok/20 text-ok' },
+  INFERRED: { label: 'Inferred', cls: 'bg-warn/20 text-warn' },
+  CONFLICTED: { label: 'Conflict ⚠', cls: 'bg-bad/20 text-bad' },
 };
 
 interface WikiPageCardProps {
@@ -27,22 +27,22 @@ export default function WikiPageCard({ page }: WikiPageCardProps) {
   })();
 
   return (
-    <div className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow
-      ${page.hasConflict ? 'border-red-200' : 'border-gray-100'}`}>
+    <div className={`bg-panel rounded-xl border shadow-sm p-5 hover:border-accent/30 transition-colors
+      ${page.hasConflict ? 'border-bad/30' : 'border-line'}`}>
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="font-bold text-gray-900 text-sm leading-snug flex-1">{page.title}</h3>
+        <h3 className="font-bold text-ink text-sm leading-snug flex-1">{page.title}</h3>
         <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${certainty.cls}`}>
           {certainty.label}
         </span>
       </div>
 
       {/* Content preview */}
-      <p className="text-gray-600 text-sm leading-relaxed mb-3">{preview}</p>
+      <p className="text-ink2 text-sm leading-relaxed mb-3">{preview}</p>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <span className="font-mono bg-gray-50 px-2 py-0.5 rounded">{page.slug}</span>
+      <div className="flex items-center justify-between text-xs text-ink3">
+        <span className="font-mono bg-panel2 px-2 py-0.5 rounded">{page.slug}</span>
         <span>Updated {updatedAt}</span>
       </div>
     </div>

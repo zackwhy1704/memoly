@@ -59,7 +59,7 @@ export default function FileDropzone({ onFileSelected, disabled }: FileDropzoneP
         onDragLeave={onDragLeave}
         onClick={() => !disabled && inputRef.current?.click()}
         className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
-          ${dragOver ? 'border-[#7042ED] bg-[#EBE0FF]/40' : 'border-gray-200 hover:border-[#7042ED]/50 hover:bg-gray-50'}
+          ${dragOver ? 'border-accent bg-accent/10' : 'border-line hover:border-accent/50 hover:bg-panel2'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
@@ -77,16 +77,16 @@ export default function FileDropzone({ onFileSelected, disabled }: FileDropzoneP
             <span className="text-4xl">
               {selectedFile.type.includes('pdf') ? '📄' : selectedFile.type.includes('image') ? '🖼️' : '📝'}
             </span>
-            <p className="font-semibold text-gray-800 mt-1 break-all max-w-xs">{selectedFile.name}</p>
-            <p className="text-sm text-gray-500">{formatSize(selectedFile.size)}</p>
-            <p className="text-xs text-[#7042ED] mt-1">Click to change file</p>
+            <p className="font-semibold text-ink mt-1 break-all max-w-xs">{selectedFile.name}</p>
+            <p className="text-sm text-ink2">{formatSize(selectedFile.size)}</p>
+            <p className="text-xs text-accent mt-1">Click to change file</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
             <span className="text-4xl">☁️</span>
-            <p className="font-semibold text-gray-700 mt-2">Drop a file here</p>
-            <p className="text-sm text-gray-500">or click to browse</p>
-            <p className="text-xs text-gray-400 mt-2">Supports: {ACCEPTED_TYPES.join(', ')}</p>
+            <p className="font-semibold text-ink mt-2">Drop a file here</p>
+            <p className="text-sm text-ink2">or click to browse</p>
+            <p className="text-xs text-ink3 mt-2">Supports: {ACCEPTED_TYPES.join(', ')}</p>
           </div>
         )}
       </div>

@@ -6,9 +6,11 @@ import { useState } from 'react';
 import { clearAuth } from '@/lib/auth';
 
 const navItems = [
-  { href: '/dashboard', label: 'Overview', icon: '⊞' },
-  { href: '/dashboard/upload', label: 'Upload Content', icon: '↑' },
-  { href: '/dashboard/analysis', label: 'Analysis', icon: '◎' },
+  { href: '/dashboard', label: 'Overview', icon: '⊞', exact: true },
+  { href: '/dashboard/students', label: 'Students', icon: '👥', exact: false },
+  { href: '/dashboard/classes', label: 'Classes', icon: '🏫', exact: false },
+  { href: '/dashboard/content/upload', label: 'Content', icon: '↑', exact: false },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙', exact: false },
 ];
 
 export default function Sidebar() {
@@ -21,35 +23,41 @@ export default function Sidebar() {
     router.replace('/login');
   }
 
+  function isActive(item: { href: string; exact: boolean }) {
+    if (item.exact) return pathname === item.href;
+    // Special case: /dashboard/content matches both upload and analysis
+    if (item.href === '/dashboard/content/upload') {
+      return pathname.startsWith('/dashboard/content') || pathname.startsWith('/dashboard/upload') || pathname.startsWith('/dashboard/analysis');
+    }
+    return pathname.startsWith(item.href);
+  }
+
   const NavContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/10">
+      <div className="px-6 py-6 border-b border-line">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🐾</span>
           <div>
-            <p className="text-white font-bold text-lg leading-tight">Memoly</p>
-            <p className="text-white/50 text-xs">Centre Admin</p>
+            <p className="text-ink font-bold text-lg leading-tight">Memoly</p>
+            <p className="text-ink3 text-xs">Centre Admin</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map((item) => {
-          const active =
-            item.href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(item.href);
+          const active = isActive(item);
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-2 ${
                 active
-                  ? 'bg-[#7042ED] text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/10'
+                  ? 'bg-accent/15 border-accent text-ink'
+                  : 'border-transparent text-ink3 hover:text-ink hover:bg-panel2'
               }`}
             >
               <span className="text-base w-5 text-center">{item.icon}</span>
@@ -60,10 +68,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-4 border-t border-white/10">
+      <div className="px-3 py-4 border-t border-line">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-ink3 hover:text-ink hover:bg-panel2 transition-colors"
         >
           <span className="text-base w-5 text-center">⎋</span>
           Sign out
@@ -76,7 +84,7 @@ export default function Sidebar() {
     <>
       {/* Mobile hamburger */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 bg-[#1a1a2e] text-white p-2 rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-panel text-ink p-2 rounded-lg shadow-lg border border-line"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label="Toggle sidebar"
       >
@@ -86,14 +94,14 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          className="lg:hidden fixed inset-0 bg-black/60 z-30"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar — desktop always visible, mobile slides in */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-[#1a1a2e] z-40 transition-transform duration-200
+        className={`fixed top-0 left-0 h-full w-64 bg-side z-40 transition-transform duration-200
           lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <NavContent />

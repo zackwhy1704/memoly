@@ -10,29 +10,28 @@ export default function AvatarCard({ avatar }: AvatarCardProps) {
   const subjectCls = subjectColor(avatar.subject);
   const isCentre = avatar.centreManaged === true;
   const brandName = avatar.centreBrandName ?? avatar.name;
-  const accentHex = avatar.centreAccentColor ?? '#7042ED';
+  const accentHex = avatar.centreAccentColor ?? '#8B7DF7';
 
-  // Border colour: centre avatars use their accent colour, personal use outline
   const borderStyle = isCentre
     ? { borderColor: accentHex, borderWidth: 2 }
     : {};
 
   return (
     <div
-      className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-5"
+      className="bg-panel rounded-xl border border-line hover:border-accent/40 transition-colors p-5"
       style={borderStyle}
     >
       {/* Header */}
       <div className="flex items-start gap-4 mb-4">
         <div
-          className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-          style={{ backgroundColor: isCentre ? `${accentHex}18` : '#EBE0FF' }}
+          className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 bg-panel2"
+          style={isCentre ? { backgroundColor: `${accentHex}20` } : {}}
         >
           {emoji}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-bold text-gray-900 text-base truncate">
+            <h3 className="font-bold text-ink text-base truncate">
               {isCentre ? brandName : avatar.name}
             </h3>
             {isCentre && (
@@ -52,19 +51,19 @@ export default function AvatarCard({ avatar }: AvatarCardProps) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-gray-50 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold text-[#7042ED]">{avatar.wikiPageCount ?? 0}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Wiki pages</p>
+        <div className="bg-panel2 rounded-lg p-3 text-center">
+          <p className="text-2xl font-bold text-accent">{avatar.wikiPageCount ?? 0}</p>
+          <p className="text-xs text-ink3 mt-0.5">Wiki pages</p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold text-gray-700">{avatar.fileCount ?? '—'}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Files</p>
+        <div className="bg-panel2 rounded-lg p-3 text-center">
+          <p className="text-2xl font-bold text-ink2">{avatar.fileCount ?? '—'}</p>
+          <p className="text-xs text-ink3 mt-0.5">Files</p>
         </div>
       </div>
 
       {/* Brain state badge */}
       {avatar.brainState && avatar.brainState !== 'READY' && (
-        <div className="mb-3 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex items-center gap-1.5">
+        <div className="mb-3 px-3 py-1.5 bg-warn/10 border border-warn/30 rounded-lg text-xs text-warn flex items-center gap-1.5">
           <span className="animate-spin inline-block">⚙️</span>
           Brain compiling…
         </div>
@@ -74,27 +73,16 @@ export default function AvatarCard({ avatar }: AvatarCardProps) {
       <div className="flex gap-2">
         <Link
           href={`/dashboard/analysis?avatarId=${avatar.id}`}
-          className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium bg-[#EBE0FF] text-[#7042ED] hover:bg-[#7042ED] hover:text-white transition-colors"
+          className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
         >
           View Brain
         </Link>
-        {!isCentre && (
-          <Link
-            href={`/dashboard/upload?avatarId=${avatar.id}`}
-            className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium bg-[#7042ED] text-white hover:bg-[#5a35c4] transition-colors"
-          >
-            Upload
-          </Link>
-        )}
-        {isCentre && (
-          <Link
-            href={`/dashboard/upload?avatarId=${avatar.id}`}
-            className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-            style={{ backgroundColor: accentHex }}
-          >
-            Upload Content
-          </Link>
-        )}
+        <Link
+          href={`/dashboard/upload?avatarId=${avatar.id}`}
+          className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent/80 transition-colors"
+        >
+          Upload
+        </Link>
       </div>
     </div>
   );

@@ -28,7 +28,6 @@ function UploadContent() {
       .then((res) => {
         const list = res.data ?? [];
         setAvatars(list);
-        // Auto-select if only one avatar
         if (!selectedAvatarId && list.length === 1) {
           setSelectedAvatarId(list[0].id);
         }
@@ -69,20 +68,20 @@ function UploadContent() {
     <div className="max-w-2xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Upload Content</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-ink">Upload Content</h1>
+        <p className="text-ink3 text-sm mt-1">
           Add PDFs, notes, or images to a tutor's knowledge base
         </p>
       </div>
 
       {/* Avatar selector */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-4">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
+      <div className="bg-panel rounded-xl border border-line p-6 mb-4">
+        <label className="block text-sm font-semibold text-ink2 mb-3">
           Select Tutor
         </label>
 
         {avatars.length === 0 ? (
-          <p className="text-gray-400 text-sm">Loading tutors…</p>
+          <p className="text-ink3 text-sm">Loading tutors…</p>
         ) : (
           <select
             value={selectedAvatarId}
@@ -91,9 +90,8 @@ function UploadContent() {
               setResult(null);
               router.replace(`/dashboard/upload?avatarId=${e.target.value}`, { scroll: false });
             }}
-            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 text-sm
-              focus:outline-none focus:ring-2 focus:ring-[#7042ED]/30 focus:border-[#7042ED]
-              bg-white transition-colors"
+            className="w-full px-3.5 py-2.5 rounded-lg border border-line text-sm bg-panel2 text-ink
+              focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
           >
             <option value="">— Choose a tutor —</option>
             {avatars.map((a) => (
@@ -105,19 +103,19 @@ function UploadContent() {
         )}
 
         {selectedAvatar && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+          <div className="mt-3 flex items-center gap-2 text-sm text-ink3">
             <span>🐾</span>
             <span>
               {selectedAvatar.name} currently has{' '}
-              <strong className="text-[#7042ED]">{selectedAvatar.wikiPageCount}</strong> wiki pages
+              <strong className="text-accent">{selectedAvatar.wikiPageCount}</strong> wiki pages
             </span>
           </div>
         )}
       </div>
 
       {/* Drop zone */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-4">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
+      <div className="bg-panel rounded-xl border border-line p-6 mb-4">
+        <label className="block text-sm font-semibold text-ink2 mb-3">
           File
         </label>
         <FileDropzone
@@ -131,22 +129,22 @@ function UploadContent() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 mb-4">
+        <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad mb-4">
           {error}
         </div>
       )}
 
       {/* Success result */}
       {result?.success && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-4">
+        <div className="bg-ok/10 border border-ok/30 rounded-xl p-5 mb-4">
           <div className="flex items-start gap-3">
             <span className="text-2xl">🎉</span>
             <div>
-              <p className="font-semibold text-green-800">{result.message}</p>
+              <p className="font-semibold text-ok">{result.message}</p>
               {result.avatarId && (
                 <Link
                   href={`/dashboard/analysis?avatarId=${result.avatarId}`}
-                  className="inline-block mt-2 text-sm text-[#7042ED] font-medium hover:underline"
+                  className="inline-block mt-2 text-sm text-accent font-medium hover:underline"
                 >
                   View wiki pages →
                 </Link>
@@ -160,8 +158,8 @@ function UploadContent() {
       <button
         onClick={handleUpload}
         disabled={!file || !selectedAvatarId || uploading}
-        className="w-full py-3 px-4 rounded-xl bg-[#7042ED] text-white font-semibold text-sm
-          hover:bg-[#5a35c4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+        className="w-full py-3 px-4 rounded-xl bg-accent text-white font-semibold text-sm
+          hover:bg-accent/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
           flex items-center justify-center gap-2"
       >
         {uploading ? (
@@ -178,7 +176,7 @@ function UploadContent() {
       </button>
 
       {!file && (
-        <p className="text-center text-xs text-gray-400 mt-3">
+        <p className="text-center text-xs text-ink3 mt-3">
           Drop a file above before uploading
         </p>
       )}
@@ -188,7 +186,7 @@ function UploadContent() {
 
 export default function UploadPage() {
   return (
-    <Suspense fallback={<div className="py-24 text-center text-gray-400">Loading…</div>}>
+    <Suspense fallback={<div className="py-24 text-center text-ink3">Loading…</div>}>
       <UploadContent />
     </Suspense>
   );

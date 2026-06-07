@@ -68,21 +68,21 @@ function AnalysisContent() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Analysis</h1>
-        <p className="text-gray-500 text-sm mt-1">Browse compiled wiki pages for each tutor</p>
+        <h1 className="text-2xl font-bold text-ink">Analysis</h1>
+        <p className="text-ink3 text-sm mt-1">Browse compiled wiki pages for each tutor</p>
       </div>
 
       {/* Avatar selector */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6 flex flex-wrap gap-4 items-center">
+      <div className="bg-panel rounded-xl border border-line p-5 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-48">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-semibold text-ink3 uppercase tracking-wide mb-1.5">
             Tutor
           </label>
           <select
             value={selectedAvatarId}
             onChange={(e) => handleAvatarChange(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm
-              focus:outline-none focus:ring-2 focus:ring-[#7042ED]/30 focus:border-[#7042ED] bg-white"
+            className="w-full px-3 py-2 rounded-lg border border-line text-sm bg-panel2 text-ink
+              focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
           >
             <option value="">— Select a tutor —</option>
             {avatars.map((a) => (
@@ -95,7 +95,7 @@ function AnalysisContent() {
 
         {pages.length > 0 && (
           <div className="flex-1 min-w-48">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-semibold text-ink3 uppercase tracking-wide mb-1.5">
               Search pages
             </label>
             <input
@@ -103,9 +103,9 @@ function AnalysisContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter by title or slug…"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm
-                focus:outline-none focus:ring-2 focus:ring-[#7042ED]/30 focus:border-[#7042ED]
-                placeholder:text-gray-400"
+              className="w-full px-3 py-2 rounded-lg border border-line text-sm bg-panel2 text-ink
+                focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
+                placeholder:text-ink3"
             />
           </div>
         )}
@@ -114,17 +114,17 @@ function AnalysisContent() {
       {/* Stats row */}
       {pages.length > 0 && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-            <p className="text-2xl font-bold text-[#7042ED]">{pages.length}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Total pages</p>
+          <div className="bg-panel rounded-xl border border-line p-4 text-center">
+            <p className="text-2xl font-bold text-accent">{pages.length}</p>
+            <p className="text-xs text-ink3 mt-0.5">Total pages</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-            <p className="text-2xl font-bold text-green-600">{verifiedCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Verified</p>
+          <div className="bg-panel rounded-xl border border-line p-4 text-center">
+            <p className="text-2xl font-bold text-ok">{verifiedCount}</p>
+            <p className="text-xs text-ink3 mt-0.5">Verified</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-            <p className="text-2xl font-bold text-red-500">{conflictCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Conflicts</p>
+          <div className="bg-panel rounded-xl border border-line p-4 text-center">
+            <p className="text-2xl font-bold text-bad">{conflictCount}</p>
+            <p className="text-xs text-ink3 mt-0.5">Conflicts</p>
           </div>
         </div>
       )}
@@ -134,14 +134,14 @@ function AnalysisContent() {
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
             <span className="text-4xl animate-bounce">📚</span>
-            <p className="text-gray-400 text-sm">Loading wiki pages…</p>
+            <p className="text-ink3 text-sm">Loading wiki pages…</p>
           </div>
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-red-700 text-sm">
+        <div className="bg-bad/10 border border-bad/30 rounded-xl p-5 text-bad text-sm">
           {error}
         </div>
       )}
@@ -150,7 +150,7 @@ function AnalysisContent() {
       {!selectedAvatarId && !loading && (
         <div className="text-center py-20">
           <span className="text-5xl block mb-4">🧠</span>
-          <p className="text-gray-500 font-medium">Select a tutor to see its wiki pages</p>
+          <p className="text-ink3 font-medium">Select a tutor to see its wiki pages</p>
         </div>
       )}
 
@@ -158,8 +158,8 @@ function AnalysisContent() {
       {selectedAvatarId && !loading && !error && pages.length === 0 && (
         <div className="text-center py-20">
           <span className="text-5xl block mb-4">📭</span>
-          <p className="text-gray-500 font-medium">No wiki pages yet</p>
-          <p className="text-gray-400 text-sm mt-1">Upload content to build this tutor's knowledge base</p>
+          <p className="text-ink3 font-medium">No wiki pages yet</p>
+          <p className="text-ink3 text-sm mt-1">Upload content to build this tutor's knowledge base</p>
         </div>
       )}
 
@@ -167,7 +167,7 @@ function AnalysisContent() {
       {!loading && filteredPages.length > 0 && (
         <>
           {search && (
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-ink3 mb-4">
               Showing {filteredPages.length} of {pages.length} pages
             </p>
           )}
@@ -182,10 +182,10 @@ function AnalysisContent() {
       {/* No results from search */}
       {!loading && search && filteredPages.length === 0 && pages.length > 0 && (
         <div className="text-center py-16">
-          <p className="text-gray-500">No pages match &quot;{search}&quot;</p>
+          <p className="text-ink3">No pages match &quot;{search}&quot;</p>
           <button
             onClick={() => setSearch('')}
-            className="mt-2 text-sm text-[#7042ED] hover:underline"
+            className="mt-2 text-sm text-accent hover:underline"
           >
             Clear search
           </button>
@@ -197,7 +197,7 @@ function AnalysisContent() {
 
 export default function AnalysisPage() {
   return (
-    <Suspense fallback={<div className="py-24 text-center text-gray-400">Loading…</div>}>
+    <Suspense fallback={<div className="py-24 text-center text-ink3">Loading…</div>}>
       <AnalysisContent />
     </Suspense>
   );

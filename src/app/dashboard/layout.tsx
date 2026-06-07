@@ -12,17 +12,17 @@ export default function DashboardLayout({
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
           <span className="text-3xl animate-bounce">🐾</span>
-          <p className="text-gray-400 text-sm">Loading…</p>
+          <p className="text-ink3 text-sm">Loading…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-bg">
       <Sidebar />
       {/* Main content — offset by sidebar width on large screens */}
       <main className="flex-1 lg:ml-64 min-w-0">

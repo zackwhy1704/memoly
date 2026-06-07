@@ -1,11 +1,11 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL!;
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('memoly_token');
 }
 
-async function apiFetch<T>(
+export async function apiFetch<T>(
   path: string,
   opts?: RequestInit & { skipAuth?: boolean }
 ): Promise<T> {
@@ -18,7 +18,7 @@ async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(BASE + path, {
+  const res = await fetch(BASE + '/api/v1' + path, {
     ...opts,
     headers,
   });
@@ -108,6 +108,54 @@ export interface RelevanceResponse {
   };
 }
 
+// Analytics types
+export interface OverviewData {
+  activeThisWeek: number;
+  totalStudents: number;
+  avgGrasp: number;
+  graspDelta: number;
+  topicsLive: number;
+  atRiskCount: number;
+  graspTrend: Array<{ week: string; value: number }>;
+  classes: Array<{ cohort: string; studentCount: number; avgGrasp: number }>;
+  atRisk: Array<{ studentId: string; name: string; cohort: string; reason: string; severity: string }>;
+  recentActivity: Array<{ studentName: string; topic: string; wasCorrect: boolean; at: string }>;
+}
+
+export interface HeatmapData {
+  students: Array<{ id: string; displayName: string; initials: string }>;
+  topics: string[];
+  cells: Array<Array<number | null>>;
+  topicAverages: Array<{ topic: string; avg: number }>;
+  weakest: Array<{ topic: string; avg: number }>;
+}
+
+export interface StudentData {
+  studentId: string;
+  displayName: string;
+  cohortLabel: string;
+  streakDays: number;
+  level: number;
+  xp: number;
+  grasp: number;
+  examInDays: number;
+  graspOverTime: Array<{ week: string; value: number }>;
+  topicGrasp: Array<{ topic: string; grasp: number; attempts: number }>;
+  engagement: { questions: number; quizDays: number; lastActive: string };
+}
+
+export interface RosterData {
+  students: Array<{
+    userId: string;
+    displayName: string;
+    level: number;
+    xp: number;
+    streakDays: number;
+    cohortLabel: string;
+  }>;
+  totalElements: number;
+}
+
 // ── API methods ────────────────────────────────────────────────────────
 export const api = {
   // Auth
@@ -141,7 +189,7 @@ export const api = {
     form.append('file', file);
     const token = getToken();
 
-    const res = await fetch(`${BASE}/avatars/${avatarId}/files`, {
+    const res = await fetch(`${BASE}/api/v1/avatars/${avatarId}/files`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -168,6 +216,39 @@ export const api = {
   // Delete a knowledge file
   deleteFile: (avatarId: string, fileId: string) =>
     apiFetch<void>(`/avatars/${avatarId}/files/${fileId}`, { method: 'DELETE' }),
+
+  // Centre me (orgId resolver)
+  centreMe: async () => {
+    const orgId = process.env.NEXT_PUBLIC_DEMO_ORG_ID;
+    if (orgId) return { data: { orgId } };
+    throw new Error('NEXT_PUBLIC_DEMO_ORG_ID not set');
+  },
+
+  // Analytics
+  overview: (orgId: string, cohort?: string) =>
+    apiFetch<{ data: OverviewData }>(
+      `/centre/organizations/${orgId}/overview${cohort ? `?cohort=${encodeURIComponent(cohort)}` : ''}`
+    ),
+
+  classes: (orgId: string) =>
+    apiFetch<{ data: Array<{ cohort: string; studentCount: number; avgGrasp: number }> }>(
+      `/centre/organizations/${orgId}/classes`
+    ),
+
+  heatmap: (orgId: string, cohort: string) =>
+    apiFetch<{ data: HeatmapData }>(
+      `/centre/organizations/${orgId}/classes/${encodeURIComponent(cohort)}/heatmap`
+    ),
+
+  student: (orgId: string, studentId: string) =>
+    apiFetch<{ data: StudentData }>(
+      `/centre/organizations/${orgId}/students/${studentId}`
+    ),
+
+  roster: (orgId: string, cohort?: string, page = 0, size = 50) =>
+    apiFetch<{ data: RosterData }>(
+      `/centre/organizations/${orgId}/roster?page=${page}&size=${size}${cohort ? `&cohort=${encodeURIComponent(cohort)}` : ''}`
+    ),
 };
 
 // ── Character helpers ──────────────────────────────────────────────────
@@ -188,16 +269,16 @@ export function characterEmoji(characterType: string): string {
 /** Returns a Tailwind bg class for a subject string. */
 export function subjectColor(subject: string): string {
   const map: Record<string, string> = {
-    MATHS: 'bg-blue-100 text-blue-700',
-    MATH: 'bg-blue-100 text-blue-700',
-    SCIENCE: 'bg-green-100 text-green-700',
-    ENGLISH: 'bg-purple-100 text-purple-700',
-    HISTORY: 'bg-amber-100 text-amber-700',
-    GEOGRAPHY: 'bg-teal-100 text-teal-700',
-    CHEMISTRY: 'bg-red-100 text-red-700',
-    PHYSICS: 'bg-indigo-100 text-indigo-700',
-    BIOLOGY: 'bg-emerald-100 text-emerald-700',
-    GENERAL: 'bg-gray-100 text-gray-600',
+    MATHS: 'bg-blue-900/40 text-blue-300',
+    MATH: 'bg-blue-900/40 text-blue-300',
+    SCIENCE: 'bg-green-900/40 text-green-300',
+    ENGLISH: 'bg-purple-900/40 text-purple-300',
+    HISTORY: 'bg-amber-900/40 text-amber-300',
+    GEOGRAPHY: 'bg-teal-900/40 text-teal-300',
+    CHEMISTRY: 'bg-red-900/40 text-red-300',
+    PHYSICS: 'bg-indigo-900/40 text-indigo-300',
+    BIOLOGY: 'bg-emerald-900/40 text-emerald-300',
+    GENERAL: 'bg-panel2 text-ink2',
   };
-  return map[subject?.toUpperCase()] ?? 'bg-gray-100 text-gray-600';
+  return map[subject?.toUpperCase()] ?? 'bg-panel2 text-ink2';
 }
