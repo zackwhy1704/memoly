@@ -18,7 +18,7 @@ export async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(BASE + '/api/v1' + path, {
+  const res = await fetch(BASE + path, {
     ...opts,
     headers,
   });
@@ -189,7 +189,7 @@ export const api = {
     form.append('file', file);
     const token = getToken();
 
-    const res = await fetch(`${BASE}/api/v1/avatars/${avatarId}/files`, {
+    const res = await fetch(`${BASE}/avatars/${avatarId}/files`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
