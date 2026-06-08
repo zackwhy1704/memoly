@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { clearAuth } from '@/lib/auth';
+import { useTheme } from '@/lib/theme';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: '⊞', exact: true },
@@ -17,6 +18,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, toggle } = useTheme();
 
   function handleLogout() {
     clearAuth();
@@ -67,8 +69,17 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-line">
+      {/* Theme toggle + Logout */}
+      <div className="px-3 py-4 border-t border-line space-y-0.5">
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-ink3 hover:text-ink hover:bg-panel2 transition-colors"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span className="text-base w-5 text-center">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-ink3 hover:text-ink hover:bg-panel2 transition-colors"

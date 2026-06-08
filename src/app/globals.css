@@ -15,9 +15,22 @@
   --color-ink3: #66666F;
 }
 
+/* Light theme — applied when <html data-theme="light"> */
+[data-theme="light"] {
+  --color-bg: #F6F7FB;
+  --color-side: #FFFFFF;
+  --color-panel: #FFFFFF;
+  --color-panel2: #F1F2F7;
+  --color-line: rgba(0, 0, 0, 0.08);
+  --color-ink: #14132A;
+  --color-ink2: #61607A;
+  --color-ink3: #A2A1B4;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-ink);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 * {

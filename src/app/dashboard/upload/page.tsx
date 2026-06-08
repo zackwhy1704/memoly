@@ -26,16 +26,21 @@ function UploadContent() {
     api
       .avatars()
       .then((res) => {
-        const list = res.data ?? [];
+        // Guard: ensure we always set an array regardless of envelope shape
+        const raw = res.data ?? res;
+        const list: Avatar[] = Array.isArray(raw) ? raw : [];
         setAvatars(list);
         if (!selectedAvatarId && list.length === 1) {
           setSelectedAvatarId(list[0].id);
         }
       })
       .catch(() => setError('Failed to load avatars.'));
-  }, [selectedAvatarId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const selectedAvatar = avatars.find((a) => a.id === selectedAvatarId);
+  const selectedAvatar = Array.isArray(avatars)
+    ? avatars.find((a) => a.id === selectedAvatarId)
+    : undefined;
 
   async function handleUpload() {
     if (!file || !selectedAvatarId) return;
