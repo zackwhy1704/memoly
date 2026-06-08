@@ -1,38 +1,57 @@
 @import "tailwindcss";
 
+/* Static design tokens — never change at runtime.
+   Kept in @theme so Tailwind generates utility classes (bg-accent, text-ok, etc.) */
 @theme {
-  --color-bg: #0A0A0C;
-  --color-side: #0E0E12;
-  --color-panel: #141418;
-  --color-panel2: #1C1C22;
-  --color-line: rgba(255, 255, 255, 0.08);
   --color-accent: #8B7DF7;
-  --color-ok: #43C97A;
-  --color-warn: #E3B341;
-  --color-bad: #F0656A;
-  --color-ink: #ECECEF;
-  --color-ink2: #9A9AA6;
-  --color-ink3: #66666F;
+  --color-ok:     #43C97A;
+  --color-warn:   #E3B341;
+  --color-bad:    #F0656A;
 }
 
-/* Light theme — applied when <html data-theme="light"> */
+/* Dynamic tokens — dark theme defaults (runtime CSS variables, NOT @theme).
+   Tailwind utility classes for these (bg-bg, text-ink, etc.) work because
+   Tailwind v4 reads the CSS variable by name at runtime. */
+:root {
+  --color-bg:    #0A0A0C;
+  --color-side:  #0E0E12;
+  --color-panel: #141418;
+  --color-panel2:#1C1C22;
+  --color-line:  rgba(255,255,255,0.08);
+  --color-ink:   #ECECEF;
+  --color-ink2:  #9A9AA6;
+  --color-ink3:  #66666F;
+}
+
+/* Light theme — flips every surface to white/grey */
 [data-theme="light"] {
-  --color-bg: #F6F7FB;
-  --color-side: #FFFFFF;
+  --color-bg:    #FFFFFF;
+  --color-side:  #FAFAFA;
   --color-panel: #FFFFFF;
-  --color-panel2: #F1F2F7;
-  --color-line: rgba(0, 0, 0, 0.08);
-  --color-ink: #14132A;
-  --color-ink2: #61607A;
-  --color-ink3: #A2A1B4;
+  --color-panel2:#F3F4F8;
+  --color-line:  rgba(0,0,0,0.09);
+  --color-ink:   #14132A;
+  --color-ink2:  #61607A;
+  --color-ink3:  #A2A1B4;
+}
+
+/* Re-declare the dynamic colours into @theme so Tailwind generates
+   bg-bg / bg-panel / text-ink / border-line classes that reference them */
+@theme {
+  --color-bg:    var(--color-bg);
+  --color-side:  var(--color-side);
+  --color-panel: var(--color-panel);
+  --color-panel2:var(--color-panel2);
+  --color-line:  var(--color-line);
+  --color-ink:   var(--color-ink);
+  --color-ink2:  var(--color-ink2);
+  --color-ink3:  var(--color-ink3);
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-ink);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
