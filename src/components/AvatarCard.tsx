@@ -72,13 +72,13 @@ export default function AvatarCard({ avatar }: AvatarCardProps) {
       {/* Actions */}
       <div className="flex gap-2">
         <Link
-          href={`/dashboard/analysis?avatarId=${avatar.id}`}
+          href={`/dashboard/content/analysis?avatarId=${avatar.id}`}
           className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
         >
           View Brain
         </Link>
         <Link
-          href={`/dashboard/upload?avatarId=${avatar.id}`}
+          href={`/dashboard/content/upload?avatarId=${avatar.id}`}
           className="flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent/80 transition-colors"
         >
           Upload

@@ -5,8 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '@/lib/api';
 import { mockStudent, USE_MOCK } from '@/lib/mock';
-
-const DEMO_ORG_ID = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo';
+import { useOrg } from '@/lib/org-context';
 
 function GraspRing({ value, size = 56 }: { value: number; size?: number }) {
   const r = (size - 8) / 2;
@@ -39,13 +38,21 @@ export default function StudentPage() {
   const params = useParams();
   const router = useRouter();
   const studentId = params.studentId as string;
+  const org = useOrg();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['student', DEMO_ORG_ID, studentId],
+    queryKey: ['student', org?.orgId, studentId],
     queryFn: async () => {
-      if (USE_MOCK) return { data: mockStudent };
-      return api.student(DEMO_ORG_ID, studentId);
+      if (!USE_MOCK) {
+        return api.student(org!.orgId, studentId);
+      }
+      try {
+        return await api.student(org!.orgId, studentId);
+      } catch {
+        return { data: mockStudent };
+      }
     },
+    enabled: !!org,
   });
 
   const d = data?.data;
@@ -159,9 +166,9 @@ export default function StudentPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Topic mastery */}
+        {/* Topic grasp */}
         <div className="bg-panel border border-line rounded-2xl p-5">
-          <p className="text-sm font-semibold text-ink mb-4">Topic Mastery</p>
+          <p className="text-sm font-semibold text-ink mb-4">Topic Grasp (quiz accuracy)</p>
           <div className="space-y-3">
             {sortedTopics.map((t) => (
               <div key={t.topic}>

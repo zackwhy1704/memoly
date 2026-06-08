@@ -4,8 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { mockHeatmap, USE_MOCK } from '@/lib/mock';
-
-const DEMO_ORG_ID = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo';
+import { useOrg } from '@/lib/org-context';
 
 function HeatCell({ value }: { value: number | null }) {
   if (value === null) {
@@ -28,13 +27,21 @@ export default function ClassHeatmapPage() {
   const params = useParams();
   const router = useRouter();
   const classId = decodeURIComponent(params.classId as string);
+  const org = useOrg();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['heatmap', DEMO_ORG_ID, classId],
+    queryKey: ['heatmap', org?.orgId, classId],
     queryFn: async () => {
-      if (USE_MOCK) return { data: mockHeatmap };
-      return api.heatmap(DEMO_ORG_ID, classId);
+      if (!USE_MOCK) {
+        return api.heatmap(org!.orgId, classId);
+      }
+      try {
+        return await api.heatmap(org!.orgId, classId);
+      } catch {
+        return { data: mockHeatmap };
+      }
     },
+    enabled: !!org,
   });
 
   const d = data?.data;
@@ -70,12 +77,13 @@ export default function ClassHeatmapPage() {
 
       <div>
         <h1 className="text-2xl font-bold text-ink">{classId} — Topic Heatmap</h1>
-        <p className="text-ink3 text-sm mt-1">Student mastery by topic</p>
+        <p className="text-ink3 text-sm mt-1">Student grasp (quiz accuracy) by topic</p>
       </div>
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-ink3">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-ok opacity-80" />≥70% mastered</span>
+        <span className="font-medium text-ink2 mr-1">Grasp level:</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-ok opacity-80" />≥70% strong</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-warn opacity-80" />45–69% developing</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-bad opacity-80" />&lt;45% at risk</span>
       </div>

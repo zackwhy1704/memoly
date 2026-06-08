@@ -218,11 +218,10 @@ export const api = {
     apiFetch<void>(`/avatars/${avatarId}/files/${fileId}`, { method: 'DELETE' }),
 
   // Centre me (orgId resolver)
-  centreMe: async () => {
-    const orgId = process.env.NEXT_PUBLIC_DEMO_ORG_ID;
-    if (orgId) return { data: { orgId } };
-    throw new Error('NEXT_PUBLIC_DEMO_ORG_ID not set');
-  },
+  centreMe: () =>
+    apiFetch<{ data: { orgId: string; orgName: string; seatsUsed: number; seatLimit: number; cohorts: string[] } }>(
+      '/centre/me'
+    ),
 
   // Analytics
   overview: (orgId: string, cohort?: string) =>

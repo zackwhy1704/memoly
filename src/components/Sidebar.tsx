@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { clearAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
+import { useOrg } from '@/lib/org-context';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: '⊞', exact: true },
@@ -19,6 +20,7 @@ export default function Sidebar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggle } = useTheme();
+  const org = useOrg();
 
   function handleLogout() {
     clearAuth();
@@ -29,7 +31,7 @@ export default function Sidebar() {
     if (item.exact) return pathname === item.href;
     // Special case: /dashboard/content matches both upload and analysis
     if (item.href === '/dashboard/content/upload') {
-      return pathname.startsWith('/dashboard/content') || pathname.startsWith('/dashboard/upload') || pathname.startsWith('/dashboard/analysis');
+      return pathname.startsWith('/dashboard/content');
     }
     return pathname.startsWith(item.href);
   }
@@ -68,6 +70,14 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Org info */}
+      {org && (
+        <div className="px-4 py-3 border-b border-line">
+          <p className="text-ink text-sm font-semibold truncate">{org.orgName}</p>
+          <p className="text-ink3 text-xs">{org.seatsUsed}/{org.seatLimit} seats</p>
+        </div>
+      )}
 
       {/* Theme toggle + Logout */}
       <div className="px-3 py-4 border-t border-line space-y-0.5">

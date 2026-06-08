@@ -4,9 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { mockOverview, USE_MOCK } from '@/lib/mock';
 import { api } from '@/lib/api';
+import { useOrg } from '@/lib/org-context';
 import Link from 'next/link';
-
-const DEMO_ORG_ID = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo';
 
 function pct(v: number) {
   return `${Math.round(v * 100)}%`;
@@ -21,12 +20,21 @@ function timeAgo(iso: string) {
 }
 
 export default function DashboardPage() {
+  const org = useOrg();
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['overview', DEMO_ORG_ID],
+    queryKey: ['overview', org?.orgId],
     queryFn: async () => {
-      if (USE_MOCK) return { data: mockOverview };
-      return api.overview(DEMO_ORG_ID);
+      if (!USE_MOCK) {
+        return api.overview(org!.orgId).then(r => r);
+      }
+      try {
+        return await api.overview(org!.orgId);
+      } catch {
+        return { data: mockOverview };
+      }
     },
+    enabled: !!org,
   });
 
   const d = data?.data ?? mockOverview;
@@ -132,9 +140,9 @@ export default function DashboardPage() {
 
       {/* Two-column section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Class mastery */}
+        {/* Class grasp */}
         <div className="bg-panel border border-line rounded-2xl p-5">
-          <p className="text-sm font-semibold text-ink mb-4">Class Mastery</p>
+          <p className="text-sm font-semibold text-ink mb-4">Class Grasp (quiz accuracy)</p>
           <div className="space-y-4">
             {d.classes.map((cls) => (
               <div key={cls.cohort}>

@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/Sidebar';
 import { useAuthGuard } from '@/lib/auth';
+import { OrgProvider } from '@/lib/org-context';
 
 export default function DashboardLayout({
   children,
@@ -22,13 +23,15 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-bg">
-      <Sidebar />
-      {/* Main content — offset by sidebar width on large screens */}
-      <main className="flex-1 lg:ml-64 min-w-0">
-        {/* Top padding for mobile hamburger */}
-        <div className="pt-16 lg:pt-0 px-4 lg:px-8 py-8">{children}</div>
-      </main>
-    </div>
+    <OrgProvider>
+      <div className="flex min-h-screen bg-bg">
+        <Sidebar />
+        {/* Main content — offset by sidebar width on large screens */}
+        <main className="flex-1 lg:ml-64 min-w-0">
+          {/* Top padding for mobile hamburger */}
+          <div className="pt-16 lg:pt-0 px-4 lg:px-8 py-8">{children}</div>
+        </main>
+      </div>
+    </OrgProvider>
   );
 }

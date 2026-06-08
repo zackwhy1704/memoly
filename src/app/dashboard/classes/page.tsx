@@ -4,18 +4,25 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { mockOverview, USE_MOCK } from '@/lib/mock';
-
-const DEMO_ORG_ID = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo';
+import { useOrg } from '@/lib/org-context';
 
 export default function ClassesPage() {
   const router = useRouter();
+  const org = useOrg();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['classes', DEMO_ORG_ID],
+    queryKey: ['classes', org?.orgId],
     queryFn: async () => {
-      if (USE_MOCK) return { data: mockOverview.classes };
-      return api.classes(DEMO_ORG_ID);
+      if (!USE_MOCK) {
+        return api.classes(org!.orgId);
+      }
+      try {
+        return await api.classes(org!.orgId);
+      } catch {
+        return { data: mockOverview.classes };
+      }
     },
+    enabled: !!org,
   });
 
   const classes = Array.isArray(data?.data) ? data.data : [];

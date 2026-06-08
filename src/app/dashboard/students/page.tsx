@@ -6,21 +6,28 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { mockRoster, USE_MOCK } from '@/lib/mock';
-
-const DEMO_ORG_ID = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo';
+import { useOrg } from '@/lib/org-context';
 
 function StudentsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cohortFilter = searchParams.get('cohort') ?? '';
   const [search, setSearch] = useState('');
+  const org = useOrg();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['roster', DEMO_ORG_ID, cohortFilter],
+    queryKey: ['roster', org?.orgId, cohortFilter],
     queryFn: async () => {
-      if (USE_MOCK) return { data: mockRoster };
-      return api.roster(DEMO_ORG_ID, cohortFilter || undefined);
+      if (!USE_MOCK) {
+        return api.roster(org!.orgId, cohortFilter || undefined);
+      }
+      try {
+        return await api.roster(org!.orgId, cohortFilter || undefined);
+      } catch {
+        return { data: mockRoster };
+      }
     },
+    enabled: !!org,
   });
 
   const roster = data?.data;
