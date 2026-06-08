@@ -25,7 +25,7 @@ const CENTRE_MOCHIS: CentreMochi[] = [
   { characterType: 'ATWPHARAOH',    name: 'Pharaoh Mochi',   image: '/characters/atw_pharaoh.png',    emoji: '🏺', rarity: 'COMMON', tagline: 'Egypt' },
   { characterType: 'ATWSAKURA',     name: 'Sakura Mochi',    image: '/characters/atw_sakura.png',     emoji: '🌸', rarity: 'COMMON', tagline: 'Japan' },
   { characterType: 'ATWSOMBRERO',   name: 'Sombrero Mochi',  image: '/characters/atw_sombrero.png',   emoji: '🪅', rarity: 'COMMON', tagline: 'Mexico' },
-  { characterType: 'ATWKILT',       name: 'Kilt Mochi',      image: null,                             emoji: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', rarity: 'COMMON', tagline: 'Scotland' },
+  { characterType: 'ATWKILT',       name: 'Kilt Mochi',      image: '/characters/atw_kilt.png',       emoji: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', rarity: 'COMMON', tagline: 'Scotland' },
 ];
 
 const RARITY_LABEL: Record<string, { label: string; cls: string }> = {
