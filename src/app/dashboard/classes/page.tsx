@@ -261,6 +261,26 @@ function CreateClassModal({
           </div>
         </div>
 
+        {/* Accessories — layered-art scaffold, inert until art is commissioned */}
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-ink2 font-medium">Accessories</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-panel2 text-ink3">Coming soon</span>
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {(['Eyewear', 'Clothes', 'Shoes'] as const).map((slot) => (
+              <select
+                key={slot}
+                disabled
+                title="Layered accessory art is on the way"
+                className="px-2 py-2 rounded-lg border border-line bg-panel2 text-ink3 text-xs opacity-60 cursor-not-allowed"
+              >
+                <option>{slot} — none</option>
+              </select>
+            ))}
+          </div>
+        </div>
+
         {mutation.isError && (
           <p className="text-xs text-bad">Could not create the class. Please try again.</p>
         )}
