@@ -156,6 +156,55 @@ export interface RosterData {
   totalElements: number;
 }
 
+// ── Classes (first-class units) ──────────────────────────────────────────
+export interface OrgClass {
+  id: string;
+  name: string;
+  subject: string | null;
+  level: string | null;
+  joinCode: string;
+  corpusAvatarId: string | null;
+  characterType: string;
+  brandName: string | null;
+  accentColor: string | null;
+  examDate: string | null;
+  cosmeticEyewear: string | null;
+  cosmeticClothes: string | null;
+  cosmeticShoes: string | null;
+  studentCount: number;
+}
+
+export interface CentreMember {
+  userId: string;
+  displayName: string;
+  classes: Array<{ classId: string; className: string }>;
+  unassigned: boolean;
+}
+
+export interface ClassRosterStudent {
+  userId: string;
+  displayName: string;
+  avatarId: string;
+}
+
+export interface ClassRosterAnalyticsRow {
+  studentId: string;
+  displayName: string;
+  grasp: number;
+  attempts: number;
+  lastActive: string | null;
+}
+
+export interface CreateClassBody {
+  name: string;
+  subject?: string;
+  level?: string;
+  characterType?: string;
+  brandName?: string;
+  accentColor?: string;
+  examDate?: string;
+}
+
 // ── API methods ────────────────────────────────────────────────────────
 export const api = {
   // Auth
@@ -229,12 +278,15 @@ export const api = {
       `/centre/organizations/${orgId}/overview${cohort ? `?cohort=${encodeURIComponent(cohort)}` : ''}`
     ),
 
-  classes: (orgId: string) =>
+  // Legacy cohort-based summary (renamed from /classes → /cohorts on the
+  // backend now that classes are first-class). Kept for backward compat.
+  cohorts: (orgId: string) =>
     apiFetch<{ data: Array<{ cohort: string; studentCount: number; avgGrasp: number }> }>(
-      `/centre/organizations/${orgId}/classes`
+      `/centre/organizations/${orgId}/cohorts`
     ),
 
-  heatmap: (orgId: string, cohort: string) =>
+  // Legacy cohort heatmap.
+  cohortHeatmap: (orgId: string, cohort: string) =>
     apiFetch<{ data: HeatmapData }>(
       `/centre/organizations/${orgId}/classes/${encodeURIComponent(cohort)}/heatmap`
     ),
@@ -247,6 +299,53 @@ export const api = {
   roster: (orgId: string, cohort?: string, page = 0, size = 50) =>
     apiFetch<{ data: RosterData }>(
       `/centre/organizations/${orgId}/roster?page=${page}&size=${size}${cohort ? `&cohort=${encodeURIComponent(cohort)}` : ''}`
+    ),
+
+  // ── Classes (first-class units) ────────────────────────────────────────
+  classes: (orgId: string) =>
+    apiFetch<{ data: OrgClass[] }>(`/centre/organizations/${orgId}/classes`),
+
+  createClass: (orgId: string, body: CreateClassBody) =>
+    apiFetch<{ data: OrgClass }>(`/centre/organizations/${orgId}/classes`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateClass: (orgId: string, classId: string, body: Partial<CreateClassBody>) =>
+    apiFetch<{ data: OrgClass }>(`/centre/organizations/${orgId}/classes/${classId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  // All centre members + their class memberships + unassigned flag.
+  members: (orgId: string) =>
+    apiFetch<{ data: CentreMember[] }>(`/centre/organizations/${orgId}/members`),
+
+  assignMember: (orgId: string, classId: string, userId: string) =>
+    apiFetch<{ data: { avatarId: string; classId: string; userId: string } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/members`,
+      { method: 'POST', body: JSON.stringify({ userId }) }
+    ),
+
+  removeMember: (orgId: string, classId: string, studentId: string) =>
+    apiFetch<{ data: { removed: boolean } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/members/${studentId}`,
+      { method: 'DELETE' }
+    ),
+
+  classRoster: (orgId: string, classId: string) =>
+    apiFetch<{ data: ClassRosterStudent[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/members`
+    ),
+
+  classRosterAnalytics: (orgId: string, classId: string) =>
+    apiFetch<{ data: ClassRosterAnalyticsRow[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/analytics/roster`
+    ),
+
+  classHeatmap: (orgId: string, classId: string) =>
+    apiFetch<{ data: HeatmapData }>(
+      `/centre/organizations/${orgId}/classes/${classId}/analytics/heatmap`
     ),
 };
 
