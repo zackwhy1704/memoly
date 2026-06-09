@@ -1,4 +1,6 @@
-export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
+// Off by default — production uses real API data. Set NEXT_PUBLIC_USE_MOCK=true
+// only for local UI work without a backend.
+export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 export const mockOverview = {
   activeThisWeek: 18,

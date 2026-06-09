@@ -107,6 +107,13 @@ export default function LoginPage() {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+
+          <p className="text-center text-sm text-ink3 mt-6">
+            New centre?{' '}
+            <a href="/signup" className="text-accent font-semibold hover:underline">
+              Create your centre
+            </a>
+          </p>
         </div>
 
         <p className="text-center text-xs text-ink3 mt-6">

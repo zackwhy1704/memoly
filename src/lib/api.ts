@@ -215,6 +215,27 @@ export const api = {
       skipAuth: true,
     }),
 
+  register: (email: string, password: string, displayName: string) =>
+    apiFetch<LoginResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, displayName }),
+      skipAuth: true,
+    }),
+
+  // Self-serve centre creation — the authenticated caller becomes the owner.
+  onboardCentre: (centreName: string) =>
+    apiFetch<{ data: { orgId: string; orgName: string; alreadyOwned: boolean } }>(
+      '/centre/onboard',
+      { method: 'POST', body: JSON.stringify({ centreName }) }
+    ),
+
+  // Mint a student enroll code for the centre.
+  mintEnrollCode: (orgId: string, cohortLabel: string, seats: number) =>
+    apiFetch<{ data: { code: string; cohortLabel: string; maxUses: number; expiresAt: string } }>(
+      `/centre/organizations/${orgId}/enroll-code`,
+      { method: 'POST', body: JSON.stringify({ cohortLabel, seats }) }
+    ),
+
   // Avatars (Mochis)
   avatars: () => apiFetch<AvatarsResponse>('/avatars'),
   avatar: (id: string) => apiFetch<AvatarResponse>(`/avatars/${id}`),
