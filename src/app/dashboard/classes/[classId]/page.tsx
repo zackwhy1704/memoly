@@ -7,6 +7,9 @@ import { api, type OrgClass } from '@/lib/api';
 import { mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
+import AsyncBoundary from '@/components/AsyncBoundary';
+import ErrorView from '@/components/ErrorView';
+import EmptyState from '@/components/EmptyState';
 
 type Tab = 'roster' | 'heatmap' | 'content' | 'add';
 
@@ -92,7 +95,7 @@ export default function ClassDetailPage() {
 
       {tab === 'roster' && <RosterTab orgId={org.orgId} classId={classId} />}
       {tab === 'heatmap' && <HeatmapTab orgId={org.orgId} classId={classId} />}
-      {tab === 'content' && <ContentTab corpusAvatarId={cls.corpusAvatarId} />}
+      {tab === 'content' && <ContentTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
       {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
     </div>
   );
@@ -101,7 +104,7 @@ export default function ClassDetailPage() {
 // ── Roster ─────────────────────────────────────────────────────────────────
 function RosterTab({ orgId, classId }: { orgId: string; classId: string }) {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['classRosterAnalytics', orgId, classId],
     queryFn: () => api.classRosterAnalytics(orgId, classId),
   });
@@ -113,8 +116,10 @@ function RosterTab({ orgId, classId }: { orgId: string; classId: string }) {
     },
   });
 
-  const rows = data?.data ?? [];
-  if (isLoading) return <p className="text-ink3 text-sm py-8">Loading roster…</p>;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading roster...</p>;
+  if (query.error) return <ErrorView message="Could not load class roster." onRetry={() => query.refetch()} />;
+
+  const rows = query.data?.data ?? [];
 
   return (
     <div className="bg-panel border border-line rounded-2xl overflow-hidden">
@@ -179,17 +184,20 @@ function HeatCell({ value }: { value: number | null }) {
 }
 
 function HeatmapTab({ orgId, classId }: { orgId: string; classId: string }) {
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['classHeatmap', orgId, classId],
     queryFn: () => api.classHeatmap(orgId, classId),
   });
-  const d = data?.data;
-  if (isLoading) return <p className="text-ink3 text-sm py-8">Loading heatmap…</p>;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading heatmap...</p>;
+  if (query.error) return <ErrorView message="Could not load heatmap data." onRetry={() => query.refetch()} />;
+  const d = query.data?.data;
   if (!d || d.topics.length === 0) {
     return (
-      <div className="bg-panel border border-line rounded-2xl p-10 text-center text-ink3">
-        Not enough quiz data yet to build a heatmap.
-      </div>
+      <EmptyState
+        icon="📊"
+        title="No quiz activity yet"
+        description="Students need to take quizzes first before the heatmap can show topic mastery."
+      />
     );
   }
 
@@ -255,10 +263,10 @@ function HeatmapTab({ orgId, classId }: { orgId: string; classId: string }) {
 }
 
 // ── Content (uploads to the class corpus avatar via the mobile pipeline) ──────
-function ContentTab({ corpusAvatarId }: { corpusAvatarId: string | null }) {
+function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string | null; classId: string }) {
   const qc = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['classFiles', corpusAvatarId],
     queryFn: () => api.files(corpusAvatarId!),
     enabled: !!corpusAvatarId,
@@ -266,13 +274,15 @@ function ContentTab({ corpusAvatarId }: { corpusAvatarId: string | null }) {
 
   if (!corpusAvatarId) {
     return (
-      <div className="bg-panel border border-line rounded-2xl p-10 text-center text-ink3">
-        This class has no corpus yet.
-      </div>
+      <EmptyState
+        icon="📚"
+        title="No corpus yet"
+        description="This class has no content corpus. Contact support if this is unexpected."
+      />
     );
   }
 
-  const files = data?.data ?? [];
+  const files = query.data?.data ?? [];
 
   return (
     <div className="space-y-4">
@@ -282,15 +292,26 @@ function ContentTab({ corpusAvatarId }: { corpusAvatarId: string | null }) {
         </p>
         <MochiUploader
           avatarId={corpusAvatarId}
+          classId={classId}
           onComplete={() => qc.invalidateQueries({ queryKey: ['classFiles', corpusAvatarId] })}
         />
       </div>
 
       <div className="bg-panel border border-line rounded-2xl overflow-hidden">
-        {isLoading ? (
-          <p className="text-ink3 text-sm p-5">Loading files…</p>
+        {query.isLoading ? (
+          <p className="text-ink3 text-sm p-5">Loading files...</p>
+        ) : query.error ? (
+          <div className="p-4">
+            <ErrorView message="Could not load uploaded files." onRetry={() => query.refetch()} />
+          </div>
         ) : files.length === 0 ? (
-          <p className="text-ink3 text-sm p-8 text-center">No content uploaded yet.</p>
+          <div className="p-8">
+            <EmptyState
+              icon="📭"
+              title="No content uploaded yet"
+              description="Upload teaching material to build this class's knowledge base."
+            />
+          </div>
         ) : (
           <table className="w-full text-sm">
             <tbody>
@@ -314,7 +335,7 @@ function ContentTab({ corpusAvatarId }: { corpusAvatarId: string | null }) {
 // ── Add students (assign unassigned centre members) ───────────────────────────
 function AddStudentsTab({ orgId, classId }: { orgId: string; classId: string }) {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['members', orgId],
     queryFn: () => api.members(orgId),
   });
@@ -327,8 +348,9 @@ function AddStudentsTab({ orgId, classId }: { orgId: string; classId: string }) 
     },
   });
 
-  const members = data?.data ?? [];
-  if (isLoading) return <p className="text-ink3 text-sm py-8">Loading members…</p>;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading members...</p>;
+  if (query.error) return <ErrorView message="Could not load centre members." onRetry={() => query.refetch()} />;
+  const members = query.data?.data ?? [];
 
   return (
     <div className="bg-panel border border-line rounded-2xl overflow-hidden">

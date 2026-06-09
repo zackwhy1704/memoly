@@ -7,6 +7,8 @@ import { api, type CreateClassBody, type OrgClass } from '@/lib/api';
 import { CENTRE_MOCHIS, CENTRE_SUBJECTS, mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
+import AsyncBoundary from '@/components/AsyncBoundary';
+import EmptyState from '@/components/EmptyState';
 
 function MochiBadge({ characterType, size = 40 }: { characterType: string; size?: number }) {
   const m = mochiFor(characterType);
@@ -33,13 +35,11 @@ export default function ClassesPage() {
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
+  const query = useQuery({
     queryKey: ['classes', org?.orgId],
     queryFn: () => api.classes(org!.orgId),
     enabled: !!org,
   });
-
-  const classes: OrgClass[] = Array.isArray(data?.data) ? data!.data : [];
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -58,62 +58,72 @@ export default function ClassesPage() {
         </button>
       </div>
 
-      {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <span className="text-3xl animate-bounce">🏫</span>
-            <p className="text-ink3 text-sm">Loading classes…</p>
-          </div>
-        </div>
-      )}
+      <AsyncBoundary
+        query={query}
+        loadingIcon="🏫"
+        loadingLabel="Loading classes..."
+        errorMessage="Could not load classes."
+        empty={
+          <EmptyState
+            icon="🏫"
+            title="No classes yet"
+            description="Create your first class to get a join code and start adding students."
+            actionLabel="+ New class"
+            onAction={() => setShowCreate(true)}
+          />
+        }
+      >
+        {(data) => {
+          const classes: OrgClass[] = Array.isArray(data.data) ? data.data : [];
 
-      {error && (
-        <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">
-          Failed to load classes.
-        </div>
-      )}
+          if (classes.length === 0) {
+            return (
+              <EmptyState
+                icon="🏫"
+                title="No classes yet"
+                description="Create your first class to get a join code and start adding students."
+                actionLabel="+ New class"
+                onAction={() => setShowCreate(true)}
+              />
+            );
+          }
 
-      {!isLoading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {classes.map((cls) => (
-            <button
-              key={cls.id}
-              onClick={() => router.push(`/dashboard/classes/${cls.id}`)}
-              className="bg-panel border border-line rounded-2xl p-5 text-left hover:border-accent/40 hover:bg-panel2 transition-colors"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {classes.map((cls) => (
+                <button
+                  key={cls.id}
+                  onClick={() => router.push(`/dashboard/classes/${cls.id}`)}
+                  className="bg-panel border border-line rounded-2xl p-5 text-left hover:border-accent/40 hover:bg-panel2 transition-colors"
                 >
-                  <MochiBadge characterType={cls.characterType} size={36} />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-base font-bold text-ink truncate">
-                    {cls.brandName || cls.name}
-                  </h2>
-                  <p className="text-ink3 text-xs truncate">
-                    {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-ink3">{cls.studentCount} students</span>
-                <span className="font-mono text-xs px-2 py-1 rounded bg-panel2 text-ink2 tracking-wider">
-                  {cls.joinCode}
-                </span>
-              </div>
-            </button>
-          ))}
-
-          {classes.length === 0 && (
-            <div className="col-span-2 text-center py-20 text-ink3">
-              <p className="text-4xl mb-3">🏫</p>
-              <p>No classes yet — create your first class to get a join code.</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
+                    >
+                      <MochiBadge characterType={cls.characterType} size={36} />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base font-bold text-ink truncate">
+                        {cls.brandName || cls.name}
+                      </h2>
+                      <p className="text-ink3 text-xs truncate">
+                        {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-ink3">{cls.studentCount} students</span>
+                    <span className="font-mono text-xs px-2 py-1 rounded bg-panel2 text-ink2 tracking-wider">
+                      {cls.joinCode}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
-          )}
-        </div>
-      )}
+          );
+        }}
+      </AsyncBoundary>
 
       {showCreate && org && (
         <CreateClassModal

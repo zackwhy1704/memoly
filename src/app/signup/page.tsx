@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 
 // Self-serve centre onboarding: register an admin account, create the centre,
@@ -39,8 +39,9 @@ export default function SignupPage() {
       } catch (err) {
         // Email already registered → fall back to login so existing users can
         // still create their centre.
-        const msg = err instanceof Error ? err.message : '';
-        if (msg.includes('409') || msg.toLowerCase().includes('exist')) {
+        const isConflict = (err instanceof ApiError && err.status === 409) ||
+          (err instanceof Error && (err.message.includes('409') || err.message.toLowerCase().includes('exist')));
+        if (isConflict) {
           const res = await api.login(email, password);
           token = res.data.token;
           userId = res.data.userId;
@@ -56,14 +57,17 @@ export default function SignupPage() {
       // 3. into the dashboard
       router.replace('/dashboard');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Signup failed';
-      setError(
-        msg.includes('401') || msg.includes('403')
-          ? 'That email and password don’t match an existing account.'
-          : msg.includes('400')
-            ? 'Please check your details and try again.'
-            : 'Could not create your centre. Please try again.'
-      );
+      if (err instanceof ApiError) {
+        if (err.status === 401 || err.status === 403) {
+          setError("That email and password don't match an existing account.");
+        } else if (err.status === 400) {
+          setError('Please check your details and try again.');
+        } else {
+          setError(err.userMessage);
+        }
+      } else {
+        setError('Could not create your centre. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

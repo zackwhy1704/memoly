@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -29,10 +29,15 @@ export default function LoginPage() {
       saveAuth(res.data.token, res.data.userId);
       router.replace('/dashboard');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Login failed';
-      setError(msg.includes('401') || msg.includes('403')
-        ? 'Incorrect email or password.'
-        : 'Could not connect to server. Please try again.');
+      if (err instanceof ApiError) {
+        setError(
+          err.status === 401 || err.status === 403
+            ? 'Incorrect email or password.'
+            : err.userMessage
+        );
+      } else {
+        setError('Could not connect to server. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

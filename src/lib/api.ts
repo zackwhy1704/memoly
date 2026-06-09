@@ -5,6 +5,62 @@ function getToken(): string | null {
   return localStorage.getItem('memoly_token');
 }
 
+// ── Typed API Error ───────────────────────────────────────────────────
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string | null,
+    public userMessage: string,
+    public retryable: boolean
+  ) {
+    super(userMessage);
+    this.name = 'ApiError';
+  }
+}
+
+function statusToApiError(status: number, body: string): ApiError {
+  // Try to parse the backend envelope: { error, data, status }
+  let code: string | null = null;
+  let backendMsg: string | null = null;
+  try {
+    const parsed = JSON.parse(body);
+    code = parsed.code ?? null;
+    backendMsg = parsed.error ?? parsed.message ?? null;
+  } catch {
+    /* body wasn't JSON — use fallback messages */
+  }
+
+  switch (status) {
+    case 400:
+      return new ApiError(400, code, backendMsg || 'Something was off with that request.', false);
+    case 401: {
+      // Clear auth and redirect — but only if we had a token (i.e. not a login attempt)
+      if (typeof window !== 'undefined' && localStorage.getItem('memoly_token')) {
+        localStorage.removeItem('memoly_token');
+        localStorage.removeItem('memoly_user_id');
+        window.location.href = '/login';
+      }
+      return new ApiError(401, code, 'Session expired — please sign in again.', false);
+    }
+    case 403:
+      return new ApiError(403, code, backendMsg || "You don't have access to that.", false);
+    case 404:
+      return new ApiError(404, code, backendMsg || 'Not found.', false);
+    case 413:
+      return new ApiError(413, code, 'File too large (max 25MB).', false);
+    case 429:
+      return new ApiError(429, code, 'Too many requests — give it a moment.', true);
+    case 500:
+      return new ApiError(500, code, backendMsg || 'Something went wrong on our side. Please try again.', true);
+    case 503:
+      return new ApiError(503, code, 'The service is busy right now — retry shortly.', true);
+    case 504:
+      return new ApiError(504, code, 'This is taking longer than usual — it may still be processing in the background.', true);
+    default:
+      return new ApiError(status, code, backendMsg || `Unexpected error (${status}).`, status >= 500);
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   opts?: RequestInit & { skipAuth?: boolean }
@@ -18,14 +74,19 @@ export async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(BASE + path, {
-    ...opts,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(BASE + path, {
+      ...opts,
+      headers,
+    });
+  } catch {
+    throw new ApiError(0, 'NETWORK', 'You appear to be offline. Check your connection.', true);
+  }
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`${res.status}: ${text}`);
+    throw statusToApiError(res.status, text);
   }
 
   return res.json() as Promise<T>;
@@ -292,7 +353,7 @@ export const api = {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`${res.status}: ${text}`);
+      throw statusToApiError(res.status, text);
     }
 
     return res.json() as Promise<UploadResponse>;

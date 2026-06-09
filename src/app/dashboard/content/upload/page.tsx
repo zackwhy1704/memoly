@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { api, type OrgClass } from '@/lib/api';
+import { api, ApiError, type OrgClass } from '@/lib/api';
 import { CENTRE_MOCHIS, CENTRE_SUBJECTS } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
@@ -44,7 +44,7 @@ function UploadContent() {
       });
       setCreated(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create the Mochi.');
+      setError(err instanceof ApiError ? err.userMessage : err instanceof Error ? err.message : 'Could not create the Mochi.');
     } finally {
       setCreating(false);
     }

@@ -9,7 +9,7 @@
 //
 // Keep this in lockstep with lib/features/upload/presentation/upload_view_model.dart.
 
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 export const MAX_FILES = 10;
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // matches backend cap
@@ -22,13 +22,23 @@ export type FileStage =
   | 'uploading'
   | 'done'
   | 'warning' // uploaded despite low relevance
-  | 'error';
+  | 'error'
+  | 'compiling'      // recompile in progress
+  | 'compileTimeout' // recompile didn't finish in time
+  | 'compileFailed'; // recompile errored
 
 export interface FileProgress {
   name: string;
   stage: FileStage;
   message?: string;
   pageCount?: number;
+  /** Original File reference for per-file retry. */
+  file?: File;
+  /** Whether this file had low relevance. */
+  lowRelevance?: boolean;
+  /** Backend response metadata. */
+  servedBy?: string;
+  degraded?: boolean;
 }
 
 /** Returns a user-friendly error string if the file is invalid, else null. */
@@ -66,6 +76,74 @@ export interface PipelineResult {
 }
 
 /**
+ * Process a single file through the relevance + upload pipeline.
+ * Exported so MochiUploader can call it for per-file retry.
+ */
+export async function uploadSingleFile(
+  avatarId: string,
+  file: File,
+  onProgress: (p: FileProgress) => void
+): Promise<FileProgress> {
+  const invalid = validateFile(file);
+  if (invalid) {
+    const p: FileProgress = { name: file.name, stage: 'error', message: invalid, file };
+    onProgress(p);
+    return p;
+  }
+
+  // Relevance check (fail-open)
+  onProgress({ name: file.name, stage: 'checkingRelevance', file });
+  let skipRelevance = false;
+  let lowRelevance = false;
+  try {
+    const sample = await contentSampleFor(file);
+    const rel = await api.checkRelevance(avatarId, sample);
+    if (!rel.data.isRelevant) {
+      lowRelevance = true;
+      skipRelevance = true;
+    }
+  } catch {
+    skipRelevance = true;
+  }
+
+  // Upload
+  onProgress({ name: file.name, stage: 'uploading', file });
+  try {
+    const res = await api.uploadFile(avatarId, file, { skipRelevance });
+    // Guard new backend fields
+    const resData = res.data as Record<string, unknown> | undefined;
+    const servedBy = typeof resData?.servedBy === 'string' ? resData.servedBy : undefined;
+    const degraded = typeof resData?.degraded === 'boolean' ? resData.degraded : undefined;
+
+    const result: FileProgress = {
+      name: file.name,
+      stage: lowRelevance ? 'warning' : 'done',
+      pageCount: res.data?.pageCount,
+      file,
+      lowRelevance,
+      servedBy,
+      degraded: degraded ?? false,
+      message: lowRelevance
+        ? 'Looks off-topic for this class — added anyway.'
+        : degraded
+          ? 'Read with backup engine — double-check the text looks right.'
+          : undefined,
+    };
+    onProgress(result);
+    return result;
+  } catch (err) {
+    const result: FileProgress = {
+      name: file.name,
+      stage: 'error',
+      message: friendlyError(err, file.name),
+      file,
+    };
+    onProgress(result);
+    return result;
+  }
+}
+
+/**
  * Runs the full mobile-parity pipeline for up to {@link MAX_FILES} files against
  * one avatar. Files are processed sequentially so one failure never blocks the
  * rest. `onUpdate` is called after every state change for live UI.
@@ -76,57 +154,20 @@ export async function runUploadPipeline(
   onUpdate: (progress: FileProgress[]) => void
 ): Promise<PipelineResult> {
   const batch = files.slice(0, MAX_FILES);
-  const progress: FileProgress[] = batch.map((f) => ({ name: f.name, stage: 'queued' }));
+  const progress: FileProgress[] = batch.map((f) => ({ name: f.name, stage: 'queued', file: f }));
   const emit = () => onUpdate([...progress]);
   emit();
 
   let anyUploaded = false;
 
   for (let i = 0; i < batch.length; i++) {
-    const file = batch[i];
-
-    const invalid = validateFile(file);
-    if (invalid) {
-      progress[i] = { name: file.name, stage: 'error', message: invalid };
+    const result = await uploadSingleFile(avatarId, batch[i], (p) => {
+      progress[i] = p;
       emit();
-      continue;
-    }
-
-    // 2. relevance pre-check (fail-open exactly like mobile)
-    progress[i] = { name: file.name, stage: 'checkingRelevance' };
-    emit();
-    let skipRelevance = false;
-    let lowRelevance = false;
-    try {
-      const sample = await contentSampleFor(file);
-      const rel = await api.checkRelevance(avatarId, sample);
-      if (!rel.data.isRelevant) {
-        lowRelevance = true;
-        skipRelevance = true; // centre content is curated — upload anyway, flag it
-      }
-    } catch {
-      // Relevance check errored → upload anyway (fail-open).
-      skipRelevance = true;
-    }
-
-    // 3. upload
-    progress[i] = { name: file.name, stage: 'uploading' };
-    emit();
-    try {
-      const res = await api.uploadFile(avatarId, file, { skipRelevance });
+    });
+    if (result.stage === 'done' || result.stage === 'warning') {
       anyUploaded = true;
-      progress[i] = {
-        name: file.name,
-        stage: lowRelevance ? 'warning' : 'done',
-        pageCount: res.data?.pageCount,
-        message: lowRelevance
-          ? 'Uploaded — looked off-topic for this subject, double-check it fits.'
-          : undefined,
-      };
-    } catch (err) {
-      progress[i] = { name: file.name, stage: 'error', message: friendlyError(err, file.name) };
     }
-    emit();
   }
 
   // 4. recompile once for the batch (mobile fires per upload; recompile is idempotent)
@@ -165,6 +206,14 @@ function sleep(ms: number) {
 }
 
 function friendlyError(err: unknown, fileName: string): string {
+  if (err instanceof ApiError) {
+    if (err.status === 413) return `"${fileName}" is too large (max 25MB).`;
+    if (err.status === 415) return `"${fileName}" isn't a supported file type.`;
+    if (err.status === 409) return `"${fileName}" is already in this Mochi's brain.`;
+    if (err.status === 401) return 'Session expired — please sign in again.';
+    if (err.retryable) return `Upload of "${fileName}" failed: ${err.userMessage}`;
+    return err.userMessage;
+  }
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes('413')) return `"${fileName}" is too large (max 25MB).`;
   if (msg.includes('415')) return `"${fileName}" isn't a supported file type.`;
