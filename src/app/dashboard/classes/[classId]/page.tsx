@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { api, type OrgClass } from '@/lib/api';
 import { mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
+import MochiUploader from '@/components/MochiUploader';
 
 type Tab = 'roster' | 'heatmap' | 'content' | 'add';
 
@@ -253,20 +254,14 @@ function HeatmapTab({ orgId, classId }: { orgId: string; classId: string }) {
   );
 }
 
-// ── Content (uploads to the class corpus avatar) ──────────────────────────────
+// ── Content (uploads to the class corpus avatar via the mobile pipeline) ──────
 function ContentTab({ corpusAvatarId }: { corpusAvatarId: string | null }) {
   const qc = useQueryClient();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['classFiles', corpusAvatarId],
     queryFn: () => api.files(corpusAvatarId!),
     enabled: !!corpusAvatarId,
-  });
-
-  const upload = useMutation({
-    mutationFn: (file: File) => api.uploadFile(corpusAvatarId!, file),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['classFiles', corpusAvatarId] }),
   });
 
   if (!corpusAvatarId) {
@@ -282,27 +277,13 @@ function ContentTab({ corpusAvatarId }: { corpusAvatarId: string | null }) {
   return (
     <div className="space-y-4">
       <div className="bg-panel border border-line rounded-2xl p-5">
-        <p className="text-sm text-ink2 mb-3">
+        <p className="text-sm text-ink2 mb-4">
           Upload notes, worksheets or PDFs. Every student&apos;s Mochi in this class reads this shared corpus.
         </p>
-        <input
-          ref={fileRef}
-          type="file"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) upload.mutate(f);
-            if (fileRef.current) fileRef.current.value = '';
-          }}
+        <MochiUploader
+          avatarId={corpusAvatarId}
+          onComplete={() => qc.invalidateQueries({ queryKey: ['classFiles', corpusAvatarId] })}
         />
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={upload.isPending}
-          className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
-        >
-          {upload.isPending ? 'Uploading…' : '+ Upload content'}
-        </button>
-        {upload.isError && <p className="text-xs text-bad mt-2">Upload failed. Try again.</p>}
       </div>
 
       <div className="bg-panel border border-line rounded-2xl overflow-hidden">

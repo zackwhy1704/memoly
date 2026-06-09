@@ -1,234 +1,174 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import Image from 'next/image';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { api } from '@/lib/api';
-import FileDropzone from '@/components/FileDropzone';
+import { api, type OrgClass } from '@/lib/api';
+import { CENTRE_MOCHIS, CENTRE_SUBJECTS } from '@/lib/centre-mochis';
+import { useOrg } from '@/lib/org-context';
+import MochiUploader from '@/components/MochiUploader';
 
-// ── AroundTheWorld Mochi series ───────────────────────────────────────────────
-
-interface CentreMochi {
-  characterType: string;
-  name: string;
-  image: string | null;  // /characters/atw_xxx.png — null = emoji fallback
-  emoji: string;
-  rarity: 'COMMON' | 'RARE' | 'SECRET';
-  tagline: string;
+// Mobile-parity journey: create a teaching Mochi (character + name + subject)
+// then upload up to 10 files through the same relevance → files → recompile
+// pipeline the app uses. Creating the Mochi provisions a class (with its own
+// join code + shared corpus) so students can be assigned to it.
+function MochiBadge({ characterType, size = 56 }: { characterType: string; size?: number }) {
+  const m = CENTRE_MOCHIS.find((c) => c.characterType === characterType) ?? CENTRE_MOCHIS[0];
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span style={{ fontSize: size * 0.7 }}>{m.emoji}</span>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={m.image} alt={m.name} width={size} height={size} onError={() => setFailed(true)} className="object-contain" />
+  );
 }
 
-const CENTRE_MOCHIS: CentreMochi[] = [
-  { characterType: 'ATWBERET',      name: 'Beret Mochi',    image: '/characters/atw_beret.png',      emoji: '🎭', rarity: 'COMMON', tagline: 'Paris, France' },
-  { characterType: 'ATWGLOBERIDER', name: 'Globe Rider',     image: '/characters/atw_globerider.png', emoji: '🌍', rarity: 'RARE',   tagline: 'Around the World' },
-  { characterType: 'ATWKEBAYA',     name: 'Kebaya Mochi',    image: '/characters/atw_kebaya.png',     emoji: '👘', rarity: 'COMMON', tagline: 'Southeast Asia' },
-  { characterType: 'ATWLIONCITY',   name: 'Lion City Mochi', image: '/characters/atw_lioncity.png',   emoji: '🦁', rarity: 'SECRET', tagline: 'Singapore' },
-  { characterType: 'ATWPHARAOH',    name: 'Pharaoh Mochi',   image: '/characters/atw_pharaoh.png',    emoji: '🏺', rarity: 'COMMON', tagline: 'Egypt' },
-  { characterType: 'ATWSAKURA',     name: 'Sakura Mochi',    image: '/characters/atw_sakura.png',     emoji: '🌸', rarity: 'COMMON', tagline: 'Japan' },
-  { characterType: 'ATWSOMBRERO',   name: 'Sombrero Mochi',  image: '/characters/atw_sombrero.png',   emoji: '🪅', rarity: 'COMMON', tagline: 'Mexico' },
-  { characterType: 'ATWKILT',       name: 'Kilt Mochi',      image: '/characters/atw_kilt.png',       emoji: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', rarity: 'COMMON', tagline: 'Scotland' },
-];
-
-const RARITY_LABEL: Record<string, { label: string; cls: string }> = {
-  RARE:   { label: 'RARE',   cls: 'text-accent border-accent/50 bg-accent/10' },
-  SECRET: { label: 'SECRET', cls: 'text-warn  border-warn/50  bg-warn/10'  },
-};
-
 function UploadContent() {
-  const [selected, setSelected] = useState<CentreMochi | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string; avatarId?: string } | null>(null);
+  const org = useOrg();
+  const [characterType, setCharacterType] = useState('ATWSAKURA');
+  const [name, setName] = useState('');
+  const [subject, setSubject] = useState('MATHS');
+  const [level, setLevel] = useState('');
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [created, setCreated] = useState<OrgClass | null>(null);
 
-  async function handleUpload() {
-    if (!file || !selected) return;
-    setUploading(true);
-    setResult(null);
+  async function createMochi() {
+    if (!name.trim() || !org) return;
+    setCreating(true);
     setError('');
-
     try {
-      const avatarsRes = await api.avatars();
-      const raw = avatarsRes.data ?? avatarsRes;
-      const list = Array.isArray(raw) ? raw : [];
-
-      const centreAvatar =
-        list.find((a) => a.centreManaged && a.characterType?.toUpperCase() === selected.characterType) ??
-        list.find((a) => a.characterType?.toUpperCase() === selected.characterType);
-
-      if (!centreAvatar) {
-        setError(
-          `No ${selected.name} avatar found. Create one in the Memoly app first, then mark it as a centre Mochi from the Overview page.`
-        );
-        return;
-      }
-
-      const res = await api.uploadFile(centreAvatar.id, file);
-      const data = res?.data;
-      setResult({
-        success: true,
-        message: data?.pageCount
-          ? `${data.pageCount} page${data.pageCount !== 1 ? 's' : ''} compiled into ${selected.name}'s brain!`
-          : `File uploaded! ${selected.name} is processing it in the background…`,
-        avatarId: centreAvatar.id,
+      const res = await api.createClass(org.orgId, {
+        name: name.trim(),
+        subject,
+        level: level.trim() || undefined,
+        characterType,
       });
-      setFile(null);
+      setCreated(res.data);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Upload failed';
-      setError(
-        msg.includes('413') ? 'File is too large.' :
-        msg.includes('relevance') ? 'File may be off-topic for this Mochi.' :
-        `Upload failed: ${msg}`
-      );
+      setError(err instanceof Error ? err.message : 'Could not create the Mochi.');
     } finally {
-      setUploading(false);
+      setCreating(false);
     }
   }
 
+  function reset() {
+    setCreated(null);
+    setName('');
+    setLevel('');
+  }
+
+  // ── Step 2 — upload ─────────────────────────────────────────────────────────
+  if (created) {
+    return (
+      <div className="max-w-3xl space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Add content to {created.name}</h1>
+          <p className="text-ink3 text-sm mt-1">
+            Step 2 of 2 · join code <span className="font-mono text-accent">{created.joinCode}</span> ·
+            upload up to 10 files at a time.
+          </p>
+        </div>
+
+        {created.corpusAvatarId && <MochiUploader avatarId={created.corpusAvatarId} />}
+
+        <div className="flex gap-3">
+          <button
+            onClick={reset}
+            className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition"
+          >
+            + Create another Mochi
+          </button>
+          <Link
+            href={`/dashboard/classes/${created.id}`}
+            className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
+          >
+            Go to class →
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 1 — create the Mochi ───────────────────────────────────────────────
   return (
-    <div className="max-w-3xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-ink">Upload Centre Content</h1>
+    <div className="max-w-3xl space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-ink">New teaching Mochi</h1>
         <p className="text-ink3 text-sm mt-1">
-          Pick a Centre Mochi then upload PDFs, notes, or images to grow its knowledge base.
+          Step 1 of 2 — pick a character, name it, choose a subject. Same journey as the app.
         </p>
       </div>
 
-      {/* Step 1 — Character picker */}
-      <div className="bg-panel rounded-xl border border-line p-6 mb-4">
-        <p className="text-xs font-semibold text-ink3 uppercase tracking-wider mb-4">
-          Step 1 — Select Centre Mochi
-        </p>
-
+      <div className="bg-panel rounded-xl border border-line p-6">
+        <p className="text-xs font-semibold text-ink3 uppercase tracking-wider mb-4">Choose a character</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {CENTRE_MOCHIS.map((mochi) => {
-            const isSelected = selected?.characterType === mochi.characterType;
-            const rarity = RARITY_LABEL[mochi.rarity];
-
+          {CENTRE_MOCHIS.map((m) => {
+            const selected = m.characterType === characterType;
             return (
               <button
-                key={mochi.characterType}
-                onClick={() => setSelected(mochi)}
-                className={`
-                  relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all
-                  ${isSelected
-                    ? 'border-accent bg-accent/10 shadow-sm'
-                    : 'border-line bg-panel2 hover:border-accent/40'}
-                `}
+                key={m.characterType}
+                onClick={() => setCharacterType(m.characterType)}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition ${
+                  selected ? 'border-accent bg-accent/10' : 'border-line bg-panel2 hover:border-accent/40'
+                }`}
               >
-                {/* Rarity badge */}
-                {rarity && (
-                  <span className={`absolute top-2 right-2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${rarity.cls}`}>
-                    {rarity.label}
-                  </span>
-                )}
-
-                {/* Character image or emoji fallback */}
-                <div className="relative w-16 h-16 flex items-center justify-center">
-                  {mochi.image ? (
-                    <Image
-                      src={mochi.image}
-                      alt={mochi.name}
-                      width={64}
-                      height={64}
-                      className="object-contain drop-shadow-sm"
-                    />
-                  ) : (
-                    <span className="text-4xl leading-none">{mochi.emoji}</span>
-                  )}
-                </div>
-
-                {/* Name + tagline */}
+                <MochiBadge characterType={m.characterType} size={56} />
                 <div className="text-center">
-                  <p className={`text-xs font-semibold leading-tight ${isSelected ? 'text-accent' : 'text-ink'}`}>
-                    {mochi.name}
-                  </p>
-                  <p className="text-[10px] text-ink3 mt-0.5">{mochi.tagline}</p>
+                  <p className={`text-xs font-semibold ${selected ? 'text-accent' : 'text-ink'}`}>{m.name}</p>
+                  <p className="text-[10px] text-ink3">{m.tagline}</p>
                 </div>
-
-                {isSelected && (
-                  <span className="absolute bottom-2 right-2 text-accent text-sm leading-none">✓</span>
-                )}
               </button>
             );
           })}
         </div>
-
-        {selected && (
-          <div className="mt-4 flex items-center gap-3 text-sm bg-panel2 rounded-lg px-3 py-2.5">
-            {selected.image ? (
-              <Image src={selected.image} alt={selected.name} width={28} height={28} className="object-contain" />
-            ) : (
-              <span className="text-xl">{selected.emoji}</span>
-            )}
-            <span className="text-ink">
-              <strong>{selected.name}</strong>
-              <span className="text-ink3"> · {selected.tagline}</span>
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Step 2 — File drop */}
-      <div className="bg-panel rounded-xl border border-line p-6 mb-4">
-        <p className="text-xs font-semibold text-ink3 uppercase tracking-wider mb-4">
-          Step 2 — Drop a file
-        </p>
-        <FileDropzone
-          onFileSelected={(f) => { setFile(f); setResult(null); }}
-          disabled={uploading || !selected}
-        />
-        {!selected && (
-          <p className="text-center text-xs text-ink3 mt-3">Select a Centre Mochi above first</p>
-        )}
+      <div className="bg-panel rounded-xl border border-line p-6 space-y-4">
+        <label className="block">
+          <span className="text-xs text-ink2 font-medium">Name *</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="P4 Math"
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs text-ink2 font-medium">Subject</span>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            >
+              {CENTRE_SUBJECTS.map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, ' ')}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs text-ink2 font-medium">Level</span>
+            <input
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              placeholder="P4"
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            />
+          </label>
+        </div>
       </div>
 
-      {/* Error */}
       {error && (
-        <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad mb-4">
-          {error}
-        </div>
+        <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">{error}</div>
       )}
 
-      {/* Success */}
-      {result?.success && (
-        <div className="bg-ok/10 border border-ok/30 rounded-xl p-5 mb-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">🎉</span>
-            <div>
-              <p className="font-semibold text-ok">{result.message}</p>
-              {result.avatarId && (
-                <Link
-                  href={`/dashboard/content/analysis?avatarId=${result.avatarId}`}
-                  className="inline-block mt-2 text-sm text-accent font-medium hover:underline"
-                >
-                  View compiled pages →
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Upload button */}
       <button
-        onClick={handleUpload}
-        disabled={!file || !selected || uploading}
-        className="w-full py-3 px-4 rounded-xl bg-accent text-white font-semibold text-sm
-          hover:bg-accent/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed
-          flex items-center justify-center gap-2"
+        onClick={createMochi}
+        disabled={!name.trim() || creating || !org}
+        className="w-full py-3 rounded-xl bg-accent text-white font-semibold text-sm hover:opacity-90 transition disabled:opacity-40"
       >
-        {uploading ? (
-          <>
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-            Uploading…
-          </>
-        ) : (
-          `↑ Upload to ${selected?.name ?? 'Centre Mochi'}`
-        )}
+        {creating ? 'Creating…' : 'Create & add content →'}
       </button>
     </div>
   );

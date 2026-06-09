@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { api, type CreateClassBody, type OrgClass } from '@/lib/api';
 import { CENTRE_MOCHIS, CENTRE_SUBJECTS, mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
+import MochiUploader from '@/components/MochiUploader';
 
 function MochiBadge({ characterType, size = 40 }: { characterType: string; size?: number }) {
   const m = mochiFor(characterType);
@@ -143,10 +144,12 @@ function CreateClassModal({
   const [characterType, setCharacterType] = useState('ATWSAKURA');
   const [brandName, setBrandName] = useState('');
   const [accentColor, setAccentColor] = useState('#7042ED');
+  // Two-step journey, mirroring the mobile app: create the Mochi, then upload.
+  const [created, setCreated] = useState<OrgClass | null>(null);
 
   const mutation = useMutation({
     mutationFn: (body: CreateClassBody) => api.createClass(orgId, body),
-    onSuccess: (res) => onCreated(res.data),
+    onSuccess: (res) => setCreated(res.data),
   });
 
   function submit() {
@@ -161,6 +164,42 @@ function CreateClassModal({
     });
   }
 
+  // ── Step 2 — upload up to 10 files to the new class corpus (mobile pipeline) ──
+  if (created) {
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+        onClick={() => onCreated(created)}
+      >
+        <div
+          className="bg-panel border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div>
+            <h2 className="text-lg font-bold text-ink">Add content to {created.brandName || created.name}</h2>
+            <p className="text-ink3 text-xs mt-1">
+              Join code <span className="font-mono text-accent">{created.joinCode}</span> ·
+              upload now or skip and do it later.
+            </p>
+          </div>
+
+          {created.corpusAvatarId && (
+            <MochiUploader avatarId={created.corpusAvatarId} />
+          )}
+
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => onCreated(created)}
+              className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
@@ -172,7 +211,7 @@ function CreateClassModal({
       >
         <div>
           <h2 className="text-lg font-bold text-ink">New class</h2>
-          <p className="text-ink3 text-xs mt-1">A join code is generated automatically.</p>
+          <p className="text-ink3 text-xs mt-1">Step 1 of 2 — a join code is generated automatically.</p>
         </div>
 
         <div className="space-y-3">
@@ -297,7 +336,7 @@ function CreateClassModal({
             disabled={!name.trim() || mutation.isPending}
             className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
           >
-            {mutation.isPending ? 'Creating…' : 'Create class'}
+            {mutation.isPending ? 'Creating…' : 'Create & add content →'}
           </button>
         </div>
       </div>

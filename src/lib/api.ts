@@ -219,6 +219,25 @@ export const api = {
   avatars: () => apiFetch<AvatarsResponse>('/avatars'),
   avatar: (id: string) => apiFetch<AvatarResponse>(`/avatars/${id}`),
 
+  // Create a Mochi — same contract as the mobile app (name + subject + character).
+  createAvatar: (body: {
+    name: string;
+    subject: string;
+    characterType: string;
+    gradeLevel?: string;
+  }) =>
+    apiFetch<AvatarResponse>('/avatars', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  // Manually trigger a wiki recompile (mobile fires this after every upload).
+  recompile: (avatarId: string) =>
+    apiFetch<{ data: Record<string, unknown> }>(
+      `/avatars/${avatarId}/wiki/recompile`,
+      { method: 'POST' }
+    ),
+
   // Centre-Mochi-aware avatar list: returns all, centreManaged ones are ABC Mochi
   centreAvatars: async (): Promise<Avatar[]> => {
     const res = await apiFetch<AvatarsResponse>('/avatars');
@@ -232,10 +251,16 @@ export const api = {
   files: (avatarId: string) =>
     apiFetch<FilesResponse>(`/avatars/${avatarId}/files`),
 
-  // Upload — multipart, no Content-Type header (browser sets boundary)
-  uploadFile: async (avatarId: string, file: File): Promise<UploadResponse> => {
+  // Upload — multipart, no Content-Type header (browser sets boundary).
+  // skipRelevance mirrors the mobile "Add Anyway" path.
+  uploadFile: async (
+    avatarId: string,
+    file: File,
+    opts?: { skipRelevance?: boolean }
+  ): Promise<UploadResponse> => {
     const form = new FormData();
     form.append('file', file);
+    if (opts?.skipRelevance) form.append('skipRelevance', 'true');
     const token = getToken();
 
     const res = await fetch(`${BASE}/avatars/${avatarId}/files`, {
@@ -252,11 +277,12 @@ export const api = {
     return res.json() as Promise<UploadResponse>;
   },
 
-  // Relevance check before upload
-  checkRelevance: (avatarId: string, text: string) =>
+  // Relevance check before upload — backend expects `contentSample` (matches
+  // the mobile app; the previous `text` field failed @NotBlank validation).
+  checkRelevance: (avatarId: string, contentSample: string) =>
     apiFetch<RelevanceResponse>(`/avatars/${avatarId}/relevance`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ contentSample }),
     }),
 
   // Usage / quota
