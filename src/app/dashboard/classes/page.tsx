@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, type CreateClassBody, type OrgClass } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 import { CENTRE_MOCHIS, CENTRE_SUBJECTS, mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
@@ -159,7 +160,10 @@ function CreateClassModal({
 
   const mutation = useMutation({
     mutationFn: (body: CreateClassBody) => api.createClass(orgId, body),
-    onSuccess: (res) => setCreated(res.data),
+    onSuccess: (res) => {
+      trackEvent('class_created', { classId: res.data.id, subject: res.data.subject });
+      setCreated(res.data);
+    },
   });
 
   function submit() {

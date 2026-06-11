@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
+import { identify, trackEvent } from '@/lib/analytics';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,6 +28,8 @@ export default function LoginPage() {
     try {
       const res = await api.login(email, password);
       saveAuth(res.data.token, res.data.userId);
+      identify(res.data.userId, { email });
+      trackEvent('admin_login');
       router.replace('/dashboard');
     } catch (err) {
       if (err instanceof ApiError) {

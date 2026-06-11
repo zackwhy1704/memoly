@@ -9,6 +9,7 @@ import {
   type FileProgress,
 } from '@/lib/upload-pipeline';
 import { api } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 import InfoBanner from './InfoBanner';
 import Link from 'next/link';
 
@@ -65,6 +66,9 @@ export default function MochiUploader({
       brainReady: pipelineResult.brainReady,
       wikiPageCount: pipelineResult.wikiPageCount,
     });
+    if (ok > 0) {
+      trackEvent('content_uploaded', { avatarId, fileCount: ok });
+    }
     if (inputRef.current) inputRef.current.value = '';
     onComplete?.(pipelineResult.wikiPageCount);
   }

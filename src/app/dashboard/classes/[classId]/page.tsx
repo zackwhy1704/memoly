@@ -17,6 +17,7 @@ import {
   type ReviewItem,
   type ExamReadiness,
 } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 import { mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
@@ -345,6 +346,7 @@ function NarrationAction({ orgId, classId, moduleId }: { orgId: string; classId:
   const generate = useMutation({
     mutationFn: () => api.generateNarration(orgId, classId, moduleId),
     onSuccess: () => {
+      trackEvent('narration_generated', { moduleId, classId });
       qc.invalidateQueries({ queryKey: ['narration', orgId, classId, moduleId] });
     },
   });
@@ -966,6 +968,7 @@ function CreateAssignmentModal({
       return api.createAssignment(orgId, classId, body);
     },
     onSuccess: () => {
+      trackEvent('assignment_created', { type, classId, moduleCount: selectedModules.length });
       onCreated();
       onClose();
     },

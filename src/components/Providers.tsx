@@ -1,10 +1,15 @@
 'use client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ThemeProvider } from '@/lib/theme';
 import { ToastProvider } from '@/components/Toast';
+import { initAnalytics } from '@/lib/analytics';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
   const [qc] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
