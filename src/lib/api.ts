@@ -256,6 +256,23 @@ export interface ClassRosterAnalyticsRow {
   lastActive: string | null;
 }
 
+export interface ClassModule {
+  moduleId: string;
+  title: string;
+  wikiSlug: string;
+  stage: string;
+  studentCount: number;
+  completedCount: number;
+  avgMastery: number;
+}
+
+export interface ConceptMasteryData {
+  students: Array<{ id: string; displayName: string; initials: string }>;
+  concepts: string[];
+  cells: Array<Array<number | null>>;
+  weakest: Array<{ concept: string; avg: number }>;
+}
+
 export interface CreateClassBody {
   name: string;
   subject?: string;
@@ -454,6 +471,16 @@ export const api = {
   classHeatmap: (orgId: string, classId: string) =>
     apiFetch<{ data: HeatmapData }>(
       `/centre/organizations/${orgId}/classes/${classId}/analytics/heatmap`
+    ),
+
+  classModules: (orgId: string, classId: string) =>
+    apiFetch<{ data: ClassModule[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/modules`
+    ),
+
+  classConceptMastery: (orgId: string, classId: string) =>
+    apiFetch<{ data: ConceptMasteryData }>(
+      `/centre/organizations/${orgId}/classes/${classId}/concept-mastery`
     ),
 };
 

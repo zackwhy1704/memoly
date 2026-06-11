@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ApiError, apiFetch } from '@/lib/api';
+import { ApiError, apiFetch, api, type ClassModule, type ConceptMasteryData } from '@/lib/api';
 
 // We need to test statusToApiError, but it's not exported directly.
 // We test it indirectly through apiFetch which calls it on non-ok responses.
@@ -209,5 +209,52 @@ describe('ApiError class', () => {
     expect(err.code).toBe('RATE_LIMIT');
     expect(err.userMessage).toBe('Slow down');
     expect(err.retryable).toBe(true);
+  });
+});
+
+// ── classModules + classConceptMastery API methods ──────────────────
+describe('api.classModules', () => {
+  it('calls the correct endpoint and returns modules', async () => {
+    const mockModules: ClassModule[] = [
+      {
+        moduleId: 'mod-1',
+        title: 'Fractions',
+        wikiSlug: 'fractions',
+        stage: 'LEARN',
+        studentCount: 20,
+        completedCount: 15,
+        avgMastery: 0.72,
+      },
+    ];
+    mockFetch(200, { data: mockModules });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.classModules('org-1', 'cls-1');
+    expect(result.data).toEqual(mockModules);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/modules');
+  });
+});
+
+describe('api.classConceptMastery', () => {
+  it('calls the correct endpoint and returns concept mastery data', async () => {
+    const mockData: ConceptMasteryData = {
+      students: [{ id: 's-1', displayName: 'Alice', initials: 'AL' }],
+      concepts: ['equivalent-fractions'],
+      cells: [[0.85]],
+      weakest: [{ concept: 'unlike-denom-addition', avg: 0.31 }],
+    };
+    mockFetch(200, { data: mockData });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.classConceptMastery('org-1', 'cls-1');
+    expect(result.data.concepts).toEqual(['equivalent-fractions']);
+    expect(result.data.weakest[0].avg).toBe(0.31);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/concept-mastery');
   });
 });
