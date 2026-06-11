@@ -1,5 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ApiError, apiFetch, api, type ClassModule, type ConceptMasteryData, type NarrationData } from '@/lib/api';
+import {
+  ApiError,
+  apiFetch,
+  api,
+  type ClassModule,
+  type ConceptMasteryData,
+  type NarrationData,
+  type AssignmentSummary,
+  type AssignmentDetail,
+  type ReviewItem,
+  type ExamReadiness,
+} from '@/lib/api';
 
 // We need to test statusToApiError, but it's not exported directly.
 // We test it indirectly through apiFetch which calls it on non-ok responses.
@@ -306,5 +317,202 @@ describe('api.getNarration', () => {
 
     const result = await api.getNarration('org-1', 'cls-1', 'mod-1');
     expect(result.data).toBeNull();
+  });
+});
+
+// ── Assignments API methods ─────────────────────────────────────────
+describe('api.assignments', () => {
+  it('GETs the correct endpoint and returns assignment list', async () => {
+    const mockAssignments: AssignmentSummary[] = [
+      {
+        id: 'asgn-1',
+        title: 'Chapter 5 Review',
+        type: 'POST_CLASS',
+        dueDate: '2026-06-15',
+        completedCount: 15,
+        totalStudents: 20,
+        overdueCount: 2,
+      },
+    ];
+    mockFetch(200, { data: mockAssignments });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.assignments('org-1', 'cls-1');
+    expect(result.data).toEqual(mockAssignments);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments');
+  });
+});
+
+describe('api.createAssignment', () => {
+  it('POSTs to the correct endpoint with body', async () => {
+    const mockDetail: AssignmentDetail = {
+      id: 'asgn-2',
+      title: 'Revision Quiz',
+      type: 'REVISION',
+      dueDate: null,
+      completedCount: 0,
+      totalStudents: 20,
+      overdueCount: 0,
+      moduleIds: ['mod-1'],
+      stages: [],
+      masteryThreshold: 60,
+      perStudentStatus: [],
+    };
+    mockFetch(201, { data: mockDetail });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.createAssignment('org-1', 'cls-1', {
+      title: 'Revision Quiz',
+      type: 'REVISION',
+      moduleIds: ['mod-1'],
+      masteryThreshold: 60,
+    });
+    expect(result.data.id).toBe('asgn-2');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments');
+    expect(opts?.method).toBe('POST');
+    expect(JSON.parse(opts?.body as string).masteryThreshold).toBe(60);
+  });
+});
+
+describe('api.assignment (detail)', () => {
+  it('GETs assignment detail with per-student status', async () => {
+    const mockDetail: AssignmentDetail = {
+      id: 'asgn-1',
+      title: 'Chapter 5 Review',
+      type: 'POST_CLASS',
+      dueDate: '2026-06-15',
+      completedCount: 1,
+      totalStudents: 2,
+      overdueCount: 1,
+      moduleIds: ['mod-1'],
+      stages: [],
+      masteryThreshold: null,
+      perStudentStatus: [
+        { userId: 'u-1', displayName: 'Alice', status: 'COMPLETED', score: 92 },
+        { userId: 'u-2', displayName: 'Bob', status: 'OVERDUE', score: null },
+      ],
+    };
+    mockFetch(200, { data: mockDetail });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.assignment('org-1', 'cls-1', 'asgn-1');
+    expect(result.data.perStudentStatus).toHaveLength(2);
+    expect(result.data.perStudentStatus[0].status).toBe('COMPLETED');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments/asgn-1');
+  });
+});
+
+describe('api.deleteAssignment', () => {
+  it('DELETEs the correct endpoint', async () => {
+    mockFetch(204, '');
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.deleteAssignment('org-1', 'cls-1', 'asgn-1');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments/asgn-1');
+    expect(opts?.method).toBe('DELETE');
+  });
+});
+
+// ── Content Review API methods ──────────────────────────────────────
+describe('api.contentReview', () => {
+  it('GETs review items for the class', async () => {
+    const mockItems: ReviewItem[] = [
+      {
+        itemId: 'item-1',
+        moduleTitle: 'Fractions',
+        type: 'LEARN',
+        contentJson: '{"title":"Adding Fractions","body":"To add fractions..."}',
+        status: 'DRAFT',
+      },
+      {
+        itemId: 'item-2',
+        moduleTitle: 'Fractions',
+        type: 'HOT_TAKE',
+        contentJson: '{"statement":"1/2 + 1/3 = 2/5","answer":false}',
+        status: 'DRAFT',
+      },
+    ];
+    mockFetch(200, { data: mockItems });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.contentReview('org-1', 'cls-1');
+    expect(result.data).toHaveLength(2);
+    expect(result.data[0].type).toBe('LEARN');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/content/review');
+  });
+});
+
+describe('api.patchContentItem', () => {
+  it('PATCHes a content item with status', async () => {
+    mockFetch(200, { data: { itemId: 'item-1', moduleTitle: 'Fractions', type: 'LEARN', contentJson: '{}', status: 'APPROVED' } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.patchContentItem('org-1', 'cls-1', 'item-1', { status: 'APPROVED' });
+    expect(result.data.status).toBe('APPROVED');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/content/item-1');
+    expect(opts?.method).toBe('PATCH');
+  });
+});
+
+describe('api.approveAllContent', () => {
+  it('POSTs to approve-all and returns count', async () => {
+    mockFetch(200, { data: { approvedCount: 5 } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.approveAllContent('org-1', 'cls-1');
+    expect(result.data.approvedCount).toBe(5);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/content/approve-all');
+    expect(opts?.method).toBe('POST');
+  });
+});
+
+// ── Exam Readiness API method ───────────────────────────────────────
+describe('api.examReadiness', () => {
+  it('GETs exam readiness data with concepts', async () => {
+    const mockData: ExamReadiness = {
+      avgReadiness: 0.72,
+      studentsBelow60: 4,
+      totalStudents: 20,
+      concepts: [
+        { concept: 'equivalent-fractions', avgMastery: 0.85 },
+        { concept: 'unlike-denom-addition', avgMastery: 0.31 },
+      ],
+    };
+    mockFetch(200, { data: mockData });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.examReadiness('org-1', 'cls-1');
+    expect(result.data.avgReadiness).toBe(0.72);
+    expect(result.data.studentsBelow60).toBe(4);
+    expect(result.data.concepts).toHaveLength(2);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/exam-readiness');
   });
 });

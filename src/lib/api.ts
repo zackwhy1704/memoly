@@ -298,6 +298,68 @@ export interface CreateClassBody {
   examDate?: string;
 }
 
+// ── Assignments ──────────────────────────────────────────────────────
+export type AssignmentType = 'PRE_CLASS' | 'POST_CLASS' | 'REVISION' | 'CUSTOM';
+export type AssignmentStudentStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+
+export interface AssignmentSummary {
+  id: string;
+  title: string;
+  type: AssignmentType;
+  dueDate: string | null;
+  completedCount: number;
+  totalStudents: number;
+  overdueCount: number;
+}
+
+export interface AssignmentStudentRow {
+  userId: string;
+  displayName: string;
+  status: AssignmentStudentStatus;
+  score: number | null;
+}
+
+export interface AssignmentDetail extends AssignmentSummary {
+  moduleIds: string[];
+  stages: string[];
+  masteryThreshold: number | null;
+  perStudentStatus: AssignmentStudentRow[];
+}
+
+export interface CreateAssignmentBody {
+  title: string;
+  type: AssignmentType;
+  moduleIds: string[];
+  stages?: string[];
+  masteryThreshold?: number;
+  dueDate?: string;
+}
+
+// ── Content Review ───────────────────────────────────────────────────
+export type ReviewItemStatus = 'DRAFT' | 'APPROVED' | 'REJECTED';
+
+export interface ReviewItem {
+  itemId: string;
+  moduleTitle: string;
+  type: string;
+  contentJson: string;
+  answerJson?: string;
+  status: ReviewItemStatus;
+}
+
+// ── Exam Readiness ───────────────────────────────────────────────────
+export interface ExamReadinessConcept {
+  concept: string;
+  avgMastery: number;
+}
+
+export interface ExamReadiness {
+  avgReadiness: number;
+  studentsBelow60: number;
+  totalStudents: number;
+  concepts: ExamReadinessConcept[];
+}
+
 // ── API methods ────────────────────────────────────────────────────────
 export const api = {
   // Auth
@@ -508,6 +570,53 @@ export const api = {
   getNarration: (orgId: string, classId: string, moduleId: string) =>
     apiFetch<{ data: NarrationData | null }>(
       `/centre/organizations/${orgId}/classes/${classId}/modules/${moduleId}/narration`
+    ),
+
+  // ── Assignments ──────────────────────────────────────────────────────
+  assignments: (orgId: string, classId: string) =>
+    apiFetch<{ data: AssignmentSummary[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments`
+    ),
+
+  createAssignment: (orgId: string, classId: string, body: CreateAssignmentBody) =>
+    apiFetch<{ data: AssignmentDetail }>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments`,
+      { method: 'POST', body: JSON.stringify(body) }
+    ),
+
+  assignment: (orgId: string, classId: string, assignmentId: string) =>
+    apiFetch<{ data: AssignmentDetail }>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}`
+    ),
+
+  deleteAssignment: (orgId: string, classId: string, assignmentId: string) =>
+    apiFetch<void>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}`,
+      { method: 'DELETE' }
+    ),
+
+  // ── Content Review ─────────────────────────────────────────────────
+  contentReview: (orgId: string, classId: string) =>
+    apiFetch<{ data: ReviewItem[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/content/review`
+    ),
+
+  patchContentItem: (orgId: string, classId: string, itemId: string, body: { status?: string; contentJson?: string; answerJson?: string }) =>
+    apiFetch<{ data: ReviewItem }>(
+      `/centre/organizations/${orgId}/classes/${classId}/content/${itemId}`,
+      { method: 'PATCH', body: JSON.stringify(body) }
+    ),
+
+  approveAllContent: (orgId: string, classId: string) =>
+    apiFetch<{ data: { approvedCount: number } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/content/approve-all`,
+      { method: 'POST' }
+    ),
+
+  // ── Exam Readiness ─────────────────────────────────────────────────
+  examReadiness: (orgId: string, classId: string) =>
+    apiFetch<{ data: ExamReadiness }>(
+      `/centre/organizations/${orgId}/classes/${classId}/exam-readiness`
     ),
 };
 

@@ -3,7 +3,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { api, type OrgClass, type ClassModule, type ConceptMasteryData, type NarrationData } from '@/lib/api';
+import {
+  api,
+  type OrgClass,
+  type ClassModule,
+  type ConceptMasteryData,
+  type NarrationData,
+  type AssignmentSummary,
+  type AssignmentDetail,
+  type AssignmentType,
+  type AssignmentStudentStatus,
+  type CreateAssignmentBody,
+  type ReviewItem,
+  type ExamReadiness,
+} from '@/lib/api';
 import { mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
@@ -11,7 +24,7 @@ import AsyncBoundary from '@/components/AsyncBoundary';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 
-type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'add';
+type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'review' | 'readiness' | 'add';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -80,13 +93,16 @@ export default function ClassDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-line overflow-x-auto">
-        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'add'] as Tab[]).map((t) => {
+        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'review', 'readiness', 'add'] as Tab[]).map((t) => {
           const label: Record<Tab, string> = {
             roster: 'Roster',
             modules: 'Modules',
             heatmap: 'Heatmap',
             concepts: 'Concept Mastery',
             content: 'Content',
+            assignments: 'Assignments',
+            review: 'Review',
+            readiness: 'Exam Readiness',
             add: 'Add students',
           };
           return (
@@ -108,6 +124,9 @@ export default function ClassDetailPage() {
       {tab === 'heatmap' && <HeatmapTab orgId={org.orgId} classId={classId} />}
       {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
       {tab === 'content' && <ContentTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
+      {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
+      {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
+      {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
       {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
     </div>
   );
@@ -873,6 +892,613 @@ function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string | null
           </table>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Assignment type badge ─────────────────────────────────────────────────────
+function AssignmentTypeBadge({ type }: { type: AssignmentType }) {
+  const styles: Record<AssignmentType, string> = {
+    PRE_CLASS: 'bg-teal-900/40 text-teal-300',
+    POST_CLASS: 'bg-amber-900/40 text-amber-300',
+    REVISION: 'bg-purple-900/40 text-purple-300',
+    CUSTOM: 'bg-pink-900/40 text-pink-300',
+  };
+  const labels: Record<AssignmentType, string> = {
+    PRE_CLASS: 'Pre-class',
+    POST_CLASS: 'Post-class',
+    REVISION: 'Revision',
+    CUSTOM: 'Custom',
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[type] ?? 'bg-panel2 text-ink3'}`}>
+      {labels[type] ?? type}
+    </span>
+  );
+}
+
+function StudentStatusBadge({ status }: { status: AssignmentStudentStatus }) {
+  const styles: Record<AssignmentStudentStatus, string> = {
+    PENDING: 'bg-panel2 text-ink3',
+    IN_PROGRESS: 'bg-blue-900/40 text-blue-300',
+    COMPLETED: 'bg-ok/20 text-ok',
+    OVERDUE: 'bg-bad/20 text-bad',
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] ?? 'bg-panel2 text-ink3'}`}>
+      {status.replace('_', ' ')}
+    </span>
+  );
+}
+
+// ── Create Assignment Modal ──────────────────────────────────────────────────
+function CreateAssignmentModal({
+  orgId,
+  classId,
+  onClose,
+  onCreated,
+}: {
+  orgId: string;
+  classId: string;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState<AssignmentType>('POST_CLASS');
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState('');
+  const [masteryThreshold, setMasteryThreshold] = useState(60);
+
+  const modulesQuery = useQuery({
+    queryKey: ['classModules', orgId, classId],
+    queryFn: () => api.classModules(orgId, classId),
+  });
+
+  const create = useMutation({
+    mutationFn: () => {
+      const body: CreateAssignmentBody = {
+        title,
+        type,
+        moduleIds: selectedModules,
+        dueDate: dueDate || undefined,
+        masteryThreshold: type === 'REVISION' ? masteryThreshold : undefined,
+      };
+      return api.createAssignment(orgId, classId, body);
+    },
+    onSuccess: () => {
+      onCreated();
+      onClose();
+    },
+  });
+
+  const modules = modulesQuery.data?.data ?? [];
+
+  const toggleModule = (id: string) => {
+    setSelectedModules((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="bg-panel border border-line rounded-2xl w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+          <h2 className="text-sm font-bold text-ink">Create Assignment</h2>
+          <button onClick={onClose} className="text-ink3 hover:text-ink text-lg leading-none">&times;</button>
+        </div>
+
+        <div className="px-5 py-5 space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Chapter 5 Review"
+              className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">Type</label>
+            <div className="flex flex-wrap gap-2">
+              {(['PRE_CLASS', 'POST_CLASS', 'REVISION', 'CUSTOM'] as AssignmentType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setType(t)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    type === t
+                      ? 'bg-accent text-white'
+                      : 'bg-panel2 text-ink3 hover:text-ink2'
+                  }`}
+                >
+                  {t.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Modules */}
+          <div>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">Modules</label>
+            {modulesQuery.isLoading ? (
+              <p className="text-ink3 text-xs">Loading modules...</p>
+            ) : modules.length === 0 ? (
+              <p className="text-ink3 text-xs">No modules available.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {modules.map((m) => (
+                  <label key={m.moduleId} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedModules.includes(m.moduleId)}
+                      onChange={() => toggleModule(m.moduleId)}
+                      className="w-4 h-4 rounded border-line text-accent focus:ring-accent/40"
+                    />
+                    <span className="text-sm text-ink">{m.title}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Due date */}
+          <div>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">Due date (optional)</label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+          </div>
+
+          {/* Mastery threshold for REVISION */}
+          {type === 'REVISION' && (
+            <div>
+              <label className="block text-xs font-medium text-ink2 mb-1.5">
+                Mastery threshold: {masteryThreshold}%
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={masteryThreshold}
+                onChange={(e) => setMasteryThreshold(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-line">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold bg-panel2 hover:bg-panel2/80 rounded-lg text-ink transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => create.mutate()}
+            disabled={!title.trim() || selectedModules.length === 0 || create.isPending}
+            className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
+          >
+            {create.isPending ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+        {create.error && (
+          <div className="px-5 pb-4">
+            <p className="text-xs text-bad">Failed to create assignment. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Assignments Tab ──────────────────────────────────────────────────────────
+function AssignmentsTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const qc = useQueryClient();
+  const [showCreate, setShowCreate] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const query = useQuery({
+    queryKey: ['assignments', orgId, classId],
+    queryFn: () => api.assignments(orgId, classId),
+  });
+
+  const detailQuery = useQuery({
+    queryKey: ['assignment', orgId, classId, expandedId],
+    queryFn: () => api.assignment(orgId, classId, expandedId!),
+    enabled: !!expandedId,
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => api.deleteAssignment(orgId, classId, id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assignments', orgId, classId] });
+      setExpandedId(null);
+    },
+  });
+
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading assignments...</p>;
+  if (query.error) return <ErrorView message="Could not load assignments." onRetry={() => query.refetch()} />;
+
+  const assignments = query.data?.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-ink2">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</p>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition"
+        >
+          + Create assignment
+        </button>
+      </div>
+
+      {assignments.length === 0 ? (
+        <EmptyState
+          icon="📋"
+          title="No assignments yet"
+          description="Create an assignment to track student progress on specific modules."
+          actionLabel="Create assignment"
+          onAction={() => setShowCreate(true)}
+        />
+      ) : (
+        <div className="space-y-3">
+          {assignments.map((a) => (
+            <div key={a.id} className="bg-panel border border-line rounded-2xl overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}
+                className="w-full px-5 py-4 flex items-center gap-3 hover:bg-panel2/50 transition text-left"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-ink truncate">{a.title}</span>
+                    <AssignmentTypeBadge type={a.type} />
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-ink3">
+                    <span>{a.completedCount}/{a.totalStudents} completed</span>
+                    {a.overdueCount > 0 && (
+                      <span className="text-bad">{a.overdueCount} overdue</span>
+                    )}
+                    {a.dueDate && (
+                      <span>Due {new Date(a.dueDate).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-ink3 text-xs">{expandedId === a.id ? '▲' : '▼'}</span>
+              </button>
+
+              {expandedId === a.id && (
+                <div className="border-t border-line">
+                  {detailQuery.isLoading ? (
+                    <p className="px-5 py-4 text-ink3 text-xs">Loading details...</p>
+                  ) : detailQuery.error ? (
+                    <div className="px-5 py-4">
+                      <ErrorView message="Could not load assignment details." onRetry={() => detailQuery.refetch()} />
+                    </div>
+                  ) : (
+                    <>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-line text-xs uppercase tracking-wider text-ink3">
+                            <th className="text-left px-5 py-2.5 font-medium">Student</th>
+                            <th className="text-left px-5 py-2.5 font-medium">Status</th>
+                            <th className="text-left px-5 py-2.5 font-medium">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(detailQuery.data?.data.perStudentStatus ?? []).map((s) => (
+                            <tr key={s.userId} className="border-b border-line last:border-0">
+                              <td className="px-5 py-2.5 text-ink">{s.displayName}</td>
+                              <td className="px-5 py-2.5"><StudentStatusBadge status={s.status} /></td>
+                              <td className="px-5 py-2.5 tabular-nums text-ink2">{s.score != null ? `${Math.round(s.score)}%` : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="px-5 py-3 flex justify-end border-t border-line">
+                        <button
+                          onClick={() => deleteMut.mutate(a.id)}
+                          disabled={deleteMut.isPending}
+                          className="text-xs text-bad hover:underline disabled:opacity-40"
+                        >
+                          {deleteMut.isPending ? 'Deleting...' : 'Delete assignment'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showCreate && (
+        <CreateAssignmentModal
+          orgId={orgId}
+          classId={classId}
+          onClose={() => setShowCreate(false)}
+          onCreated={() => qc.invalidateQueries({ queryKey: ['assignments', orgId, classId] })}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Content Review Tab ───────────────────────────────────────────────────────
+function ContentTypeBadge({ type }: { type: string }) {
+  const styles: Record<string, string> = {
+    LEARN: 'bg-blue-900/40 text-blue-300',
+    HOT_TAKE: 'bg-amber-900/40 text-amber-300',
+    QUIZ: 'bg-purple-900/40 text-purple-300',
+    FLASHCARD: 'bg-teal-900/40 text-teal-300',
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[type] ?? 'bg-panel2 text-ink3'}`}>
+      {type.replace('_', ' ')}
+    </span>
+  );
+}
+
+function ContentPreview({ item }: { item: ReviewItem }) {
+  try {
+    const content = JSON.parse(item.contentJson);
+    if (item.type === 'HOT_TAKE') {
+      return (
+        <div className="bg-panel2 rounded-lg px-3 py-2 text-sm text-ink">
+          <p className="font-medium">{content.statement ?? content.question ?? JSON.stringify(content)}</p>
+          {content.answer != null && (
+            <p className="text-xs text-ink3 mt-1">Answer: {String(content.answer)}</p>
+          )}
+        </div>
+      );
+    }
+    if (item.type === 'LEARN') {
+      return (
+        <div className="bg-panel2 rounded-lg px-3 py-2 text-sm text-ink">
+          <p className="font-medium">{content.title ?? 'Untitled'}</p>
+          <p className="text-xs text-ink3 mt-1 line-clamp-2">{content.body ?? content.text ?? JSON.stringify(content)}</p>
+        </div>
+      );
+    }
+    // Generic fallback
+    return (
+      <div className="bg-panel2 rounded-lg px-3 py-2 text-xs text-ink3 font-mono line-clamp-3 whitespace-pre-wrap">
+        {JSON.stringify(content, null, 2)}
+      </div>
+    );
+  } catch {
+    return (
+      <div className="bg-panel2 rounded-lg px-3 py-2 text-xs text-ink3 line-clamp-3">
+        {item.contentJson}
+      </div>
+    );
+  }
+}
+
+function ReviewTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['contentReview', orgId, classId],
+    queryFn: () => api.contentReview(orgId, classId),
+  });
+
+  const approveMut = useMutation({
+    mutationFn: (itemId: string) => api.patchContentItem(orgId, classId, itemId, { status: 'APPROVED' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contentReview', orgId, classId] }),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: (itemId: string) => api.patchContentItem(orgId, classId, itemId, { status: 'REJECTED' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contentReview', orgId, classId] }),
+  });
+
+  const approveAllMut = useMutation({
+    mutationFn: () => api.approveAllContent(orgId, classId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contentReview', orgId, classId] }),
+  });
+
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading content for review...</p>;
+  if (query.error) return <ErrorView message="Could not load content review items." onRetry={() => query.refetch()} />;
+
+  const items = query.data?.data ?? [];
+  const draftItems = items.filter((i) => i.status === 'DRAFT');
+
+  // Group by module
+  const grouped = new Map<string, ReviewItem[]>();
+  for (const item of draftItems) {
+    const key = item.moduleTitle || 'Uncategorized';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(item);
+  }
+
+  if (draftItems.length === 0) {
+    return (
+      <EmptyState
+        icon="✅"
+        title="All content reviewed"
+        description="No draft items pending review. New content will appear here after upload and compilation."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-ink2">{draftItems.length} item{draftItems.length !== 1 ? 's' : ''} pending review</p>
+        <button
+          onClick={() => approveAllMut.mutate()}
+          disabled={approveAllMut.isPending}
+          className="px-4 py-2 text-xs font-semibold bg-ok text-white rounded-lg hover:bg-ok/90 transition disabled:opacity-40"
+        >
+          {approveAllMut.isPending ? 'Approving...' : `Approve all (${draftItems.length})`}
+        </button>
+      </div>
+
+      {approveAllMut.isSuccess && (
+        <div className="bg-ok/10 border border-ok/30 rounded-xl px-4 py-3 text-sm text-ok">
+          Approved {approveAllMut.data.data.approvedCount} items.
+        </div>
+      )}
+
+      {Array.from(grouped.entries()).map(([moduleTitle, moduleItems]) => (
+        <div key={moduleTitle} className="space-y-2">
+          <h3 className="text-xs font-semibold text-ink2 uppercase tracking-wider">{moduleTitle}</h3>
+          <div className="space-y-2">
+            {moduleItems.map((item) => (
+              <div key={item.itemId} className="bg-panel border border-line rounded-2xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <ContentTypeBadge type={item.type} />
+                    <ContentPreview item={item} />
+                  </div>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <button
+                      onClick={() => approveMut.mutate(item.itemId)}
+                      disabled={approveMut.isPending}
+                      className="px-3 py-1.5 text-xs font-semibold bg-ok text-white rounded-lg hover:bg-ok/90 transition disabled:opacity-40"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => rejectMut.mutate(item.itemId)}
+                      disabled={rejectMut.isPending}
+                      className="px-3 py-1.5 text-xs font-semibold bg-bad/20 text-bad rounded-lg hover:bg-bad/30 transition disabled:opacity-40"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Exam Readiness Tab ───────────────────────────────────────────────────────
+function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['examReadiness', orgId, classId],
+    queryFn: () => api.examReadiness(orgId, classId),
+  });
+
+  const createRevisionMut = useMutation({
+    mutationFn: (concepts: string[]) => {
+      const body: CreateAssignmentBody = {
+        title: `Revision: weak concepts (${new Date().toLocaleDateString()})`,
+        type: 'REVISION',
+        moduleIds: [],
+        masteryThreshold: 60,
+      };
+      return api.createAssignment(orgId, classId, body);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assignments', orgId, classId] });
+    },
+  });
+
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading exam readiness...</p>;
+  if (query.error) return <ErrorView message="Could not load exam readiness data." onRetry={() => query.refetch()} />;
+
+  const data = query.data?.data;
+  if (!data) return null;
+
+  const weakConcepts = data.concepts
+    .filter((c) => c.avgMastery < 0.6)
+    .sort((a, b) => a.avgMastery - b.avgMastery);
+
+  const readinessPct = Math.round(data.avgReadiness * 100);
+  const readinessColor = readinessPct >= 70 ? 'text-ok' : readinessPct >= 40 ? 'text-warn' : 'text-bad';
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-panel border border-line rounded-2xl p-5 text-center">
+          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Average Readiness</p>
+          <p className={`text-3xl font-bold tabular-nums ${readinessColor}`}>{readinessPct}%</p>
+        </div>
+        <div className="bg-panel border border-line rounded-2xl p-5 text-center">
+          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Students Below 60%</p>
+          <p className="text-3xl font-bold tabular-nums text-bad">{data.studentsBelow60}</p>
+          <p className="text-xs text-ink3 mt-0.5">of {data.totalStudents}</p>
+        </div>
+        <div className="bg-panel border border-line rounded-2xl p-5 text-center">
+          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Concepts Tracked</p>
+          <p className="text-3xl font-bold tabular-nums text-ink">{data.concepts.length}</p>
+        </div>
+      </div>
+
+      {/* Per-concept mastery bars (weakest first) */}
+      <div className="bg-panel border border-line rounded-2xl p-5">
+        <p className="text-sm font-semibold text-ink mb-4">Concept Mastery (weakest first)</p>
+        {data.concepts.length === 0 ? (
+          <p className="text-ink3 text-sm">No concept data available yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {[...data.concepts].sort((a, b) => a.avgMastery - b.avgMastery).map((c) => {
+              const pct = Math.round(c.avgMastery * 100);
+              const barColor = pct >= 70 ? 'bg-ok' : pct >= 40 ? 'bg-warn' : 'bg-bad';
+              const textColor = pct >= 70 ? 'text-ok' : pct >= 40 ? 'text-warn' : 'text-bad';
+              return (
+                <div key={c.concept} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-ink capitalize">{c.concept.replace(/-/g, ' ')}</span>
+                      <span className={`text-sm font-mono tabular-nums ${textColor}`}>{pct}%</span>
+                    </div>
+                    <div className="h-1.5 bg-panel2 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Revision CTA */}
+      {weakConcepts.length > 0 && (
+        <div className="bg-warn/10 border border-warn/30 rounded-2xl p-5">
+          <p className="text-sm font-semibold text-ink mb-1">
+            {weakConcepts.length} concept{weakConcepts.length !== 1 ? 's' : ''} below 60%
+          </p>
+          <p className="text-xs text-ink3 mb-3">
+            Create a revision assignment targeting these weak concepts?
+          </p>
+          <button
+            onClick={() => createRevisionMut.mutate(weakConcepts.map((c) => c.concept))}
+            disabled={createRevisionMut.isPending}
+            className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
+          >
+            {createRevisionMut.isPending ? 'Creating...' : createRevisionMut.isSuccess ? 'Created!' : 'Assign revision'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
