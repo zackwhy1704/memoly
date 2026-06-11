@@ -273,6 +273,21 @@ export interface ConceptMasteryData {
   weakest: Array<{ concept: string; avg: number }>;
 }
 
+export interface NarrationSegment {
+  cardIndex: number;
+  scriptText: string;
+  audioUrl: string;
+  durationMs: number;
+}
+
+export interface NarrationData {
+  id: string;
+  status: 'GENERATING' | 'READY' | 'FAILED';
+  voiceId: string;
+  totalDurationMs: number;
+  segments: NarrationSegment[];
+}
+
 export interface CreateClassBody {
   name: string;
   subject?: string;
@@ -481,6 +496,18 @@ export const api = {
   classConceptMastery: (orgId: string, classId: string) =>
     apiFetch<{ data: ConceptMasteryData }>(
       `/centre/organizations/${orgId}/classes/${classId}/concept-mastery`
+    ),
+
+  // ── Narration ──────────────────────────────────────────────────────────
+  generateNarration: (orgId: string, classId: string, moduleId: string) =>
+    apiFetch<{ data: { narrationId: string } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/modules/${moduleId}/narration/generate`,
+      { method: 'POST' }
+    ),
+
+  getNarration: (orgId: string, classId: string, moduleId: string) =>
+    apiFetch<{ data: NarrationData | null }>(
+      `/centre/organizations/${orgId}/classes/${classId}/modules/${moduleId}/narration`
     ),
 };
 

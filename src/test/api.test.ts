@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ApiError, apiFetch, api, type ClassModule, type ConceptMasteryData } from '@/lib/api';
+import { ApiError, apiFetch, api, type ClassModule, type ConceptMasteryData, type NarrationData } from '@/lib/api';
 
 // We need to test statusToApiError, but it's not exported directly.
 // We test it indirectly through apiFetch which calls it on non-ok responses.
@@ -256,5 +256,55 @@ describe('api.classConceptMastery', () => {
     const fetchFn = vi.mocked(globalThis.fetch);
     const url = fetchFn.mock.calls[0][0] as string;
     expect(url).toContain('/centre/organizations/org-1/classes/cls-1/concept-mastery');
+  });
+});
+
+// ── Narration API methods ────────────────────────────────────────────
+describe('api.generateNarration', () => {
+  it('POSTs to the correct endpoint and returns narrationId', async () => {
+    mockFetch(202, { data: { narrationId: 'nar-1' } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.generateNarration('org-1', 'cls-1', 'mod-1');
+    expect(result.data.narrationId).toBe('nar-1');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/modules/mod-1/narration/generate');
+    expect(opts?.method).toBe('POST');
+  });
+});
+
+describe('api.getNarration', () => {
+  it('GETs narration data when it exists', async () => {
+    const mockNarration: NarrationData = {
+      id: 'nar-1',
+      status: 'READY',
+      voiceId: 'voice-abc',
+      totalDurationMs: 150000,
+      segments: [
+        { cardIndex: 0, scriptText: 'Hello students', audioUrl: 'https://example.com/a.mp3', durationMs: 75000 },
+        { cardIndex: 1, scriptText: 'Today we learn', audioUrl: 'https://example.com/b.mp3', durationMs: 75000 },
+      ],
+    };
+    mockFetch(200, { data: mockNarration });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.getNarration('org-1', 'cls-1', 'mod-1');
+    expect(result.data?.status).toBe('READY');
+    expect(result.data?.segments).toHaveLength(2);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/modules/mod-1/narration');
+  });
+
+  it('returns null data when no narration exists', async () => {
+    mockFetch(200, { data: null });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.getNarration('org-1', 'cls-1', 'mod-1');
+    expect(result.data).toBeNull();
   });
 });
