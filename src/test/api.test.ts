@@ -516,3 +516,49 @@ describe('api.examReadiness', () => {
     expect(url).toContain('/centre/organizations/org-1/classes/cls-1/exam-readiness');
   });
 });
+
+// ── File Review (OCR quality gate) ─────────────────────────────────
+describe('api.reviewFile', () => {
+  it('PATCHes with APPROVE action and no editedText', async () => {
+    mockFetch(200, { data: { status: 'APPROVED' } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.reviewFile('avatar-1', 'file-1', 'APPROVE');
+    expect(result.data).toEqual({ status: 'APPROVED' });
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/avatars/avatar-1/files/file-1/review');
+    expect(opts?.method).toBe('PATCH');
+    const body = JSON.parse(opts?.body as string);
+    expect(body.action).toBe('APPROVE');
+    expect(body.editedText).toBeUndefined();
+  });
+
+  it('PATCHes with EDIT action and includes editedText', async () => {
+    mockFetch(200, { data: { status: 'EDITED' } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.reviewFile('avatar-1', 'file-1', 'EDIT', 'Corrected text here');
+    expect(result.data).toEqual({ status: 'EDITED' });
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const opts = fetchFn.mock.calls[0][1];
+    const body = JSON.parse(opts?.body as string);
+    expect(body.action).toBe('EDIT');
+    expect(body.editedText).toBe('Corrected text here');
+  });
+
+  it('does not include editedText when undefined', async () => {
+    mockFetch(200, { data: {} });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.reviewFile('avatar-1', 'file-1', 'APPROVE');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const opts = fetchFn.mock.calls[0][1];
+    const body = JSON.parse(opts?.body as string);
+    expect('editedText' in body).toBe(false);
+  });
+});

@@ -39,6 +39,11 @@ export interface FileProgress {
   /** Backend response metadata. */
   servedBy?: string;
   degraded?: boolean;
+  /** OCR quality gate result from the backend. */
+  quality?: 'GOOD' | 'BORDERLINE' | 'REJECTED';
+  qualityReason?: string;
+  extractedText?: string;
+  fileId?: string;
 }
 
 /** Returns a user-friendly error string if the file is invalid, else null. */
@@ -114,20 +119,35 @@ export async function uploadSingleFile(
     const resData = res.data as Record<string, unknown> | undefined;
     const servedBy = typeof resData?.servedBy === 'string' ? resData.servedBy : undefined;
     const degraded = typeof resData?.degraded === 'boolean' ? resData.degraded : undefined;
+    const quality = typeof resData?.quality === 'string' ? resData.quality as 'GOOD' | 'BORDERLINE' | 'REJECTED' : undefined;
+    const qualityReason = typeof resData?.qualityReason === 'string' ? resData.qualityReason : undefined;
+    const extractedText = typeof resData?.extractedText === 'string' ? resData.extractedText : undefined;
+    const fileId = typeof resData?.id === 'string' ? resData.id : (typeof res.data?.id === 'string' ? res.data.id : undefined);
+
+    // Determine stage based on quality
+    const qualityStage = quality === 'REJECTED' ? 'error' as const : lowRelevance ? 'warning' as const : 'done' as const;
 
     const result: FileProgress = {
       name: file.name,
-      stage: lowRelevance ? 'warning' : 'done',
+      stage: qualityStage,
       pageCount: res.data?.pageCount,
       file,
       lowRelevance,
       servedBy,
       degraded: degraded ?? false,
-      message: lowRelevance
-        ? 'Looks off-topic for this class — added anyway.'
-        : degraded
-          ? 'Read with backup engine — double-check the text looks right.'
-          : undefined,
+      quality,
+      qualityReason,
+      extractedText,
+      fileId,
+      message: quality === 'REJECTED'
+        ? qualityReason ?? 'Content quality too low to process.'
+        : quality === 'BORDERLINE'
+          ? qualityReason ?? 'Text quality is borderline — please review.'
+          : lowRelevance
+            ? 'Looks off-topic for this class — added anyway.'
+            : degraded
+              ? 'Read with backup engine — double-check the text looks right.'
+              : undefined,
     };
     onProgress(result);
     return result;

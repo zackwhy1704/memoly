@@ -618,6 +618,13 @@ export const api = {
     apiFetch<{ data: ExamReadiness }>(
       `/centre/organizations/${orgId}/classes/${classId}/exam-readiness`
     ),
+
+  // ── File Review (OCR quality gate) ────────────────────────────────
+  reviewFile: (avatarId: string, fileId: string, action: 'APPROVE' | 'EDIT', editedText?: string) =>
+    apiFetch<{ data: Record<string, unknown> }>(
+      `/avatars/${avatarId}/files/${fileId}/review`,
+      { method: 'PATCH', body: JSON.stringify({ action, ...(editedText ? { editedText } : {}) }) }
+    ),
 };
 
 // ── Character helpers ──────────────────────────────────────────────────
