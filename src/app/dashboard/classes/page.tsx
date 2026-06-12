@@ -3,13 +3,40 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { api, type CreateClassBody, type OrgClass } from '@/lib/api';
+import { api, type ClassAvatarAppearance, type CreateClassBody, type OrgClass } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import { CENTRE_MOCHIS, CENTRE_SUBJECTS, mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import EmptyState from '@/components/EmptyState';
+import ClassAvatar from '@/components/ClassAvatar';
+
+/** Builds a map of avatarId → server-derived appearance for CENTRE_CLASS avatars. */
+function useClassAvatarMap(): Map<string, ClassAvatarAppearance> {
+  const query = useQuery({
+    queryKey: ['avatars'],
+    queryFn: () => api.avatars(),
+  });
+  const map = new Map<string, ClassAvatarAppearance>();
+  for (const a of query.data?.data ?? []) {
+    if (a.kind === 'CENTRE_CLASS' && a.appearance) {
+      map.set(a.id, a.appearance);
+    }
+  }
+  return map;
+}
+
+/** Fetches a single avatar DTO and renders its server-derived class uniform. */
+function CreatedClassAvatar({ avatarId }: { avatarId: string }) {
+  const query = useQuery({
+    queryKey: ['avatar', avatarId],
+    queryFn: () => api.avatar(avatarId),
+  });
+  const appearance = query.data?.data.appearance;
+  if (!appearance) return null;
+  return <ClassAvatar appearance={appearance} size={48} />;
+}
 
 function MochiBadge({ characterType, size = 40 }: { characterType: string; size?: number }) {
   const m = mochiFor(characterType);
@@ -41,6 +68,8 @@ export default function ClassesPage() {
     queryFn: () => api.classes(org!.orgId),
     enabled: !!org,
   });
+
+  const avatarMap = useClassAvatarMap();
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -98,12 +127,21 @@ export default function ClassesPage() {
                   className="bg-panel border border-line rounded-2xl p-5 text-left hover:border-accent/40 hover:bg-panel2 transition-colors"
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
-                    >
-                      <MochiBadge characterType={cls.characterType} size={36} />
-                    </div>
+                    {(() => {
+                      const appearance = cls.corpusAvatarId
+                        ? avatarMap.get(cls.corpusAvatarId)
+                        : undefined;
+                      return appearance ? (
+                        <ClassAvatar appearance={appearance} size={48} />
+                      ) : (
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
+                        >
+                          <MochiBadge characterType={cls.characterType} size={36} />
+                        </div>
+                      );
+                    })()}
                     <div className="min-w-0">
                       <h2 className="text-base font-bold text-ink truncate">
                         {cls.brandName || cls.name}
@@ -189,12 +227,15 @@ function CreateClassModal({
           className="bg-panel border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5"
           onClick={(e) => e.stopPropagation()}
         >
-          <div>
-            <h2 className="text-lg font-bold text-ink">Add content to {created.brandName || created.name}</h2>
-            <p className="text-ink3 text-xs mt-1">
-              Join code <span className="font-mono text-accent">{created.joinCode}</span> ·
-              upload now or skip and do it later.
-            </p>
+          <div className="flex items-center gap-3">
+            {created.corpusAvatarId && <CreatedClassAvatar avatarId={created.corpusAvatarId} />}
+            <div>
+              <h2 className="text-lg font-bold text-ink">Add content to {created.brandName || created.name}</h2>
+              <p className="text-ink3 text-xs mt-1">
+                Join code <span className="font-mono text-accent">{created.joinCode}</span> ·
+                upload now or skip and do it later.
+              </p>
+            </div>
           </div>
 
           {created.corpusAvatarId && (

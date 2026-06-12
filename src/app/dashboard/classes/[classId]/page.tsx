@@ -24,6 +24,7 @@ import MochiUploader from '@/components/MochiUploader';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import ClassAvatar from '@/components/ClassAvatar';
 
 type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'review' | 'readiness' | 'add';
 
@@ -41,6 +42,14 @@ export default function ClassDetailPage() {
   });
 
   const cls: OrgClass | undefined = classesData?.data.find((c) => c.id === classId);
+
+  // Fetch the class's CENTRE_CLASS avatar DTO so the uniform comes from the server.
+  const { data: avatarData } = useQuery({
+    queryKey: ['avatar', cls?.corpusAvatarId],
+    queryFn: () => api.avatar(cls!.corpusAvatarId!),
+    enabled: !!cls?.corpusAvatarId,
+  });
+  const appearance = avatarData?.data.appearance;
 
   if (isLoading) {
     return (
@@ -73,13 +82,17 @@ export default function ClassDetailPage() {
 
       {/* Header */}
       <div className="bg-panel border border-line rounded-2xl p-5 flex items-center gap-4">
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0"
-          style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={m.image} alt={m.name} width={52} height={52} className="object-contain" />
-        </div>
+        {appearance ? (
+          <ClassAvatar appearance={appearance} size={64} />
+        ) : (
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={m.image} alt={m.name} width={52} height={52} className="object-contain" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold text-ink truncate">{cls.brandName || cls.name}</h1>
           <p className="text-ink3 text-sm">

@@ -93,6 +93,15 @@ export async function apiFetch<T>(
 }
 
 // ── Types ──────────────────────────────────────────────────────────────
+
+/** Server-derived uniform for a CENTRE_CLASS avatar. Present only when
+ *  `kind === 'CENTRE_CLASS'`. Derivation lives server-side — never re-derive. */
+export interface ClassAvatarAppearance {
+  bandColorHex: string;
+  subjectGlyph: string;
+  initials: string;
+}
+
 export interface Avatar {
   id: string;
   name: string;
@@ -102,6 +111,10 @@ export interface Avatar {
   fileCount?: number;
   brainState?: string;
   createdAt: string;
+  // Avatar kind — always present in the current contract.
+  kind?: 'PERSONAL' | 'CENTRE_CLASS';
+  // Server-derived uniform — present ONLY when kind === 'CENTRE_CLASS'.
+  appearance?: ClassAvatarAppearance;
   // Centre-mode fields (null for personal avatars)
   centreManaged?: boolean;
   centreId?: string;
