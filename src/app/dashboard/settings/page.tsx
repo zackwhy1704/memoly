@@ -84,7 +84,7 @@ function InvitePanel({ orgId }: { orgId: string }) {
       <div>
         <h2 className="text-sm font-semibold text-ink">Invite students</h2>
         <p className="text-ink3 text-xs mt-1">
-          Generate a code students enter in the Memoly app to join your centre. Then assign them to a
+          Generate a code students enter in the Apalchi app to join your centre. Then assign them to a
           class from the Classes page.
         </p>
       </div>

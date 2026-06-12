@@ -6,8 +6,8 @@ import Providers from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Memoly Centre Admin",
-  description: "Manage your Memoly AI tutor content and students",
+  title: "Apalchi Centre Admin",
+  description: "Manage your Apalchi AI tutor content and students",
 };
 
 export default function RootLayout({

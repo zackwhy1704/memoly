@@ -54,7 +54,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-panel border border-line mb-4">
             <span className="text-3xl">🐾</span>
           </div>
-          <h1 className="text-2xl font-bold text-ink">Memoly</h1>
+          <h1 className="text-2xl font-bold text-ink">Apalchi</h1>
           <p className="text-ink3 text-sm mt-1">Centre Admin Portal</p>
         </div>
 
@@ -125,7 +125,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-ink3 mt-6">
-          Memoly Centre Admin · Powered by Pally AI
+          Apalchi Centre Admin · Powered by Pally AI
         </p>
       </div>
     </div>

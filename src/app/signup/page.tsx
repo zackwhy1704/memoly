@@ -81,7 +81,7 @@ export default function SignupPage() {
             <span className="text-3xl">🏫</span>
           </div>
           <h1 className="text-2xl font-bold text-ink">Create your centre</h1>
-          <p className="text-ink3 text-sm mt-1">Set up your Memoly admin portal</p>
+          <p className="text-ink3 text-sm mt-1">Set up your Apalchi admin portal</p>
         </div>
 
         <div className="bg-panel rounded-2xl border border-line p-8">
@@ -146,7 +146,7 @@ export default function SignupPage() {
         </div>
 
         <p className="text-center text-xs text-ink3 mt-6">
-          Memoly Centre Admin · Powered by Pally AI
+          Apalchi Centre Admin · Powered by Pally AI
         </p>
       </div>
     </div>

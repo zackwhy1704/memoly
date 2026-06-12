@@ -43,7 +43,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🐾</span>
           <div>
-            <p className="text-ink font-bold text-lg leading-tight">Memoly</p>
+            <p className="text-ink font-bold text-lg leading-tight">Apalchi</p>
             <p className="text-ink3 text-xs">Centre Admin</p>
           </div>
         </div>
