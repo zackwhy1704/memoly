@@ -10,6 +10,9 @@ import {
   type AssignmentDetail,
   type ReviewItem,
   type ExamReadiness,
+  type MuddiestPoint,
+  type Challenge,
+  type CreateChallengeBody,
 } from '@/lib/api';
 
 // We need to test statusToApiError, but it's not exported directly.
@@ -514,6 +517,151 @@ describe('api.examReadiness', () => {
     const fetchFn = vi.mocked(globalThis.fetch);
     const url = fetchFn.mock.calls[0][0] as string;
     expect(url).toContain('/centre/organizations/org-1/classes/cls-1/exam-readiness');
+  });
+});
+
+// ── Model answers & release (A2) ────────────────────────────────────
+describe('api.setModelAnswer', () => {
+  it('PUTs the model answer (object) to the correct endpoint', async () => {
+    mockFetch(200, { data: { modelAnswer: { q1: 'A' }, answersReleased: false, answersReleasedAt: null } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.setModelAnswer('org-1', 'cls-1', 'asgn-1', { q1: 'A' });
+    expect(result.data.answersReleased).toBe(false);
+    expect(result.data.answersReleasedAt).toBeNull();
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments/asgn-1/model-answer');
+    expect(opts?.method).toBe('PUT');
+    expect(JSON.parse(opts?.body as string)).toEqual({ modelAnswer: { q1: 'A' } });
+  });
+
+  it('accepts a plain string model answer', async () => {
+    mockFetch(200, { data: { modelAnswer: 'The answer is 4', answersReleased: false, answersReleasedAt: null } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.setModelAnswer('org-1', 'cls-1', 'asgn-1', 'The answer is 4');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const opts = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(opts?.body as string).modelAnswer).toBe('The answer is 4');
+  });
+});
+
+describe('api.releaseAnswers', () => {
+  it('POSTs releaseNow=true', async () => {
+    mockFetch(200, { data: { modelAnswer: 'x', answersReleased: true, answersReleasedAt: '2026-06-12T10:00:00Z' } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.releaseAnswers('org-1', 'cls-1', 'asgn-1', { releaseNow: true });
+    expect(result.data.answersReleased).toBe(true);
+    expect(result.data.answersReleasedAt).toBe('2026-06-12T10:00:00Z');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments/asgn-1/release');
+    expect(opts?.method).toBe('POST');
+    expect(JSON.parse(opts?.body as string)).toEqual({ releaseNow: true });
+  });
+
+  it('POSTs a scheduled releaseAt ISO string', async () => {
+    mockFetch(200, { data: { modelAnswer: 'x', answersReleased: false, answersReleasedAt: null } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.releaseAnswers('org-1', 'cls-1', 'asgn-1', { releaseAt: '2026-06-20T09:00:00.000Z' });
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const opts = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(opts?.body as string)).toEqual({ releaseAt: '2026-06-20T09:00:00.000Z' });
+  });
+
+  it('POSTs an empty body to default to the due date', async () => {
+    mockFetch(200, { data: { modelAnswer: 'x', answersReleased: false, answersReleasedAt: null } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.releaseAnswers('org-1', 'cls-1', 'asgn-1', {});
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const opts = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(opts?.body as string)).toEqual({});
+  });
+});
+
+// ── Muddiest point (A3) ─────────────────────────────────────────────
+describe('api.muddiest', () => {
+  it('GETs muddiest points for a class + module (bare array response)', async () => {
+    const mockPoints: MuddiestPoint[] = [
+      { conceptId: 'c-1', conceptLabel: 'Photosynthesis', count: 7 },
+      { conceptId: 'c-2', conceptLabel: 'Respiration', count: 3 },
+    ];
+    mockFetch(200, mockPoints);
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.muddiest('cls-1', 'mod-1');
+    expect(result).toHaveLength(2);
+    expect(result[0].count).toBe(7);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/classes/cls-1/muddiest?moduleId=mod-1');
+  });
+
+  it('URL-encodes the moduleId', async () => {
+    mockFetch(200, []);
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.muddiest('cls-1', 'mod 1/x');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('moduleId=mod%201%2Fx');
+  });
+});
+
+// ── Challenges (A4) ─────────────────────────────────────────────────
+describe('api.createChallenge', () => {
+  it('POSTs a challenge with options + answer + revealAt', async () => {
+    mockFetch(201, { id: 'ch-1', classId: 'cls-1', revealAt: '2026-06-20T09:00:00Z' });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const body: CreateChallengeBody = {
+      question: 'What is 2+2?',
+      options: ['3', '4', '5'],
+      answer: '4',
+      revealAt: '2026-06-20T09:00:00Z',
+    };
+    const result = await api.createChallenge('org-1', 'cls-1', body);
+    expect(result.id).toBe('ch-1');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/challenges');
+    expect(opts?.method).toBe('POST');
+    expect(JSON.parse(opts?.body as string)).toEqual(body);
+  });
+});
+
+describe('api.listChallenges', () => {
+  it('GETs the class challenge list (bare array, newest first)', async () => {
+    const mockChallenges: Challenge[] = [
+      { id: 'ch-2', classId: 'cls-1', question: 'Latest?', revealAt: '2026-06-25T09:00:00Z' },
+      { id: 'ch-1', classId: 'cls-1', question: 'Older?', answer: '4', revealAt: '2026-06-01T09:00:00Z' },
+    ];
+    mockFetch(200, mockChallenges);
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.listChallenges('cls-1');
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('ch-2');
+    expect(result[1].answer).toBe('4');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/classes/cls-1/challenges');
   });
 });
 

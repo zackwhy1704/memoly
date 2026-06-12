@@ -348,6 +348,47 @@ export interface CreateAssignmentBody {
   dueDate?: string;
 }
 
+// ── Model answers & release ──────────────────────────────────────────
+/** Returned by the model-answer + release endpoints. The model answer may be a
+ *  JSON object (e.g. per-PROVE-question map) or a plain string. */
+export interface AssignmentAnswerState {
+  modelAnswer: unknown;
+  answersReleased: boolean;
+  answersReleasedAt: string | null;
+}
+
+export interface ReleaseAnswersBody {
+  releaseNow?: boolean;
+  releaseAt?: string;
+}
+
+// ── Muddiest point ───────────────────────────────────────────────────
+export interface MuddiestPoint {
+  conceptId: string;
+  conceptLabel: string;
+  count: number;
+}
+
+// ── Challenges ───────────────────────────────────────────────────────
+export interface Challenge {
+  id: string;
+  classId: string;
+  question: string;
+  options?: string[] | null;
+  /** Correct answer — only present on revealed challenges. */
+  answer?: string | null;
+  revealAt: string;
+  /** Optional response distribution, present on revealed challenges when available. */
+  distribution?: Array<{ option: string; count: number }> | null;
+}
+
+export interface CreateChallengeBody {
+  question: string;
+  options?: string[];
+  answer: string;
+  revealAt: string;
+}
+
 // ── Content Review ───────────────────────────────────────────────────
 export type ReviewItemStatus = 'DRAFT' | 'APPROVED' | 'REJECTED';
 
@@ -607,6 +648,37 @@ export const api = {
       `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}`,
       { method: 'DELETE' }
     ),
+
+  // ── Model answers & release ────────────────────────────────────────
+  // modelAnswer may be an object (per-PROVE-question map) or a plain string.
+  setModelAnswer: (orgId: string, classId: string, assignmentId: string, modelAnswer: unknown) =>
+    apiFetch<{ data: AssignmentAnswerState }>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}/model-answer`,
+      { method: 'PUT', body: JSON.stringify({ modelAnswer }) }
+    ),
+
+  // Release answers: { releaseNow: true } | { releaseAt: '<iso>' } | {} (defaults to dueDate).
+  releaseAnswers: (orgId: string, classId: string, assignmentId: string, body: ReleaseAnswersBody) =>
+    apiFetch<{ data: AssignmentAnswerState }>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}/release`,
+      { method: 'POST', body: JSON.stringify(body) }
+    ),
+
+  // ── Muddiest point ─────────────────────────────────────────────────
+  muddiest: (classId: string, moduleId: string) =>
+    apiFetch<MuddiestPoint[]>(
+      `/classes/${classId}/muddiest?moduleId=${encodeURIComponent(moduleId)}`
+    ),
+
+  // ── Challenges ─────────────────────────────────────────────────────
+  createChallenge: (orgId: string, classId: string, body: CreateChallengeBody) =>
+    apiFetch<{ id: string; classId: string; revealAt: string }>(
+      `/centre/organizations/${orgId}/classes/${classId}/challenges`,
+      { method: 'POST', body: JSON.stringify(body) }
+    ),
+
+  listChallenges: (classId: string) =>
+    apiFetch<Challenge[]>(`/classes/${classId}/challenges`),
 
   // ── Content Review ─────────────────────────────────────────────────
   contentReview: (orgId: string, classId: string) =>
