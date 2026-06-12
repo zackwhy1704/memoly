@@ -23,7 +23,7 @@ function MochiBadge({ characterType, size = 56 }: { characterType: string; size?
 
 function UploadContent() {
   const org = useOrg();
-  const [characterType, setCharacterType] = useState('ATWSAKURA');
+  const [characterType, setCharacterType] = useState('MOCHI');
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('MATHS');
   const [level, setLevel] = useState('');

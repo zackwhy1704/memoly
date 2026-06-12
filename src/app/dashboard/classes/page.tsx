@@ -190,7 +190,7 @@ function CreateClassModal({
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('MATHS');
   const [level, setLevel] = useState('');
-  const [characterType, setCharacterType] = useState('ATWSAKURA');
+  const [characterType, setCharacterType] = useState('MOCHI');
   const [brandName, setBrandName] = useState('');
   const [accentColor, setAccentColor] = useState('#7042ED');
   // Two-step journey, mirroring the mobile app: create the Mochi, then upload.

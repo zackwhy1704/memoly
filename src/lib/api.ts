@@ -648,9 +648,6 @@ export function characterEmoji(characterType: string): string {
     MOCHI: '🐻', PENCIL: '✏️', SCIENCE: '🔬', PE: '⚽',
     ART: '🎨', LUNCHBOX: '🍱', LIBRARY: '📚', HEADMASTER: '🎩',
     GOLDSTAR: '⭐',
-    ATWBERET: '🎭', ATWGLOBERIDER: '🌍', ATWKEBAYA: '👘',
-    AWLTIONCITY: '🦁', ATWPHARAOH: '🏺', ATWSAKURA: '🌸',
-    ATWSOMBRERO: '🪅',
   };
   return map[characterType?.toUpperCase()] ?? '🐾';
 }
