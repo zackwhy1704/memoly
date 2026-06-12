@@ -28,11 +28,29 @@ describe('ClassAvatar', () => {
     initials: 'P4',
   };
 
-  it('renders the band colour, subject glyph, and initials from the DTO', () => {
-    render(<ClassAvatar appearance={appearance} />);
+  it('renders the base Mochi untouched, a band-coloured ring, and the subject glyph chip', () => {
+    const { container } = render(<ClassAvatar appearance={appearance} />);
+
     const badge = screen.getByRole('img', { name: /Class avatar P4/i });
-    expect(badge).toHaveStyle({ background: '#7042ED' });
+    expect(badge).toBeInTheDocument();
+
+    // The base Mochi asset is rendered untouched (identity sits AROUND it).
+    const mochi = container.querySelector('img[src="/mochi-base.svg"]');
+    expect(mochi).toBeInTheDocument();
+
+    // The band colour drives the ring border, not the whole avatar body.
+    const ring = container.querySelector('div.rounded-full');
+    expect(ring).toHaveStyle({ border: '3px solid #7042ED' });
+
+    // Subject glyph lives in the corner chip.
     expect(screen.getByText('➗')).toBeInTheDocument();
+  });
+
+  it('shows initials in the chip only at size >= 64', () => {
+    const { rerender } = render(<ClassAvatar appearance={appearance} size={48} />);
+    expect(screen.queryByText('P4')).not.toBeInTheDocument();
+
+    rerender(<ClassAvatar appearance={appearance} size={64} />);
     expect(screen.getByText('P4')).toBeInTheDocument();
   });
 
@@ -40,6 +58,7 @@ describe('ClassAvatar', () => {
     render(
       <ClassAvatar
         appearance={{ bandColorHex: '#FF0000', subjectGlyph: 'astrology', initials: 'X' }}
+        size={64}
       />
     );
     expect(screen.getByText('📖')).toBeInTheDocument();
@@ -47,10 +66,12 @@ describe('ClassAvatar', () => {
   });
 
   it('renders a safe default when appearance is null', () => {
-    render(<ClassAvatar appearance={null} />);
+    const { container } = render(<ClassAvatar appearance={null} />);
     const badge = screen.getByRole('img', { name: /Class avatar/i });
-    // Default band colour, no initials overlay, neutral glyph.
-    expect(badge).toHaveStyle({ background: '#7042ED' });
+    expect(badge).toBeInTheDocument();
+    // Default band colour drives the ring; neutral glyph; no initials at default size.
+    const ring = container.querySelector('div.rounded-full');
+    expect(ring).toHaveStyle({ border: '3px solid #7042ED' });
     expect(screen.getByText('📖')).toBeInTheDocument();
   });
 
