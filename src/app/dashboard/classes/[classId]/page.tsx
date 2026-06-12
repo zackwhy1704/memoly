@@ -605,6 +605,68 @@ function NarrationPreviewModal({
   );
 }
 
+// ── Muddiest-point bar (A3) — "walk into Tuesday knowing what to reteach" ──────
+function MuddiestBar({ classId, moduleId }: { classId: string; moduleId: string }) {
+  const query = useQuery({
+    queryKey: ['muddiest', classId, moduleId],
+    queryFn: () => api.muddiest(classId, moduleId),
+  });
+
+  if (query.isLoading) {
+    return <p className="text-xs text-ink3">Loading muddiest points…</p>;
+  }
+  if (query.error) {
+    return (
+      <button onClick={() => query.refetch()} className="text-xs text-ink3 hover:text-ink2 underline">
+        Couldn&apos;t load muddiest points — retry
+      </button>
+    );
+  }
+
+  const points = (query.data ?? []).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+
+  if (points.length === 0) {
+    return (
+      <p className="text-xs text-ink3">
+        No muddiest-point votes yet — students flag confusing concepts as they study.
+      </p>
+    );
+  }
+
+  const max = points[0].count; // highest-voted = the one to reteach first
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-warn">🌫 Muddiest points — reteach first</p>
+      <div className="space-y-1.5">
+        {points.map((p: MuddiestPoint, i) => {
+          const pct = max > 0 ? Math.round((p.count / max) * 100) : 0;
+          const top = i === 0;
+          return (
+            <div key={p.conceptId} className="flex items-center gap-3">
+              <span
+                className={`flex-1 min-w-0 text-xs truncate ${top ? 'font-semibold text-ink' : 'text-ink2'}`}
+                title={p.conceptLabel}
+              >
+                {p.conceptLabel}
+              </span>
+              <div className="w-1/2 h-2 bg-panel2 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${top ? 'bg-warn' : 'bg-warn/40'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className={`text-xs font-mono tabular-nums w-6 text-right ${top ? 'text-warn' : 'text-ink3'}`}>
+                {p.count}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ModulesTab({ orgId, classId }: { orgId: string; classId: string }) {
   const query = useQuery({
     queryKey: ['classModules', orgId, classId],
@@ -627,37 +689,29 @@ function ModulesTab({ orgId, classId }: { orgId: string; classId: string }) {
   }
 
   return (
-    <div className="bg-panel border border-line rounded-2xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-line text-xs uppercase tracking-wider text-ink3">
-            <th className="text-left px-5 py-3 font-medium">Module</th>
-            <th className="text-left px-5 py-3 font-medium">Stage</th>
-            <th className="text-left px-5 py-3 font-medium">Completed</th>
-            <th className="text-left px-5 py-3 font-medium min-w-[140px]">Avg Mastery</th>
-            <th className="text-left px-5 py-3 font-medium">Narration</th>
-          </tr>
-        </thead>
-        <tbody>
-          {modules.map((m) => (
-            <tr key={m.moduleId} className="border-b border-line last:border-0">
-              <td className="px-5 py-3.5 font-medium text-ink">{m.title}</td>
-              <td className="px-5 py-3.5">
-                <StageBadge stage={m.stage} />
-              </td>
-              <td className="px-5 py-3.5 tabular-nums text-ink2">
-                {m.completedCount}/{m.studentCount}
-              </td>
-              <td className="px-5 py-3.5">
-                <MasteryBar value={m.avgMastery} />
-              </td>
-              <td className="px-5 py-3.5">
-                <NarrationAction orgId={orgId} classId={classId} moduleId={m.moduleId} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      {modules.map((m) => (
+        <div key={m.moduleId} className="bg-panel border border-line rounded-2xl p-5 space-y-4">
+          {/* Muddiest-point bar FIRST — the reteach signal sits at the top of the row. */}
+          <MuddiestBar classId={classId} moduleId={m.moduleId} />
+
+          <div className="border-t border-line pt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-sm font-medium text-ink truncate">{m.title}</span>
+              <StageBadge stage={m.stage} />
+            </div>
+            <div className="text-xs text-ink2 tabular-nums shrink-0">
+              {m.completedCount}/{m.studentCount} completed
+            </div>
+            <div className="min-w-[140px] flex-1 max-w-[220px]">
+              <MasteryBar value={m.avgMastery} />
+            </div>
+            <div className="shrink-0">
+              <NarrationAction orgId={orgId} classId={classId} moduleId={m.moduleId} />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
