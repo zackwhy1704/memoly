@@ -11,6 +11,7 @@ import MochiUploader from '@/components/MochiUploader';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import EmptyState from '@/components/EmptyState';
 import ClassAvatar from '@/components/ClassAvatar';
+import MochiAvatar from '@/components/MochiAvatar';
 
 /** Builds a map of avatarId → server-derived appearance for CENTRE_CLASS avatars. */
 function useClassAvatarMap(): Map<string, ClassAvatarAppearance> {
@@ -128,6 +129,12 @@ export default function ClassesPage() {
                 >
                   <div className="flex items-center gap-3 mb-3">
                     {(() => {
+                      // A class with a designed Mochi renders its customised look
+                      // (body colour + accessory + aura); otherwise fall back to the
+                      // server class-uniform appearance, then a plain badge.
+                      if (cls.mochiConfig) {
+                        return <MochiAvatar config={cls.mochiConfig} size={48} animate={false} />;
+                      }
                       const appearance = cls.corpusAvatarId
                         ? avatarMap.get(cls.corpusAvatarId)
                         : undefined;

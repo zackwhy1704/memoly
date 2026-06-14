@@ -29,6 +29,7 @@ import AsyncBoundary from '@/components/AsyncBoundary';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import ClassAvatar from '@/components/ClassAvatar';
+import MochiAvatar from '@/components/MochiAvatar';
 
 type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'add';
 
@@ -86,7 +87,9 @@ export default function ClassDetailPage() {
 
       {/* Header */}
       <div className="bg-panel border border-line rounded-2xl p-5 flex items-center gap-4">
-        {appearance ? (
+        {cls.mochiConfig ? (
+          <MochiAvatar config={cls.mochiConfig} size={64} animate={false} />
+        ) : appearance ? (
           <ClassAvatar appearance={appearance} size={64} />
         ) : (
           <div
