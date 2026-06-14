@@ -27,7 +27,7 @@ describe('AvatarPickerModal', () => {
       <AvatarPickerModal initial={DEFAULT_MOCHI_CONFIG} onSave={onSave} onDismiss={vi.fn()} />
     );
 
-    // "Scholar" preset = { body:6, cheek:0, eyes:'happy', accessory:'cap', aura:'none' }
+    // "Scholar" preset = { body:6, accessory:'cap', aura:'none' }
     fireEvent.click(screen.getByText('Scholar'));
     fireEvent.click(screen.getByRole('button', { name: 'Save avatar' }));
 
@@ -37,17 +37,26 @@ describe('AvatarPickerModal', () => {
     expect(saved.body).toBe(6);
   });
 
-  it('Save reflects a customise change (eyes -> star)', () => {
+  it('Save reflects a customise change (accessory -> Crown)', () => {
     const onSave = vi.fn();
     render(
       <AvatarPickerModal initial={DEFAULT_MOCHI_CONFIG} onSave={onSave} onDismiss={vi.fn()} />
     );
     fireEvent.click(screen.getByRole('button', { name: 'Customise' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crown' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save avatar' }));
 
     const saved = onSave.mock.calls[0][0] as MochiConfig;
-    expect(saved.eyes).toBe('star');
+    expect(saved.accessory).toBe('crown');
+  });
+
+  it('does not render eye-style or cheek controls', () => {
+    render(
+      <AvatarPickerModal initial={DEFAULT_MOCHI_CONFIG} onSave={vi.fn()} onDismiss={vi.fn()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Customise' }));
+    expect(screen.queryByText('Eyes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cheeks')).not.toBeInTheDocument();
   });
 
   it('Random produces a config and Save passes it through', () => {
@@ -60,7 +69,8 @@ describe('AvatarPickerModal', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
     const saved = onSave.mock.calls[0][0] as MochiConfig;
     expect(saved).toHaveProperty('body');
-    expect(saved).toHaveProperty('eyes');
+    expect(saved).toHaveProperty('accessory');
+    expect(saved).toHaveProperty('aura');
   });
 
   it('dismiss button calls onDismiss', () => {

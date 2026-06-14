@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import MochiAvatar from '@/components/MochiAvatar';
 import {
   BODY_VARIANTS,
-  CHEEK_VARIANTS,
   DEFAULT_MOCHI_CONFIG,
   randomMochiConfig,
   type MochiConfig,
@@ -15,20 +14,21 @@ describe('randomMochiConfig', () => {
       const c = randomMochiConfig();
       expect(c.body).toBeGreaterThanOrEqual(0);
       expect(c.body).toBeLessThan(BODY_VARIANTS.length);
-      expect(c.cheek).toBeGreaterThanOrEqual(0);
-      expect(c.cheek).toBeLessThan(CHEEK_VARIANTS.length);
-      expect(['happy', 'sleepy', 'star', 'surprised', 'uwu']).toContain(c.eyes);
       expect(['none', 'bow', 'cap', 'glasses', 'crown', 'headband']).toContain(c.accessory);
       expect(['none', 'sparkle', 'fire', 'chill', 'electric', 'bloom']).toContain(c.aura);
     }
+  });
+
+  it('does not include eye or cheek fields', () => {
+    const c = randomMochiConfig();
+    expect(c).not.toHaveProperty('eyes');
+    expect(c).not.toHaveProperty('cheek');
   });
 });
 
 describe('MochiAvatar', () => {
   const config: MochiConfig = {
     body: 2,
-    cheek: 1,
-    eyes: 'star',
     accessory: 'crown',
     aura: 'sparkle',
   };
@@ -40,11 +40,11 @@ describe('MochiAvatar', () => {
     expect(img.style.filter).toBe(BODY_VARIANTS[2].filter);
   });
 
-  it('renders an SVG overlay (eyes/accessory/aura)', () => {
+  it('renders an SVG overlay (accessory/aura)', () => {
     const { container } = render(<MochiAvatar config={config} />);
     const svgs = container.querySelectorAll('svg');
-    // One cheek SVG + one overlay SVG.
-    expect(svgs.length).toBeGreaterThanOrEqual(2);
+    // The accessory + aura overlay SVG (no separate cheek/eye SVGs).
+    expect(svgs.length).toBeGreaterThanOrEqual(1);
   });
 
   it('respects the size prop', () => {
@@ -59,8 +59,8 @@ describe('MochiAvatar', () => {
     expect(img.style.animation).toBe('');
   });
 
-  it('clamps out-of-range body/cheek indices instead of crashing', () => {
-    const bad: MochiConfig = { ...config, body: 999, cheek: -5 };
+  it('clamps out-of-range body index instead of crashing', () => {
+    const bad: MochiConfig = { ...config, body: 999 };
     const { container } = render(<MochiAvatar config={bad} />);
     const img = container.querySelector('img[src="/mochi-base-transparent.png"]') as HTMLImageElement;
     // Clamped to last body variant.

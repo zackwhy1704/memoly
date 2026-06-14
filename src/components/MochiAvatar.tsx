@@ -2,9 +2,7 @@
 
 import {
   BODY_VARIANTS,
-  CHEEK_VARIANTS,
   type MochiConfig,
-  type MochiEyeStyle,
   type MochiAccessory,
   type MochiAura,
 } from '@/lib/api';
@@ -14,84 +12,25 @@ import {
  *
  *   1. an optional soft aura glow + aura ring behind the body,
  *   2. the base PNG (`/mochi-base-transparent.png`) recoloured via CSS filter,
- *   3. a cheek-blush SVG overlay (two ellipses),
- *   4. an eyes + accessory + aura SVG overlay.
+ *   3. an accessory + aura SVG overlay.
  *
- * All overlays use a 170×170 coordinate system (body cx=85, eyes lx=58 / rx=112,
- * eye y=64) scaled to whatever `size` is requested via SVG viewBox.
+ * The base PNG already has eyes and cheeks baked in, so the customiser does
+ * not draw them — it only controls body colour, accessory and aura.
+ *
+ * Overlays use a 170×170 coordinate system (body cx=85) scaled to whatever
+ * `size` is requested via SVG viewBox. Accessories that sit over the baked-in
+ * eyes (e.g. glasses) use the measured eye coords below (x≈65/104, y≈89).
  *
  * IMPORTANT: the only `dangerouslySetInnerHTML` here is fed by the pure,
  * code-generated SVG string builders below. No user input ever reaches it —
  * the config only selects between fixed enum branches.
  */
 
-const EYE_FILL = '#3a2e1e';
-const LX = 58; // left eye centre x
-const RX = 112; // right eye centre x
-const EY = 64; // eye centre y
-
-// ── Eyes ──────────────────────────────────────────────────────────────────
-export function eyeSVG(style: MochiEyeStyle): string {
-  switch (style) {
-    case 'happy':
-      // upward curved arcs (^‿^ style smiling eyes)
-      return (
-        `<path d="M ${LX - 9} ${EY + 2} Q ${LX} ${EY - 9} ${LX + 9} ${EY + 2}" ` +
-        `stroke="${EYE_FILL}" stroke-width="4" fill="none" stroke-linecap="round"/>` +
-        `<path d="M ${RX - 9} ${EY + 2} Q ${RX} ${EY - 9} ${RX + 9} ${EY + 2}" ` +
-        `stroke="${EYE_FILL}" stroke-width="4" fill="none" stroke-linecap="round"/>`
-      );
-    case 'sleepy':
-      // flat horizontal lines (relaxed)
-      return (
-        `<line x1="${LX - 9}" y1="${EY}" x2="${LX + 9}" y2="${EY}" ` +
-        `stroke="${EYE_FILL}" stroke-width="4" stroke-linecap="round"/>` +
-        `<line x1="${RX - 9}" y1="${EY}" x2="${RX + 9}" y2="${EY}" ` +
-        `stroke="${EYE_FILL}" stroke-width="4" stroke-linecap="round"/>`
-      );
-    case 'star':
-      return star4(LX, EY, 9) + star4(RX, EY, 9);
-    case 'surprised':
-      // filled round eyes
-      return (
-        `<circle cx="${LX}" cy="${EY}" r="7" fill="${EYE_FILL}"/>` +
-        `<circle cx="${RX}" cy="${EY}" r="7" fill="${EYE_FILL}"/>` +
-        // tiny catchlight
-        `<circle cx="${LX - 2}" cy="${EY - 2}" r="2" fill="#ffffff"/>` +
-        `<circle cx="${RX - 2}" cy="${EY - 2}" r="2" fill="#ffffff"/>`
-      );
-    case 'uwu':
-      // ^ ^ shapes (two strokes meeting at a peak)
-      return uwuEye(LX) + uwuEye(RX);
-    default:
-      return '';
-  }
-}
-
-function uwuEye(cx: number): string {
-  return (
-    `<path d="M ${cx - 9} ${EY + 4} L ${cx} ${EY - 5} L ${cx + 9} ${EY + 4}" ` +
-    `stroke="${EYE_FILL}" stroke-width="4" fill="none" ` +
-    `stroke-linecap="round" stroke-linejoin="round"/>`
-  );
-}
-
-function star4(cx: number, cy: number, r: number): string {
-  const i = r * 0.34; // inner radius for a sparkly 4-point star
-  const pts = [
-    [cx, cy - r],
-    [cx + i, cy - i],
-    [cx + r, cy],
-    [cx + i, cy + i],
-    [cx, cy + r],
-    [cx - i, cy + i],
-    [cx - r, cy],
-    [cx - i, cy - i],
-  ]
-    .map((p) => p.join(','))
-    .join(' ');
-  return `<polygon points="${pts}" fill="${EYE_FILL}"/>`;
-}
+// Measured from the actual 3D base PNG (1254² → 170 viewBox): the baked-in
+// eyes sit at x≈65/104, y≈89. Accessories like glasses align to these.
+const LX = 65; // left eye centre x
+const RX = 104; // right eye centre x
+const EY = 89; // eye centre y
 
 // ── Accessories ─────────────────────────────────────────────────────────────
 export function accessorySVG(acc: MochiAccessory): string {
@@ -253,13 +192,11 @@ export default function MochiAvatar({
   animate?: boolean;
 }) {
   const bodyIdx = clampIdx(config.body, BODY_VARIANTS.length);
-  const cheekIdx = clampIdx(config.cheek, CHEEK_VARIANTS.length);
   const body = BODY_VARIANTS[bodyIdx];
-  const cheek = CHEEK_VARIANTS[cheekIdx];
   const hasAura = config.aura !== 'none';
 
   // Code-generated SVG only — no user input flows into these strings.
-  const overlayMarkup = eyeSVG(config.eyes) + accessorySVG(config.accessory) + auraSVG(config.aura);
+  const overlayMarkup = accessorySVG(config.accessory) + auraSVG(config.aura);
 
   return (
     <div
@@ -310,20 +247,9 @@ export default function MochiAvatar({
         }}
       />
 
-      {/* 3. Cheek-blush overlay. */}
-      <svg
-        viewBox="0 0 170 170"
-        className="absolute inset-0 pointer-events-none"
-        style={{ width: '100%', height: '100%' }}
-        aria-hidden="true"
-      >
-        <ellipse cx={50} cy={84} rx={9} ry={5.5} fill={cheek.hex} opacity={0.55} />
-        <ellipse cx={120} cy={84} rx={9} ry={5.5} fill={cheek.hex} opacity={0.55} />
-      </svg>
-
-      {/* 4. Eyes + accessory + aura overlay. */}
+      {/* 3. Accessory + aura overlay. */}
       {/*
-        Code-generated SVG only — see eyeSVG/accessorySVG/auraSVG above.
+        Code-generated SVG only — see accessorySVG/auraSVG above.
         The config selects between fixed enum branches; no user-supplied
         string is ever interpolated, so dangerouslySetInnerHTML is safe here.
       */}

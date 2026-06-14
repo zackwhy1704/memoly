@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    // Don't pick up stale copies living in git worktrees under .claude/.
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },

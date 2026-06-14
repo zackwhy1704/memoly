@@ -233,21 +233,19 @@ export interface RosterData {
 // ── Mochi avatar customiser ──────────────────────────────────────────────
 /** A fully-described Mochi look. Rendered by `MochiAvatar` from the single
  *  base PNG (`/mochi-base-transparent.png`) recoloured via CSS filters, with
- *  code-generated SVG overlays for cheeks, eyes, accessory and aura. */
+ *  code-generated SVG overlays for accessory and aura.
+ *
+ *  The base PNG already has eyes and cheeks baked in, so the customiser only
+ *  controls body colour, accessory and aura. */
 export interface MochiConfig {
   /** Index into BODY_VARIANTS — body colour (hue/saturation/brightness filter). */
   body: number;
-  /** Index into CHEEK_VARIANTS — cheek blush colour. */
-  cheek: number;
-  /** Eye expression. */
-  eyes: MochiEyeStyle;
   /** Head accessory. */
   accessory: MochiAccessory;
   /** Ambient aura effect. */
   aura: MochiAura;
 }
 
-export type MochiEyeStyle = 'happy' | 'sleepy' | 'star' | 'surprised' | 'uwu';
 export type MochiAccessory =
   | 'none'
   | 'bow'
@@ -298,23 +296,6 @@ export const BODY_PREVIEW_HEX: ReadonlyArray<string> = [
   '#9AA3B4', // Slate
 ];
 
-/** Cheek blush colours. 7 variants. */
-export const CHEEK_VARIANTS: ReadonlyArray<{
-  name: string;
-  hex: string;
-}> = [
-  { name: 'Blush',   hex: '#FF8FA3' },
-  { name: 'Coral',   hex: '#FF9E7A' },
-  { name: 'Berry',   hex: '#E86A9C' },
-  { name: 'Peach',   hex: '#FFB38A' },
-  { name: 'Lilac',   hex: '#C79CF0' },
-  { name: 'Sky',     hex: '#7FC8F0' },
-  { name: 'Rosegold', hex: '#F0A6A0' },
-];
-
-const MOCHI_EYE_STYLES: ReadonlyArray<MochiEyeStyle> = [
-  'happy', 'sleepy', 'star', 'surprised', 'uwu',
-];
 const MOCHI_ACCESSORIES: ReadonlyArray<MochiAccessory> = [
   'none', 'bow', 'cap', 'glasses', 'crown', 'headband',
 ];
@@ -322,11 +303,9 @@ const MOCHI_AURAS: ReadonlyArray<MochiAura> = [
   'none', 'sparkle', 'fire', 'chill', 'electric', 'bloom',
 ];
 
-/** The default Mochi — plain butter body, happy eyes, no extras. */
+/** The default Mochi — plain butter body, no extras. */
 export const DEFAULT_MOCHI_CONFIG: MochiConfig = {
   body: 0,
-  cheek: 0,
-  eyes: 'happy',
   accessory: 'none',
   aura: 'none',
 };
@@ -339,8 +318,6 @@ function pick<T>(arr: ReadonlyArray<T>): T {
 export function randomMochiConfig(): MochiConfig {
   return {
     body: Math.floor(Math.random() * BODY_VARIANTS.length),
-    cheek: Math.floor(Math.random() * CHEEK_VARIANTS.length),
-    eyes: pick(MOCHI_EYE_STYLES),
     accessory: pick(MOCHI_ACCESSORIES),
     aura: pick(MOCHI_AURAS),
   };

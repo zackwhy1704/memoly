@@ -4,10 +4,8 @@ import { useState } from 'react';
 import {
   BODY_VARIANTS,
   BODY_PREVIEW_HEX,
-  CHEEK_VARIANTS,
   randomMochiConfig,
   type MochiConfig,
-  type MochiEyeStyle,
   type MochiAccessory,
   type MochiAura,
 } from '@/lib/api';
@@ -15,30 +13,22 @@ import MochiAvatar from '@/components/MochiAvatar';
 
 // ── 16 named presets — quick-pick looks built from MochiConfig. ───────────────
 const PRESETS: ReadonlyArray<{ name: string; config: MochiConfig }> = [
-  { name: 'Sunny',     config: { body: 0, cheek: 0, eyes: 'happy', accessory: 'none', aura: 'sparkle' } },
-  { name: 'Peachy',    config: { body: 1, cheek: 3, eyes: 'uwu', accessory: 'bow', aura: 'none' } },
-  { name: 'Coral Pop', config: { body: 2, cheek: 1, eyes: 'happy', accessory: 'none', aura: 'bloom' } },
-  { name: 'Rosie',     config: { body: 3, cheek: 2, eyes: 'star', accessory: 'bow', aura: 'sparkle' } },
-  { name: 'Bubbly',    config: { body: 4, cheek: 2, eyes: 'surprised', accessory: 'crown', aura: 'bloom' } },
-  { name: 'Lavender',  config: { body: 5, cheek: 4, eyes: 'sleepy', accessory: 'none', aura: 'chill' } },
-  { name: 'Scholar',   config: { body: 6, cheek: 0, eyes: 'happy', accessory: 'cap', aura: 'none' } },
-  { name: 'Sky Diver', config: { body: 7, cheek: 5, eyes: 'star', accessory: 'glasses', aura: 'electric' } },
-  { name: 'Minty',     config: { body: 8, cheek: 0, eyes: 'uwu', accessory: 'headband', aura: 'chill' } },
-  { name: 'Matcha',    config: { body: 9, cheek: 1, eyes: 'happy', accessory: 'none', aura: 'bloom' } },
-  { name: 'Sandy',     config: { body: 10, cheek: 3, eyes: 'sleepy', accessory: 'cap', aura: 'none' } },
-  { name: 'Stormy',    config: { body: 11, cheek: 5, eyes: 'surprised', accessory: 'none', aura: 'electric' } },
-  { name: 'Royal',     config: { body: 5, cheek: 2, eyes: 'star', accessory: 'crown', aura: 'sparkle' } },
-  { name: 'Ember',     config: { body: 2, cheek: 1, eyes: 'happy', accessory: 'headband', aura: 'fire' } },
-  { name: 'Nerd',      config: { body: 6, cheek: 0, eyes: 'happy', accessory: 'glasses', aura: 'none' } },
-  { name: 'Frost',     config: { body: 7, cheek: 5, eyes: 'sleepy', accessory: 'none', aura: 'chill' } },
-];
-
-const EYE_OPTIONS: ReadonlyArray<{ value: MochiEyeStyle; label: string }> = [
-  { value: 'happy', label: 'Happy' },
-  { value: 'sleepy', label: 'Sleepy' },
-  { value: 'star', label: 'Star' },
-  { value: 'surprised', label: 'Surprised' },
-  { value: 'uwu', label: 'UwU' },
+  { name: 'Sunny',     config: { body: 0, accessory: 'none', aura: 'sparkle' } },
+  { name: 'Peachy',    config: { body: 1, accessory: 'bow', aura: 'none' } },
+  { name: 'Coral Pop', config: { body: 2, accessory: 'none', aura: 'bloom' } },
+  { name: 'Rosie',     config: { body: 3, accessory: 'bow', aura: 'sparkle' } },
+  { name: 'Bubbly',    config: { body: 4, accessory: 'crown', aura: 'bloom' } },
+  { name: 'Lavender',  config: { body: 5, accessory: 'none', aura: 'chill' } },
+  { name: 'Scholar',   config: { body: 6, accessory: 'cap', aura: 'none' } },
+  { name: 'Sky Diver', config: { body: 7, accessory: 'glasses', aura: 'electric' } },
+  { name: 'Minty',     config: { body: 8, accessory: 'headband', aura: 'chill' } },
+  { name: 'Matcha',    config: { body: 9, accessory: 'none', aura: 'bloom' } },
+  { name: 'Sandy',     config: { body: 10, accessory: 'cap', aura: 'none' } },
+  { name: 'Stormy',    config: { body: 11, accessory: 'none', aura: 'electric' } },
+  { name: 'Royal',     config: { body: 5, accessory: 'crown', aura: 'sparkle' } },
+  { name: 'Ember',     config: { body: 2, accessory: 'headband', aura: 'fire' } },
+  { name: 'Nerd',      config: { body: 6, accessory: 'glasses', aura: 'none' } },
+  { name: 'Frost',     config: { body: 7, accessory: 'none', aura: 'chill' } },
 ];
 
 const ACCESSORY_OPTIONS: ReadonlyArray<{ value: MochiAccessory; label: string }> = [
@@ -147,32 +137,6 @@ export default function AvatarPickerModal({
                     />
                   ))}
                 </div>
-              </Section>
-
-              {/* Cheeks */}
-              <Section label="Cheeks">
-                <div className="flex flex-wrap gap-2">
-                  {CHEEK_VARIANTS.map((c, i) => (
-                    <button
-                      key={i}
-                      aria-label={`Cheek ${c.name}`}
-                      onClick={() => set({ cheek: i })}
-                      className={`w-7 h-7 rounded-full border-2 transition ${
-                        config.cheek === i ? 'border-accent scale-110' : 'border-line'
-                      }`}
-                      style={{ background: c.hex }}
-                    />
-                  ))}
-                </div>
-              </Section>
-
-              {/* Eyes */}
-              <Section label="Eyes">
-                <PillRow
-                  options={EYE_OPTIONS}
-                  value={config.eyes}
-                  onSelect={(v) => set({ eyes: v })}
-                />
               </Section>
 
               {/* Accessory */}
