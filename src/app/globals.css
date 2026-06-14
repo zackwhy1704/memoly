@@ -60,3 +60,9 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Mochi avatar idle "breathing" — gentle scale + bob. */
+@keyframes mochi-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%      { transform: scale(1.028) translateY(-3px); }
+}
