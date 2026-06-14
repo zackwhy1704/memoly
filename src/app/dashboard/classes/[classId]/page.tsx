@@ -106,10 +106,17 @@ export default function ClassDetailPage() {
             {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'} · {cls.studentCount} students
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] uppercase tracking-wider text-ink3">Join code</p>
-          <p className="font-mono text-lg font-bold text-accent tracking-wider">{cls.joinCode}</p>
-        </div>
+        <ClassCodeBox code={cls.joinCode} />
+      </div>
+
+      {/* How students join — one code, self-serve in the app */}
+      <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 flex items-start gap-3">
+        <span className="text-xl leading-none">🎓</span>
+        <p className="text-ink2 text-sm leading-relaxed">
+          Share the <span className="font-semibold text-ink">join code</span> above. Students open the
+          Apalchi app → Home → <span className="font-semibold text-ink">&ldquo;Got a class code?&rdquo;</span>{' '}
+          and enter it. They join this class instantly and get its Mochi — no separate centre code needed.
+        </p>
       </div>
 
       {/* Tabs */}
@@ -2031,5 +2038,35 @@ function AddStudentsTab({ orgId, classId }: { orgId: string; classId: string }) 
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** Prominent, one-tap-copy class join code shown in the class header. */
+function ClassCodeBox({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — code is still visible to type manually */
+    }
+  }
+
+  return (
+    <button
+      onClick={copy}
+      title="Copy join code"
+      className="text-right shrink-0 rounded-xl border border-accent/30 bg-accent/5 px-4 py-2
+        hover:bg-accent/10 transition-colors"
+    >
+      <p className="text-[10px] uppercase tracking-wider text-ink3">Class code</p>
+      <p className="font-mono text-2xl font-extrabold text-accent tracking-[0.2em] leading-tight">
+        {code}
+      </p>
+      <p className="text-[10px] text-ink3 mt-0.5">{copied ? 'Copied! ✓' : 'Tap to copy'}</p>
+    </button>
   );
 }
