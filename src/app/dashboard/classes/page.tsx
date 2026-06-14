@@ -19,7 +19,7 @@ function useClassAvatarMap(): Map<string, ClassAvatarAppearance> {
     queryFn: () => api.avatars(),
   });
   const map = new Map<string, ClassAvatarAppearance>();
-  for (const a of query.data?.data ?? []) {
+  for (const a of query.data?.data?.avatars ?? []) {
     if (a.kind === 'CENTRE_CLASS' && a.appearance) {
       map.set(a.id, a.appearance);
     }

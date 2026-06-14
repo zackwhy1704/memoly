@@ -22,7 +22,7 @@ function AnalysisContent() {
     api
       .avatars()
       .then((res) => {
-        const list = res.data ?? [];
+        const list = res.data?.avatars ?? [];
         setAvatars(list);
         if (!selectedAvatarId && list.length === 1) {
           setSelectedAvatarId(list[0].id);

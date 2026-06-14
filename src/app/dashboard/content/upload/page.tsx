@@ -81,7 +81,7 @@ function UploadContent() {
   // ── Step 2 — upload ─────────────────────────────────────────────────────────
   if (created) {
     return (
-      <div className="max-w-3xl space-y-5">
+      <div className="max-w-3xl mx-auto space-y-5">
         <div>
           <h1 className="text-2xl font-bold text-ink">Add content to {created.name}</h1>
           <p className="text-ink3 text-sm mt-1">
@@ -137,7 +137,7 @@ function UploadContent() {
 
   // ── Step 1 — create the Mochi ───────────────────────────────────────────────
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="max-w-3xl mx-auto space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-ink">New teaching Mochi</h1>
         <p className="text-ink3 text-sm mt-1">

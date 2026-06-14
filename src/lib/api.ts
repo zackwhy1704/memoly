@@ -159,7 +159,7 @@ export interface LoginResponse {
   };
 }
 
-export interface AvatarsResponse { data: Avatar[] }
+export interface AvatarsResponse { data: { avatars: Avatar[] } }
 export interface AvatarResponse  { data: Avatar }
 export interface WikiPagesResponse { data: WikiPage[] }
 export interface FilesResponse { data: KnowledgeFile[] }
@@ -589,7 +589,7 @@ export const api = {
   // Centre-Mochi-aware avatar list: returns all, centreManaged ones are ABC Mochi
   centreAvatars: async (): Promise<Avatar[]> => {
     const res = await apiFetch<AvatarsResponse>('/avatars');
-    return (res.data ?? []).filter((a) => a.centreManaged);
+    return (res.data?.avatars ?? []).filter((a) => a.centreManaged);
   },
 
   // Knowledge / wiki
