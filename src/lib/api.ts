@@ -230,6 +230,122 @@ export interface RosterData {
   totalElements: number;
 }
 
+// ── Mochi avatar customiser ──────────────────────────────────────────────
+/** A fully-described Mochi look. Rendered by `MochiAvatar` from the single
+ *  base PNG (`/mochi-base-transparent.png`) recoloured via CSS filters, with
+ *  code-generated SVG overlays for cheeks, eyes, accessory and aura. */
+export interface MochiConfig {
+  /** Index into BODY_VARIANTS — body colour (hue/saturation/brightness filter). */
+  body: number;
+  /** Index into CHEEK_VARIANTS — cheek blush colour. */
+  cheek: number;
+  /** Eye expression. */
+  eyes: MochiEyeStyle;
+  /** Head accessory. */
+  accessory: MochiAccessory;
+  /** Ambient aura effect. */
+  aura: MochiAura;
+}
+
+export type MochiEyeStyle = 'happy' | 'sleepy' | 'star' | 'surprised' | 'uwu';
+export type MochiAccessory =
+  | 'none'
+  | 'bow'
+  | 'cap'
+  | 'glasses'
+  | 'crown'
+  | 'headband';
+export type MochiAura =
+  | 'none'
+  | 'sparkle'
+  | 'fire'
+  | 'chill'
+  | 'electric'
+  | 'bloom';
+
+/** CSS filter recipes that recolour the pale-yellow base PNG. 12 variants. */
+export const BODY_VARIANTS: ReadonlyArray<{
+  name: string;
+  filter: string;
+}> = [
+  { name: 'Butter',     filter: 'hue-rotate(0deg) saturate(1) brightness(1)' },
+  { name: 'Peach',      filter: 'hue-rotate(-22deg) saturate(1.25) brightness(1.02)' },
+  { name: 'Coral',      filter: 'hue-rotate(-38deg) saturate(1.6) brightness(0.98)' },
+  { name: 'Rose',       filter: 'hue-rotate(-60deg) saturate(1.4) brightness(1)' },
+  { name: 'Bubblegum',  filter: 'hue-rotate(-85deg) saturate(1.5) brightness(1.04)' },
+  { name: 'Lilac',      filter: 'hue-rotate(220deg) saturate(1.2) brightness(1.02)' },
+  { name: 'Periwinkle', filter: 'hue-rotate(190deg) saturate(1.3) brightness(1)' },
+  { name: 'Sky',        filter: 'hue-rotate(160deg) saturate(1.35) brightness(1.02)' },
+  { name: 'Mint',       filter: 'hue-rotate(95deg) saturate(1.2) brightness(1.02)' },
+  { name: 'Matcha',     filter: 'hue-rotate(60deg) saturate(1.25) brightness(0.98)' },
+  { name: 'Sand',       filter: 'hue-rotate(18deg) saturate(0.8) brightness(1)' },
+  { name: 'Slate',      filter: 'hue-rotate(200deg) saturate(0.4) brightness(0.92)' },
+];
+
+/** Preview swatch hex for each body variant (1:1 with BODY_VARIANTS). */
+export const BODY_PREVIEW_HEX: ReadonlyArray<string> = [
+  '#F5E27A', // Butter
+  '#F7C98C', // Peach
+  '#F59E84', // Coral
+  '#F08CA8', // Rose
+  '#F58CC9', // Bubblegum
+  '#C8A8F5', // Lilac
+  '#A8B4F5', // Periwinkle
+  '#8CCBF5', // Sky
+  '#8CE0B4', // Mint
+  '#A8D08C', // Matcha
+  '#E0CFA8', // Sand
+  '#9AA3B4', // Slate
+];
+
+/** Cheek blush colours. 7 variants. */
+export const CHEEK_VARIANTS: ReadonlyArray<{
+  name: string;
+  hex: string;
+}> = [
+  { name: 'Blush',   hex: '#FF8FA3' },
+  { name: 'Coral',   hex: '#FF9E7A' },
+  { name: 'Berry',   hex: '#E86A9C' },
+  { name: 'Peach',   hex: '#FFB38A' },
+  { name: 'Lilac',   hex: '#C79CF0' },
+  { name: 'Sky',     hex: '#7FC8F0' },
+  { name: 'Rosegold', hex: '#F0A6A0' },
+];
+
+const MOCHI_EYE_STYLES: ReadonlyArray<MochiEyeStyle> = [
+  'happy', 'sleepy', 'star', 'surprised', 'uwu',
+];
+const MOCHI_ACCESSORIES: ReadonlyArray<MochiAccessory> = [
+  'none', 'bow', 'cap', 'glasses', 'crown', 'headband',
+];
+const MOCHI_AURAS: ReadonlyArray<MochiAura> = [
+  'none', 'sparkle', 'fire', 'chill', 'electric', 'bloom',
+];
+
+/** The default Mochi — plain butter body, happy eyes, no extras. */
+export const DEFAULT_MOCHI_CONFIG: MochiConfig = {
+  body: 0,
+  cheek: 0,
+  eyes: 'happy',
+  accessory: 'none',
+  aura: 'none',
+};
+
+function pick<T>(arr: ReadonlyArray<T>): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Returns a random, always in-range MochiConfig. */
+export function randomMochiConfig(): MochiConfig {
+  return {
+    body: Math.floor(Math.random() * BODY_VARIANTS.length),
+    cheek: Math.floor(Math.random() * CHEEK_VARIANTS.length),
+    eyes: pick(MOCHI_EYE_STYLES),
+    accessory: pick(MOCHI_ACCESSORIES),
+    aura: pick(MOCHI_AURAS),
+  };
+}
+
 // ── Classes (first-class units) ──────────────────────────────────────────
 export interface OrgClass {
   id: string;
@@ -246,6 +362,8 @@ export interface OrgClass {
   cosmeticClothes: string | null;
   cosmeticShoes: string | null;
   studentCount: number;
+  /** Class Mochi look — present once a centre admin has saved a custom avatar. */
+  mochiConfig?: MochiConfig;
 }
 
 export interface CentreMember {
@@ -572,6 +690,13 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+
+  // Save the class Mochi look. Body is the full MochiConfig.
+  setMochiConfig: (orgId: string, classId: string, cfg: MochiConfig) =>
+    apiFetch<{ data: OrgClass }>(
+      `/centre/organizations/${orgId}/classes/${classId}/mochi-config`,
+      { method: 'PATCH', body: JSON.stringify(cfg) }
+    ),
 
   // All centre members + their class memberships + unassigned flag.
   members: (orgId: string) =>
