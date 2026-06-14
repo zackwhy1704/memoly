@@ -1,12 +1,7 @@
 'use client';
 
-import {
-  BODY_VARIANTS,
-  type MochiConfig,
-  type MochiAccessory,
-  type MochiAura,
-} from '@/lib/api';
-import { accessorySVG, auraSVG } from '@/components/mochiOverlays';
+import { BODY_VARIANTS, type MochiConfig } from '@/lib/api';
+import { AccessoryNodes, AuraNodes } from '@/components/mochiOverlays';
 
 /**
  * MochiAvatar renders a single Mochi look from `MochiConfig`:
@@ -41,19 +36,14 @@ export default function MochiAvatar({
   const body = BODY_VARIANTS[bodyIdx];
   const hasAura = config.aura !== 'none';
 
-  // Code-generated SVG only — no user input flows into these strings.
-  const overlayMarkup = accessorySVG(config.accessory) + auraSVG(config.aura);
-
   return (
     <div
       className="relative shrink-0 select-none"
       style={{ width: size, height: size }}
       role="img"
       aria-label="Mochi avatar"
-      // Build stamp — inspect this on the deployed site to confirm prod is
-      // running current overlay code (no more "is it code or cache?" guessing).
-      // Bump whenever the accessory/aura overlay code changes.
-      data-mochi-build="overlay-v5-newmodule"
+      // Build stamp — inspect on the deployed site to confirm current code.
+      data-mochi-build="overlay-v6-jsx"
     >
       {/* 1a. Soft aura glow behind everything (only when an aura is active). */}
       {hasAura && (
@@ -97,19 +87,17 @@ export default function MochiAvatar({
         }}
       />
 
-      {/* 3. Accessory + aura overlay. */}
-      {/*
-        Code-generated SVG only — see accessorySVG/auraSVG above.
-        The config selects between fixed enum branches; no user-supplied
-        string is ever interpolated, so dangerouslySetInnerHTML is safe here.
-      */}
+      {/* 3. Accessory + aura overlay — real SVG JSX elements (no innerHTML), so
+          the markup can never be malformed by SSR/serialization. */}
       <svg
         viewBox="0 0 170 170"
         className="absolute inset-0 pointer-events-none"
         style={{ width: '100%', height: '100%' }}
         aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: overlayMarkup }}
-      />
+      >
+        <AccessoryNodes accessory={config.accessory} />
+        <AuraNodes aura={config.aura} />
+      </svg>
     </div>
   );
 }
