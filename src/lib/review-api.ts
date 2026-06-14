@@ -13,7 +13,12 @@
 
 // The configured base already ends in `/api/v1` (see .env.local), matching how
 // every existing apiFetch path resolves (e.g. '/avatars' → '.../api/v1/avatars').
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+// Default to the Railway prod host (same as src/lib/api.ts) so the trusted-adult
+// review flow works on apalchi.com without an explicit env — the old '' default
+// only resolved locally and was a latent prod break.
+const BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  'https://pallybackend-production.up.railway.app/api/v1';
 
 export interface ReviewContent {
   pageTitle: string;

@@ -204,6 +204,10 @@ export default function MochiAvatar({
       style={{ width: size, height: size }}
       role="img"
       aria-label="Mochi avatar"
+      // Build stamp — inspect this on the deployed site to confirm prod is
+      // running current overlay code (no more "is it code or cache?" guessing).
+      // Bump whenever the accessory/aura overlay code changes.
+      data-mochi-build="overlay-v2"
     >
       {/* 1a. Soft aura glow behind everything (only when an aura is active). */}
       {hasAura && (
