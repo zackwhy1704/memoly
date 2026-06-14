@@ -33,7 +33,7 @@ const RX = 104; // right eye centre x
 const EY = 89; // eye centre y
 
 // ── Accessories ─────────────────────────────────────────────────────────────
-export function accessorySVG(acc: MochiAccessory): string {
+function accessorySVG(acc: MochiAccessory): string {
   switch (acc) {
     case 'none':
       return '';
@@ -97,7 +97,7 @@ export function accessorySVG(acc: MochiAccessory): string {
 }
 
 // ── Auras ─────────────────────────────────────────────────────────────────
-export function auraSVG(aura: MochiAura): string {
+function auraSVG(aura: MochiAura): string {
   switch (aura) {
     case 'none':
       return '';
@@ -207,7 +207,7 @@ export default function MochiAvatar({
       // Build stamp — inspect this on the deployed site to confirm prod is
       // running current overlay code (no more "is it code or cache?" guessing).
       // Bump whenever the accessory/aura overlay code changes.
-      data-mochi-build="overlay-v3-explicit-close"
+      data-mochi-build="overlay-v4-inlined"
     >
       {/* 1a. Soft aura glow behind everything (only when an aura is active). */}
       {hasAura && (
