@@ -2,10 +2,12 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { api, ApiError, type OrgClass } from '@/lib/api';
+import { api, ApiError, randomMochiConfig, type MochiConfig, type OrgClass } from '@/lib/api';
 import { CENTRE_MOCHIS, CENTRE_SUBJECTS } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
+import MochiAvatar from '@/components/MochiAvatar';
+import AvatarPickerModal from '@/components/AvatarPickerModal';
 
 // Mobile-parity journey: create a teaching Mochi (character + name + subject)
 // then upload up to 10 files through the same relevance → files → recompile
@@ -30,6 +32,10 @@ function UploadContent() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState<OrgClass | null>(null);
+  // Class Mochi look — loads from the class's saved mochiConfig, else random on
+  // first load. Not persisted until the admin hits "Save avatar" in the modal.
+  const [classAvatarConfig, setClassAvatarConfig] = useState<MochiConfig | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   async function createMochi() {
     if (!name.trim() || !org) return;
@@ -43,6 +49,7 @@ function UploadContent() {
         characterType,
       });
       setCreated(res.data);
+      setClassAvatarConfig(res.data.mochiConfig ?? randomMochiConfig());
     } catch (err) {
       setError(err instanceof ApiError ? err.userMessage : err instanceof Error ? err.message : 'Could not create the Mochi.');
     } finally {
@@ -54,6 +61,21 @@ function UploadContent() {
     setCreated(null);
     setName('');
     setLevel('');
+    setClassAvatarConfig(null);
+    setPickerOpen(false);
+  }
+
+  async function saveAvatar(cfg: MochiConfig) {
+    setClassAvatarConfig(cfg);
+    setPickerOpen(false);
+    if (!org || !created) return;
+    try {
+      const res = await api.setMochiConfig(org.orgId, created.id, cfg);
+      // Adopt the canonical class back from the server when available.
+      setCreated((prev) => (prev ? { ...prev, ...res.data } : prev));
+    } catch {
+      // Non-blocking optional step — the look is already applied locally.
+    }
   }
 
   // ── Step 2 — upload ─────────────────────────────────────────────────────────
@@ -68,7 +90,32 @@ function UploadContent() {
           </p>
         </div>
 
+        {/* Optional, non-blocking step — give the class Mochi a custom look. */}
+        {classAvatarConfig && (
+          <div className="flex items-center gap-3 bg-panel rounded-xl border border-line p-3">
+            <MochiAvatar config={classAvatarConfig} size={48} animate={false} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink truncate">{created.name}</p>
+              <p className="text-xs text-ink3">Class Mochi look</p>
+            </div>
+            <button
+              onClick={() => setPickerOpen(true)}
+              className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition whitespace-nowrap"
+            >
+              Customise class Mochi ↗
+            </button>
+          </div>
+        )}
+
         {created.corpusAvatarId && <MochiUploader avatarId={created.corpusAvatarId} />}
+
+        {pickerOpen && classAvatarConfig && (
+          <AvatarPickerModal
+            initial={classAvatarConfig}
+            onSave={saveAvatar}
+            onDismiss={() => setPickerOpen(false)}
+          />
+        )}
 
         <div className="flex gap-3">
           <button
