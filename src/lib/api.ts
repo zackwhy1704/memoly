@@ -1,4 +1,8 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+// Backend base URL. Defaults to the Railway production host so deploys work with
+// no env config; override with NEXT_PUBLIC_API_URL for local/staging backends.
+const BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  'https://pallybackend-production.up.railway.app/api/v1';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
