@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError, randomMochiConfig, type MochiConfig, type OrgClass } from '@/lib/api';
-import { CENTRE_MOCHIS, CENTRE_SUBJECTS } from '@/lib/centre-mochis';
+import { CENTRE_SUBJECTS } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
 import MochiAvatar from '@/components/MochiAvatar';
@@ -13,28 +13,21 @@ import AvatarPickerModal from '@/components/AvatarPickerModal';
 // then upload up to 10 files through the same relevance → files → recompile
 // pipeline the app uses. Creating the Mochi provisions a class (with its own
 // join code + shared corpus) so students can be assigned to it.
-function MochiBadge({ characterType, size = 56 }: { characterType: string; size?: number }) {
-  const m = CENTRE_MOCHIS.find((c) => c.characterType === characterType) ?? CENTRE_MOCHIS[0];
-  const [failed, setFailed] = useState(false);
-  if (failed) return <span style={{ fontSize: size * 0.7 }}>{m.emoji}</span>;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={m.image} alt={m.name} width={size} height={size} onError={() => setFailed(true)} className="object-contain" />
-  );
-}
 
 function UploadContent() {
   const org = useOrg();
-  const [characterType, setCharacterType] = useState('MOCHI');
+  // Base character is always MOCHI now; teachers differentiate via the Mochi
+  // studio (colour/preset/accessory), not a character grid.
+  const [characterType] = useState('MOCHI');
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('MATHS');
   const [level, setLevel] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState<OrgClass | null>(null);
-  // Class Mochi look — loads from the class's saved mochiConfig, else random on
-  // first load. Not persisted until the admin hits "Save avatar" in the modal.
-  const [classAvatarConfig, setClassAvatarConfig] = useState<MochiConfig | null>(null);
+  // Class Mochi look — designed in step 1 (the character choice IS the Mochi
+  // studio now), persisted to the class on create, editable again in step 2.
+  const [classAvatarConfig, setClassAvatarConfig] = useState<MochiConfig>(randomMochiConfig);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   async function createMochi() {
@@ -49,7 +42,12 @@ function UploadContent() {
         characterType,
       });
       setCreated(res.data);
-      setClassAvatarConfig(res.data.mochiConfig ?? randomMochiConfig());
+      // Persist the Mochi the teacher designed in step 1 (non-blocking).
+      try {
+        await api.setMochiConfig(org.orgId, res.data.id, classAvatarConfig);
+      } catch {
+        /* optional — the look is already applied locally */
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.userMessage : err instanceof Error ? err.message : 'Could not create the Mochi.');
     } finally {
@@ -61,7 +59,7 @@ function UploadContent() {
     setCreated(null);
     setName('');
     setLevel('');
-    setClassAvatarConfig(null);
+    setClassAvatarConfig(randomMochiConfig());
     setPickerOpen(false);
   }
 
@@ -141,31 +139,22 @@ function UploadContent() {
       <div>
         <h1 className="text-2xl font-bold text-ink">New teaching Mochi</h1>
         <p className="text-ink3 text-sm mt-1">
-          Step 1 of 2 — pick a character, name it, choose a subject. Same journey as the app.
+          Step 1 of 2 — design your class Mochi, name it, choose a subject.
         </p>
       </div>
 
       <div className="bg-panel rounded-xl border border-line p-6">
-        <p className="text-xs font-semibold text-ink3 uppercase tracking-wider mb-4">Choose a character</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {CENTRE_MOCHIS.map((m) => {
-            const selected = m.characterType === characterType;
-            return (
-              <button
-                key={m.characterType}
-                onClick={() => setCharacterType(m.characterType)}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition ${
-                  selected ? 'border-accent bg-accent/10' : 'border-line bg-panel2 hover:border-accent/40'
-                }`}
-              >
-                <MochiBadge characterType={m.characterType} size={56} />
-                <div className="text-center">
-                  <p className={`text-xs font-semibold ${selected ? 'text-accent' : 'text-ink'}`}>{m.name}</p>
-                  <p className="text-[10px] text-ink3">{m.tagline}</p>
-                </div>
-              </button>
-            );
-          })}
+        <p className="text-xs font-semibold text-ink3 uppercase tracking-wider mb-4">Design your class Mochi</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="rounded-2xl bg-[#0d0d0d] p-5">
+            <MochiAvatar config={classAvatarConfig} size={120} />
+          </div>
+          <button
+            onClick={() => setPickerOpen(true)}
+            className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm font-medium hover:bg-panel2 transition"
+          >
+            Choose a style or customise ↗
+          </button>
         </div>
       </div>
 
@@ -217,6 +206,14 @@ function UploadContent() {
       >
         {creating ? 'Creating…' : 'Create & add content →'}
       </button>
+
+      {pickerOpen && (
+        <AvatarPickerModal
+          initial={classAvatarConfig}
+          onSave={(cfg) => { setClassAvatarConfig(cfg); setPickerOpen(false); }}
+          onDismiss={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }
