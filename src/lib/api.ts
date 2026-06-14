@@ -124,6 +124,9 @@ export interface Avatar {
   centreId?: string;
   centreBrandName?: string;
   centreAccentColor?: string;
+  // Teaching instruction fed into the tutor's system prompt (## TEACHER
+  // INSTRUCTIONS). For a class corpus this is the teacher's per-class style.
+  teacherPreferences?: string;
 }
 
 export interface WikiPage {
@@ -677,6 +680,16 @@ export const api = {
     apiFetch<{ data: OrgClass }>(
       `/centre/organizations/${orgId}/classes/${classId}/mochi-config`,
       { method: 'PATCH', body: JSON.stringify(cfg) }
+    ),
+
+  // Teaching style for a class — owner-gated; the backend writes it onto the
+  // class corpus avatar's teacherPreferences (already injected into the tutor
+  // system prompt) and applies it to every student's Mochi in the class. (The
+  // student /avatars/{id}/teacher-preferences path rejects class avatars.)
+  setClassTeachingStyle: (orgId: string, classId: string, teacherPreferences: string) =>
+    apiFetch<{ data: { teacherPreferences: string } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/teaching-style`,
+      { method: 'PATCH', body: JSON.stringify({ teacherPreferences }) }
     ),
 
   // All centre members + their class memberships + unassigned flag.
