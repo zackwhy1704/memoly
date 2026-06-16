@@ -45,8 +45,11 @@ export function NarrationAction({ orgId, classId, moduleId }: { orgId: string; c
       <button
         onClick={() => generate.mutate()}
         disabled={generate.isPending}
-        className="text-xs font-semibold text-accent hover:underline disabled:opacity-40"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline disabled:opacity-40"
       >
+        {generate.isPending && (
+          <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        )}
         {generate.isPending ? 'Starting...' : 'Generate narration'}
       </button>
     );

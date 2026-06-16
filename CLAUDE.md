@@ -59,6 +59,23 @@ presentational components.
   `MochiAvatar` · relying on localhost for sign-off · committing without a deployed-preview check ·
   letting `review-api.ts` default to a relative base.
 
+## API CALL UX CONTRACT (mandatory on every button that fires a network call)
+Three phases every mutation button must implement:
+1. **LOADING** — `disabled={mutation.isPending}`; show an inline spinner (not just text colour change).
+2. **SUCCESS** — `queryClient.invalidateQueries(...)` for affected queries.
+3. **ERROR** — display error inline for primary actions; `toast` is acceptable only for secondary/
+   background actions where context is not lost on dismiss.
+
+**Timeouts** — `apiFetch` has a default **30 s** `AbortController` timeout (override via `timeoutMs`).
+File uploads get **3 minutes**. Never call `fetch` without an `AbortController` signal.
+
+**Concurrent mutations** — one in-flight mutation per resource. Use `disabled={mutation.isPending}` on
+every trigger button; add per-item pending state when a list has per-row actions.
+
+## DON'T (additions)
+- `fetch` without `AbortController` signal · toast-only error for a primary action · mutation trigger
+  with no `disabled={mutation.isPending}` · concurrent PATCH/POST on the same resource.
+
 ## Common commands
 ```
 npm run dev        # local dev (against NEXT_PUBLIC_API_URL)

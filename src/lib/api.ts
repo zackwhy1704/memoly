@@ -67,7 +67,7 @@ function statusToApiError(status: number, body: string): ApiError {
 
 export async function apiFetch<T>(
   path: string,
-  opts?: RequestInit & { skipAuth?: boolean }
+  opts?: RequestInit & { skipAuth?: boolean; timeoutMs?: number }
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -78,14 +78,23 @@ export async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts?.timeoutMs ?? 30_000);
+
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       ...opts,
       headers,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError(0, 'TIMEOUT', 'This is taking too long — please try again.', true);
+    }
     throw new ApiError(0, 'NETWORK', 'You appear to be offline. Check your connection.', true);
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!res.ok) {
@@ -595,11 +604,25 @@ export const api = {
     if (opts?.skipRelevance) form.append('skipRelevance', 'true');
     const token = getToken();
 
-    const res = await fetch(`${BASE}/avatars/${avatarId}/files`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form,
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3 * 60_000);
+
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/avatars/${avatarId}/files`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new ApiError(0, 'TIMEOUT', 'Upload timed out — please try a smaller file or check your connection.', true);
+      }
+      throw new ApiError(0, 'NETWORK', 'You appear to be offline. Check your connection.', true);
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!res.ok) {
       const text = await res.text();
