@@ -512,6 +512,21 @@ export interface ReviewItem {
   status: ReviewItemStatus;
 }
 
+// ── AI Class Brief ───────────────────────────────────────────────────
+export interface ClassBriefFocusConcept {
+  name: string;
+  failRate: number;
+  failingStudents: string[];
+}
+
+export interface ClassBriefData {
+  openWith: string;
+  focusConcepts: ClassBriefFocusConcept[];
+  checkOn: string[];
+  suggestedGroups: string[][];
+  skipLine: string | null;
+}
+
 // ── Exam Readiness ───────────────────────────────────────────────────
 export interface ExamReadinessConcept {
   concept: string;
@@ -844,6 +859,18 @@ export const api = {
   examReadiness: (orgId: string, classId: string) =>
     apiFetch<{ data: ExamReadiness }>(
       `/centre/organizations/${orgId}/classes/${classId}/exam-readiness`
+    ),
+
+  // ── AI Class Brief ─────────────────────────────────────────────────
+  classBrief: (orgId: string, classId: string, moduleId?: string) =>
+    apiFetch<{ data: ClassBriefData }>(
+      `/centre/organizations/${orgId}/classes/${classId}/class-brief${moduleId ? `?moduleId=${encodeURIComponent(moduleId)}` : ''}`
+    ),
+
+  refreshClassBrief: (orgId: string, classId: string, moduleId?: string) =>
+    apiFetch<{ data: ClassBriefData }>(
+      `/centre/organizations/${orgId}/classes/${classId}/class-brief/refresh${moduleId ? `?moduleId=${encodeURIComponent(moduleId)}` : ''}`,
+      { method: 'POST' }
     ),
 
   // ── File Review (OCR quality gate) ────────────────────────────────

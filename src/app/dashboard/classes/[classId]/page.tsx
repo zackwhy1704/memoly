@@ -19,8 +19,9 @@ import { ChallengesTab } from './tabs/ChallengesTab';
 import { ReviewTab } from './tabs/ReviewTab';
 import { ExamReadinessTab } from './tabs/ExamReadinessTab';
 import { AddStudentsTab } from './tabs/AddStudentsTab';
+import { ClassBriefTab } from './tabs/ClassBriefTab';
 
-type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'add';
+type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'brief' | 'add';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -110,7 +111,7 @@ export default function ClassDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-line overflow-x-auto">
-        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'challenges', 'review', 'readiness', 'add'] as Tab[]).map((t) => {
+        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'challenges', 'review', 'readiness', 'brief', 'add'] as Tab[]).map((t) => {
           const label: Record<Tab, string> = {
             roster: 'Roster',
             modules: 'Modules',
@@ -121,6 +122,7 @@ export default function ClassDetailPage() {
             challenges: 'Challenges',
             review: 'Review',
             readiness: 'Exam Readiness',
+            brief: 'Class Brief',
             add: 'Add students',
           };
           return (
@@ -146,6 +148,7 @@ export default function ClassDetailPage() {
       {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
       {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
       {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
+      {tab === 'brief' && <ClassBriefTab orgId={org.orgId} classId={classId} />}
       {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
     </div>
   );
