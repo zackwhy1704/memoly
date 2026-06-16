@@ -519,6 +519,17 @@ export interface ClassBriefFocusConcept {
   failingStudents: string[];
 }
 
+export interface SafetyFlagDto {
+  id: string;
+  category: string;
+  severity: string;
+  snippet: string | null;
+  source: string;
+  createdAt: string;
+  messageId: string | null;
+  avatarId: string | null;
+}
+
 export interface ClassBriefData {
   openWith: string;
   focusConcepts: ClassBriefFocusConcept[];
@@ -871,6 +882,13 @@ export const api = {
     apiFetch<{ data: ClassBriefData }>(
       `/centre/organizations/${orgId}/classes/${classId}/class-brief/refresh${moduleId ? `?moduleId=${encodeURIComponent(moduleId)}` : ''}`,
       { method: 'POST' }
+    ),
+
+  // ── Admin safety review (email-link-driven, no JWT) ───────────────
+  getSafetyFlags: (childUserId: string, sinceHours: number, adminSecret: string) =>
+    apiFetch<{ data: SafetyFlagDto[] }>(
+      `/admin/safety-flags?childUserId=${encodeURIComponent(childUserId)}&sinceHours=${sinceHours}`,
+      { skipAuth: true, headers: { 'X-Admin-Secret': adminSecret } }
     ),
 
   // ── File Review (OCR quality gate) ────────────────────────────────
