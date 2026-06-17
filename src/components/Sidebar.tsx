@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Overview', icon: '⊞', exact: true },
   { href: '/dashboard/students', label: 'Students', icon: '👥', exact: false },
   { href: '/dashboard/classes', label: 'Classes', icon: '🏫', exact: false },
+  { href: '/dashboard/teachers', label: 'Teachers', icon: '🎓', exact: false },
   { href: '/dashboard/content/upload', label: 'Content', icon: '↑', exact: false },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙', exact: false },
 ];

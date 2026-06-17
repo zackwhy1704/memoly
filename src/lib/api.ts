@@ -182,10 +182,19 @@ export interface MeResponse {
     displayName: string;
     setupComplete: boolean;
     role: string;            // 'USER' | 'ADMIN'
-    isCentreStaff: boolean;  // true if they own an org
+    isCentreStaff: boolean;  // true if owns an org OR active org_staff row
+    isOwner: boolean;        // true only if owns the org (not just staff)
     accountStatus: string;
     defaultAnswerMode: string;
   };
+}
+
+export interface OrgStaffMember {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: 'OWNER' | 'STAFF';
+  status: 'ACTIVE' | 'REMOVED';
 }
 
 export interface AdminOrg {
@@ -963,6 +972,22 @@ export const api = {
     apiFetch<{ data: { token: string; centreName: string; contactEmail: string; expiresAt: string } }>(
       '/admin/invites',
       { method: 'POST', body: JSON.stringify({ centreName, contactEmail }) }
+    ),
+
+  // ── Staff management ─────────────────────────────────────────────
+  listStaff: (orgId: string) =>
+    apiFetch<{ data: OrgStaffMember[] }>(`/centre/${orgId}/staff`),
+
+  inviteStaff: (orgId: string, email: string) =>
+    apiFetch<{ data: { attached: boolean; token?: string; userId?: string; email: string; expiresAt?: string } }>(
+      `/centre/${orgId}/staff/invite`,
+      { method: 'POST', body: JSON.stringify({ email }) }
+    ),
+
+  removeStaff: (orgId: string, staffUserId: string) =>
+    apiFetch<{ data: { removed: boolean } }>(
+      `/centre/${orgId}/staff/${staffUserId}`,
+      { method: 'DELETE' }
     ),
 
   // ── File Review (OCR quality gate) ────────────────────────────────
