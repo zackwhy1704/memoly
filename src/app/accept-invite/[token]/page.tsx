@@ -6,6 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { getToken } from '@/lib/auth';
 
 type Phase = 'loading' | 'preview' | 'confirming' | 'done' | 'error';
+type InviteRole = 'OWNER' | 'STAFF';
 
 export default function AcceptInvitePage() {
   const { token } = useParams<{ token: string }>();
@@ -13,6 +14,7 @@ export default function AcceptInvitePage() {
 
   const [phase, setPhase]         = useState<Phase>('loading');
   const [centreName, setCentreName] = useState('');
+  const [role, setRole]           = useState<InviteRole>('OWNER');
   const [orgId, setOrgId]         = useState('');
   const [errorMsg, setErrorMsg]   = useState('');
 
@@ -21,6 +23,7 @@ export default function AcceptInvitePage() {
     api.getInvite(token)
       .then((res) => {
         setCentreName(res.data.centreName);
+        setRole((res.data.role as InviteRole) ?? 'OWNER');
         setPhase('preview');
       })
       .catch((err) => {
@@ -36,7 +39,6 @@ export default function AcceptInvitePage() {
   async function handleAccept() {
     if (phase === 'confirming') return;
     if (!getToken()) {
-      // Store the invite token and redirect to login
       sessionStorage.setItem('pending_invite', token);
       router.replace(`/login?redirect=/accept-invite/${token}`);
       return;
@@ -53,6 +55,8 @@ export default function AcceptInvitePage() {
       setPhase('error');
     }
   }
+
+  const isOwner = role === 'OWNER';
 
   return (
     <div
@@ -82,15 +86,19 @@ export default function AcceptInvitePage() {
       {phase === 'preview' && (
         <>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-            You&apos;re invited to join Apalchi
+            {isOwner ? "You're invited to join Apalchi" : `Join ${centreName} as a teacher`}
           </h1>
           <p style={{ color: '#6B618A', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 8 }}>
-            Set up{' '}
-            <strong style={{ color: '#1F1733' }}>{centreName}</strong>{' '}
-            as your centre on Apalchi.
+            {isOwner ? (
+              <>Set up{' '}<strong style={{ color: '#1F1733' }}>{centreName}</strong>{' '}as your centre on Apalchi.</>
+            ) : (
+              <>You&apos;ve been invited to teach at{' '}<strong style={{ color: '#1F1733' }}>{centreName}</strong>.</>
+            )}
           </p>
           <p style={{ color: '#A8A0BD', fontSize: 13, marginBottom: 32 }}>
-            {getToken() ? 'Click below to create your centre.' : 'Sign in first, then come back to this link.'}
+            {getToken()
+              ? (isOwner ? 'Click below to create your centre.' : 'Click below to join the centre.')
+              : 'Sign in first, then come back to this link.'}
           </p>
           <button
             onClick={handleAccept}
@@ -105,26 +113,36 @@ export default function AcceptInvitePage() {
               cursor: 'pointer',
             }}
           >
-            {getToken() ? 'Accept & create centre' : 'Sign in to accept'}
+            {getToken()
+              ? (isOwner ? 'Accept & create centre' : 'Accept & join centre')
+              : 'Sign in to accept'}
           </button>
         </>
       )}
 
       {phase === 'confirming' && (
-        <p style={{ color: '#6B618A', fontSize: 15 }}>Creating your centre…</p>
+        <p style={{ color: '#6B618A', fontSize: 15 }}>
+          {isOwner ? 'Creating your centre…' : 'Joining centre…'}
+        </p>
       )}
 
       {phase === 'done' && (
         <>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-            Centre created!
+            {isOwner ? 'Centre created!' : 'You\'re in!'}
           </h1>
           <p style={{ color: '#6B618A', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 32 }}>
-            <strong>{centreName}</strong> is live. Head to your dashboard to set up classes and invite students.
+            {isOwner ? (
+              <>Your centre <strong>{centreName}</strong> is live — set up classes and invite students.</>
+            ) : (
+              <>You&apos;ve joined <strong>{centreName}</strong> as a teacher. Head to your dashboard to get started.</>
+            )}
           </p>
-          <p style={{ color: '#A8A0BD', fontSize: 11, marginBottom: 24, fontFamily: 'monospace' }}>
-            org id: {orgId}
-          </p>
+          {isOwner && (
+            <p style={{ color: '#A8A0BD', fontSize: 11, marginBottom: 24, fontFamily: 'monospace' }}>
+              org id: {orgId}
+            </p>
+          )}
           <button
             onClick={() => router.replace('/dashboard')}
             style={{

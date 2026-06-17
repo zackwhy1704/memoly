@@ -617,7 +617,7 @@ export const api = {
   getMe: () => apiFetch<MeResponse>('/auth/me'),
 
   getInvite: (token: string) =>
-    apiFetch<{ data: { centreName: string; contactEmail: string; expiresAt: string } }>(
+    apiFetch<{ data: { centreName: string; role: string } }>(
       `/auth/invite/${token}`,
       { skipAuth: true }
     ),
@@ -988,6 +988,27 @@ export const api = {
     apiFetch<{ data: Record<string, unknown> }>(
       `/avatars/${avatarId}/files/${fileId}/review`,
       { method: 'PATCH', body: JSON.stringify({ action, ...(editedText ? { editedText } : {}) }) }
+    ),
+
+  // ── Consumer billing (Stripe) ─────────────────────────────────────
+  subscriptionStatus: () =>
+    apiFetch<{ data: Record<string, unknown> }>('/subscription/status'),
+
+  entitlement: () =>
+    apiFetch<{ data: { isPremium: boolean; source: string; plan: string; status: string; trialEndsAt: string | null } }>(
+      '/subscription/entitlement'
+    ),
+
+  checkout: (plan: string) =>
+    apiFetch<{ data: { checkoutUrl: string } }>(
+      '/subscription/checkout',
+      { method: 'POST', body: JSON.stringify({ plan }) }
+    ),
+
+  billingPortal: () =>
+    apiFetch<{ data: { portalUrl: string } }>(
+      '/subscription/portal',
+      { method: 'POST' }
     ),
 };
 

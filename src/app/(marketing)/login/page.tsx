@@ -1,7 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
@@ -41,8 +41,9 @@ function triggerReact(floatEl: HTMLElement, stageEl: HTMLElement, kind: 'ok' | '
   }
 }
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
@@ -70,15 +71,22 @@ export default function LoginPage() {
       identify(res.data.userId, { email });
       trackEvent('login');
 
-      // Three-door routing: ADMIN → /admin, centre staff → /dashboard, student → /get-the-app
-      let dest = '/get-the-app';
-      try {
-        const me = await api.getMe();
-        if (me.data.role === 'ADMIN') dest = '/admin';
-        else if (me.data.isCentreStaff) dest = '/dashboard';
-      } catch {
-        // If /me fails, fall back to /dashboard (centre staff most likely caller)
-        dest = '/dashboard';
+      // Three-door routing: ADMIN → /admin, centre staff → /dashboard, student → /get-the-app.
+      // A ?redirect= param (e.g. /account/billing from a mobile deep-link) is honoured for any
+      // safe internal path starting with /account/ — it bypasses the persona routing.
+      const redirectParam = searchParams.get('redirect');
+      const safeRedirect = redirectParam?.startsWith('/account/') ? redirectParam : null;
+
+      let dest = safeRedirect ?? '/get-the-app';
+      if (!safeRedirect) {
+        try {
+          const me = await api.getMe();
+          if (me.data.role === 'ADMIN') dest = '/admin';
+          else if (me.data.isCentreStaff) dest = '/dashboard';
+        } catch {
+          // If /me fails, fall back to /dashboard (centre staff most likely caller)
+          dest = '/dashboard';
+        }
       }
 
       if (!reducedMotion.current && floatRef.current && stageRef.current) {
@@ -187,5 +195,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginInner />
+    </Suspense>
   );
 }

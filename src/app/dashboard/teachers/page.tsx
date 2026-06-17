@@ -9,6 +9,13 @@ export default function TeachersPage() {
   const org = useOrg();
   const qc = useQueryClient();
 
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.getMe(),
+    staleTime: 5 * 60_000,
+  });
+  const isOwner = meQuery.data?.data.isOwner ?? false;
+
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteResult, setInviteResult] = useState<{ attached: boolean; token?: string; email: string } | null>(null);
@@ -89,7 +96,7 @@ export default function TeachersPage() {
                   </p>
                   <p className="text-xs text-ink3 truncate mt-0.5">{s.email}</p>
                 </div>
-                {s.role !== 'OWNER' && (
+                {s.role !== 'OWNER' && isOwner && (
                   <button
                     onClick={() => {
                       if (removeMut.isPending) return;
@@ -110,8 +117,11 @@ export default function TeachersPage() {
         )}
       </div>
 
-      {/* Invite form */}
-      <div className="bg-panel border border-line rounded-2xl p-5">
+      {/* Invite form — owner only */}
+      {!isOwner && (
+        <p className="text-sm text-ink3">Only the centre owner can invite or remove teachers.</p>
+      )}
+      {isOwner && <div className="bg-panel border border-line rounded-2xl p-5">
         <p className="text-sm font-semibold text-ink mb-4">Invite a teacher</p>
         <form onSubmit={handleInvite} className="flex gap-3">
           <input
@@ -164,7 +174,7 @@ export default function TeachersPage() {
           If the email belongs to an existing Apalchi user, they&apos;re added immediately. Otherwise an
           invite link is generated — they click it after signing up to join your centre.
         </p>
-      </div>
+      </div>}
     </div>
   );
 }
