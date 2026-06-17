@@ -414,10 +414,6 @@ export default function MarketingPage() {
               New here?{' '}
               <a onClick={() => setScreen('home')}>Create an account</a>
             </p>
-            <p className="mkt-demo-note">
-              Focus the password field — Mochi covers its eyes 🙈<br />
-              (demo: any email + 4+ char password = ✅ jump · else shake)
-            </p>
           </div>
         </div>
       </div>
