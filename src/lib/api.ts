@@ -175,6 +175,50 @@ export interface LoginResponse {
   };
 }
 
+export interface MeResponse {
+  data: {
+    userId: string;
+    email: string;
+    displayName: string;
+    setupComplete: boolean;
+    role: string;            // 'USER' | 'ADMIN'
+    isCentreStaff: boolean;  // true if they own an org
+    accountStatus: string;
+    defaultAnswerMode: string;
+  };
+}
+
+export interface AdminOrg {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  seatLimit: number;
+  createdAt: string;
+}
+
+export interface AdminUser {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: string;
+  isPremium: boolean;
+  level: number;
+  centreId: string | null;
+  createdAt: string | null;
+}
+
+export interface AdminInvite {
+  token: string;
+  centreName: string;
+  contactEmail: string;
+  createdBy: string;
+  acceptedBy: string | null;
+  orgId: string | null;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+}
+
 export interface AvatarsResponse { data: { avatars: Avatar[] } }
 export interface AvatarResponse  { data: Avatar }
 export interface WikiPagesResponse { data: WikiPage[] }
@@ -561,6 +605,20 @@ export const api = {
       skipAuth: true,
     }),
 
+  getMe: () => apiFetch<MeResponse>('/auth/me'),
+
+  getInvite: (token: string) =>
+    apiFetch<{ data: { centreName: string; contactEmail: string; expiresAt: string } }>(
+      `/auth/invite/${token}`,
+      { skipAuth: true }
+    ),
+
+  acceptInvite: (token: string) =>
+    apiFetch<{ data: { orgId: string; orgName: string; created: boolean } }>(
+      '/auth/accept-invite',
+      { method: 'POST', body: JSON.stringify({ token }) }
+    ),
+
   register: (email: string, password: string, displayName: string) =>
     apiFetch<LoginResponse>('/auth/register', {
       method: 'POST',
@@ -889,6 +947,22 @@ export const api = {
     apiFetch<{ data: SafetyFlagDto[] }>(
       `/admin/safety-flags?childUserId=${encodeURIComponent(childUserId)}&sinceHours=${sinceHours}`,
       { skipAuth: true, headers: { 'X-Admin-Secret': adminSecret } }
+    ),
+
+  // ── Platform admin ────────────────────────────────────────────────
+  adminOrgs: () =>
+    apiFetch<{ data: AdminOrg[] }>('/admin/organizations'),
+
+  adminUsers: (page = 0, size = 50) =>
+    apiFetch<{ data: AdminUser[] }>(`/admin/users?page=${page}&size=${size}`),
+
+  adminInvites: () =>
+    apiFetch<{ data: AdminInvite[] }>('/admin/invites'),
+
+  adminCreateInvite: (centreName: string, contactEmail: string) =>
+    apiFetch<{ data: { token: string; centreName: string; contactEmail: string; expiresAt: string } }>(
+      '/admin/invites',
+      { method: 'POST', body: JSON.stringify({ centreName, contactEmail }) }
     ),
 
   // ── File Review (OCR quality gate) ────────────────────────────────

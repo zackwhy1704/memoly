@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { useAuthGuard } from '@/lib/auth';
+import { getToken } from '@/lib/auth';
+import { api } from '@/lib/api';
 import { OrgProvider } from '@/lib/org-context';
 
 export default function DashboardLayout({
@@ -9,7 +12,30 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const ready = useAuthGuard();
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace('/login');
+      return;
+    }
+    api.getMe()
+      .then((me) => {
+        if (me.data.role === 'ADMIN') {
+          router.replace('/admin');
+        } else if (!me.data.isCentreStaff) {
+          // Student or non-staff — redirect to get-the-app
+          router.replace('/get-the-app');
+        } else {
+          setReady(true);
+        }
+      })
+      .catch(() => {
+        // If /me fails (network error) allow through — don't log out the user
+        setReady(true);
+      });
+  }, [router]);
 
   if (!ready) {
     return (

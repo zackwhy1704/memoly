@@ -68,13 +68,24 @@ export default function LoginPage() {
       const res = await api.login(email, password);
       saveAuth(res.data.token, res.data.userId);
       identify(res.data.userId, { email });
-      trackEvent('admin_login');
+      trackEvent('login');
+
+      // Three-door routing: ADMIN → /admin, centre staff → /dashboard, student → /get-the-app
+      let dest = '/get-the-app';
+      try {
+        const me = await api.getMe();
+        if (me.data.role === 'ADMIN') dest = '/admin';
+        else if (me.data.isCentreStaff) dest = '/dashboard';
+      } catch {
+        // If /me fails, fall back to /dashboard (centre staff most likely caller)
+        dest = '/dashboard';
+      }
 
       if (!reducedMotion.current && floatRef.current && stageRef.current) {
         triggerReact(floatRef.current, stageRef.current, 'ok');
-        setTimeout(() => router.replace('/dashboard'), 750);
+        setTimeout(() => router.replace(dest), 750);
       } else {
-        router.replace('/dashboard');
+        router.replace(dest);
       }
     } catch (err) {
       if (!reducedMotion.current && floatRef.current && stageRef.current) {
@@ -111,8 +122,8 @@ export default function LoginPage() {
           <span className="mkt-paw r" />
         </div>
 
-        <h2>Centre Admin</h2>
-        <p className="mkt-login-sub">Sign in to your Apalchi centre portal.</p>
+        <h2>Sign in</h2>
+        <p className="mkt-login-sub">Welcome back to Apalchi.</p>
 
         <form onSubmit={handleSubmit}>
           <div className="mkt-field">
@@ -171,8 +182,8 @@ export default function LoginPage() {
         </form>
 
         <p className="mkt-alt">
-          New centre?{' '}
-          <a href="/signup">Create your centre</a>
+          Want to bring Apalchi to your centre?{' '}
+          <a href="/signup">Request access</a>
         </p>
       </div>
     </div>

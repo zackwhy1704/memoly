@@ -1,191 +1,126 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
-import { saveAuth, getToken } from '@/lib/auth';
+import { FormEvent, useState } from 'react';
 
-// Self-serve centre onboarding: register an admin account, create the centre,
-// land in the dashboard — all on the web, no back-office step.
+// Request-access page — replaces self-serve centre signup.
+// Centre provisioning is now invite-driven: platform admin creates a token,
+// the prospective centre owner accepts it via /accept-invite/[token].
 export default function SignupPage() {
-  const router = useRouter();
-  const [centreName, setCentreName] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [name, setName]       = useState('');
+  const [email, setEmail]     = useState('');
+  const [centre, setCentre]   = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (getToken()) router.replace('/dashboard');
-  }, [router]);
-
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    setLoading(true);
-    try {
-      // 1. register the admin account
-      let token: string;
-      let userId: string;
-      try {
-        const reg = await api.register(email, password, name || centreName);
-        token = reg.data.token;
-        userId = reg.data.userId;
-      } catch (err) {
-        // Email already registered → fall back to login so existing users can
-        // still create their centre.
-        const isConflict = (err instanceof ApiError && err.status === 409) ||
-          (err instanceof Error && (err.message.includes('409') || err.message.toLowerCase().includes('exist')));
-        if (isConflict) {
-          const res = await api.login(email, password);
-          token = res.data.token;
-          userId = res.data.userId;
-        } else {
-          throw err;
-        }
-      }
-      saveAuth(token, userId);
-
-      // 2. create the centre (idempotent if they already have one)
-      await api.onboardCentre(centreName.trim());
-
-      // 3. into the dashboard
-      router.replace('/dashboard');
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 401 || err.status === 403) {
-          setError("That email and password don't match an existing account.");
-        } else if (err.status === 400) {
-          setError('Please check your details and try again.');
-        } else {
-          setError(err.userMessage);
-        }
-      } else {
-        setError('Could not create your centre. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
+    if (submitting) return;
+    setSubmitting(true);
+    // Fire-and-forget mailto — no backend call needed for a simple request form.
+    window.location.href =
+      `mailto:hello@apalchi.com?subject=${encodeURIComponent('Centre access request: ' + centre)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\nCentre: ${centre}`)}`;
+    setTimeout(() => setSubmitted(true), 800);
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-panel border border-line mb-4">
-            <span className="text-3xl">🏫</span>
-          </div>
-          <h1 className="text-2xl font-bold text-ink">Create your centre</h1>
-          <p className="text-ink3 text-sm mt-1">Set up your Apalchi admin portal</p>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        background: 'linear-gradient(160deg, #f4f0ff 0%, #fff 60%)',
+        fontFamily: 'Nunito, system-ui, sans-serif',
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/mochi-base-transparent.png"
+        alt="Mochi"
+        style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 20 }}
+      />
+
+      {submitted ? (
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
+            Request sent!
+          </h1>
+          <p style={{ color: '#6B618A', fontSize: 15, lineHeight: 1.6 }}>
+            We&apos;ll be in touch soon to set up your centre on Apalchi.
+          </p>
         </div>
+      ) : (
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 6, textAlign: 'center' }}>
+            Bring Apalchi to your centre
+          </h1>
+          <p style={{ color: '#6B618A', fontSize: 14, textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
+            We&apos;ll reach out to set everything up. No self-serve yet — this keeps quality high.
+          </p>
 
-        <div className="bg-panel rounded-2xl border border-line p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Field
-              id="centreName"
-              label="Centre name"
-              value={centreName}
-              onChange={setCentreName}
-              placeholder="ABC Learning Centre"
-              autoComplete="organization"
-            />
-            <Field
-              id="name"
-              label="Your name"
-              value={name}
-              onChange={setName}
-              placeholder="Jane Tan"
-              autoComplete="name"
-            />
-            <Field
-              id="email"
-              label="Email address"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="admin@centre.edu"
-              autoComplete="email"
-            />
-            <Field
-              id="password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              placeholder="At least 8 characters"
-              autoComplete="new-password"
-            />
-
-            {error && (
-              <div className="bg-bad/10 border border-bad/30 rounded-lg px-3.5 py-2.5 text-sm text-bad">
-                {error}
-              </div>
-            )}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Field label="Your name" id="req-name" type="text" value={name} onChange={setName} placeholder="Jane Smith" />
+            <Field label="Email address" id="req-email" type="email" value={email} onChange={setEmail} placeholder="jane@school.edu" />
+            <Field label="Centre / school name" id="req-centre" type="text" value={centre} onChange={setCentre} placeholder="Bright Stars Tuition" />
 
             <button
               type="submit"
-              disabled={loading || !centreName.trim() || !email || !password}
-              className="w-full py-2.5 px-4 rounded-lg bg-accent text-white text-sm font-semibold
-                hover:bg-accent/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              disabled={submitting}
+              style={{
+                marginTop: 8,
+                padding: '13px 0',
+                background: '#7042ED',
+                color: '#fff',
+                borderRadius: 12,
+                border: 'none',
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                opacity: submitting ? 0.65 : 1,
+              }}
             >
-              {loading ? 'Creating your centre…' : 'Create centre'}
+              {submitting ? 'Sending…' : 'Request access'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-ink3 mt-6">
-            Already have a centre?{' '}
-            <a href="/login" className="text-accent font-semibold hover:underline">
-              Sign in
-            </a>
+          <p style={{ textAlign: 'center', fontSize: 13, color: '#A8A0BD', marginTop: 20 }}>
+            Already have an invite?{' '}
+            <a href="/login" style={{ color: '#7042ED', fontWeight: 700 }}>Sign in</a>
           </p>
         </div>
-
-        <p className="text-center text-xs text-ink3 mt-6">
-          Apalchi Centre Admin · Powered by Pally AI
-        </p>
-      </div>
+      )}
     </div>
   );
 }
 
 function Field({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  autoComplete,
+  label, id, type, value, onChange, placeholder,
 }: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  autoComplete?: string;
+  label: string; id: string; type: string;
+  value: string; onChange: (v: string) => void; placeholder: string;
 }) {
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-ink2 mb-1.5">
-        {label}
-      </label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <label htmlFor={id} style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>{label}</label>
       <input
         id={id}
         type={type}
-        autoComplete={autoComplete}
         required
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink text-sm
-          focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-          placeholder:text-ink3 transition-colors"
+        style={{
+          padding: '11px 14px',
+          borderRadius: 10,
+          border: '1.5px solid #E0DAF0',
+          fontSize: 14,
+          color: '#1F1733',
+          outline: 'none',
+          fontFamily: 'inherit',
+          background: '#fff',
+        }}
       />
     </div>
   );
