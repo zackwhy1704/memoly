@@ -3,39 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 
 type Screen = 'home' | 'login';
-type Theme = 'teal' | 'coral' | 'indigo' | 'pink' | 'grass' | 'grape';
 
 const SPARK_COLORS = ['#00BBA4', '#FF6BAE', '#FFB81A', '#FF6660', '#2EC870', '#FFD100', '#2BA8F2'];
-
-const THEME_VARS: Record<Theme, Record<string, string>> = {
-  teal: {
-    '--primary': '#00BBA4', '--primaryD': '#00897A', '--primaryL': '#D7F7F3',
-    '--a1': '#FF6660', '--a2': '#FFB81A', '--a3': '#FF6BAE',
-  },
-  coral: {
-    '--primary': '#FF6660', '--primaryD': '#DC463F', '--primaryL': '#FFE5E4',
-    '--a1': '#00BBA4', '--a2': '#FFB81A', '--a3': '#FF6BAE',
-  },
-  indigo: {}, // default in CSS
-  pink: {
-    '--primary': '#ED6CA0', '--primaryD': '#D14E84', '--primaryL': '#FFE3F0',
-    '--a1': '#00BBA4', '--a2': '#FFB81A', '--a3': '#2BA8F2',
-    '--bg': '#FFF7FB', '--surf2': '#FBEFF5', '--outline': '#F2DEE9',
-  },
-  grape: {
-    '--primary': '#7042ED', '--primaryD': '#5530C4', '--primaryL': '#EBE0FF',
-    '--a1': '#FF6660', '--a2': '#FFB81A', '--a3': '#00BBA4',
-  },
-  grass: {
-    '--primary': '#2EC870', '--primaryD': '#1FA458', '--primaryL': '#DBF9E8',
-    '--a1': '#FF6660', '--a2': '#FFB81A', '--a3': '#2BA8F2',
-  },
-};
-
-const THEME_COLORS: Record<Theme, string> = {
-  teal: '#00BBA4', coral: '#FF6660', indigo: '#4C6FFF',
-  pink: '#ED6CA0', grass: '#2EC870', grape: '#7042ED',
-};
 
 function sparkle(stage: HTMLElement) {
   for (let i = 0; i < 14; i++) {
@@ -72,7 +41,6 @@ function triggerReact(floatEl: HTMLElement, stageEl: HTMLElement, kind: 'ok' | '
 
 export default function MarketingPage() {
   const [screen, setScreen] = useState<Screen>('home');
-  const [theme, setTheme] = useState<Theme>('indigo');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pwFocused, setPwFocused] = useState(false);
@@ -126,7 +94,7 @@ export default function MarketingPage() {
   const androidUrl = process.env.NEXT_PUBLIC_ANDROID_URL ?? '#';
 
   return (
-    <div style={THEME_VARS[theme] as React.CSSProperties}>
+    <div>
       {/* ── Nav ── */}
       <nav className="mkt-nav">
         <div className="mkt-wrap mkt-nav-in">
@@ -330,7 +298,7 @@ export default function MarketingPage() {
                   <img className="mkt-av" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Rachel L." />
                   <span>
                     <b>Rachel L.</b>
-                    <small>Sec 4 student</small>
+                    <small>Student</small>
                   </span>
                 </div>
               </div>
@@ -385,11 +353,6 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        <footer className="mkt-footer">
-          <div className="mkt-wrap">
-            © 2026 Apalchi · switch themes bottom-right ✨
-          </div>
-        </footer>
       </div>
 
       {/* ══════════════════ LOGIN SCREEN ══════════════════ */}
@@ -459,20 +422,6 @@ export default function MarketingPage() {
         </div>
       </div>
 
-      {/* ── Theme switcher ── */}
-      <div className="mkt-themebar">
-        <span className="mkt-themebar-label">Theme</span>
-        {(['teal', 'coral', 'indigo', 'pink', 'grass', 'grape'] as Theme[]).map((t) => (
-          <div
-            key={t}
-            className="mkt-swatch"
-            style={{ background: THEME_COLORS[t] }}
-            aria-pressed={theme === t ? 'true' : 'false'}
-            title={t}
-            onClick={() => setTheme(t)}
-          />
-        ))}
-      </div>
     </div>
   );
 }
