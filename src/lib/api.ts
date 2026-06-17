@@ -628,13 +628,6 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ token }) }
     ),
 
-  register: (email: string, password: string, displayName: string) =>
-    apiFetch<LoginResponse>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, displayName }),
-      skipAuth: true,
-    }),
-
   // Self-serve centre creation — the authenticated caller becomes the owner.
   onboardCentre: (centreName: string) =>
     apiFetch<{ data: { orgId: string; orgName: string; alreadyOwned: boolean } }>(
