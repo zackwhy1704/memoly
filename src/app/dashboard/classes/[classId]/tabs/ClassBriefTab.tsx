@@ -34,13 +34,22 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
 
         return (
           <div className="space-y-4">
-            {/* Header row */}
+            {/* Header row — Mochi as teaching-assistant voice */}
             <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-bold text-ink">Class Brief</h2>
-                <p className="text-xs text-ink3 mt-0.5">
-                  AI-generated action plan based on student progress
-                </p>
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/mochi-base-transparent.png"
+                  alt="Mochi"
+                  className="w-10 h-10 object-contain shrink-0"
+                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
+                />
+                <div>
+                  <h2 className="text-base font-bold text-ink">Mochi&apos;s class brief</h2>
+                  <p className="text-xs text-ink3 mt-0.5">
+                    Here&apos;s what Mochi noticed about your class
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => refreshMut.mutate()}
@@ -76,7 +85,9 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             {/* Focus concepts */}
             {brief.focusConcepts.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
-                <p className="text-sm font-semibold text-ink">Concepts to focus on</p>
+                <p className="text-sm font-semibold text-ink">
+                  Mochi noticed these need attention
+                </p>
                 {brief.focusConcepts.map((c) => {
                   const failPct = Math.round(c.failRate * 100);
                   const barColor =
@@ -113,7 +124,9 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             {/* Check on */}
             {brief.checkOn.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5">
-                <p className="text-sm font-semibold text-ink mb-2">Check in with</p>
+                <p className="text-sm font-semibold text-ink mb-2">
+                  Mochi suggests checking in with
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {brief.checkOn.map((name) => (
                     <span
@@ -155,7 +168,7 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
               brief.checkOn.length === 0 &&
               !brief.skipLine && (
                 <div className="text-center py-8 text-ink3 text-sm">
-                  Not enough student progress data to generate a brief yet.
+                  Mochi hasn&apos;t spotted any patterns yet.
                   <br />
                   Assign modules and wait for students to complete them.
                 </div>
