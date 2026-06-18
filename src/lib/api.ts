@@ -392,6 +392,41 @@ export function randomMochiConfig(): MochiConfig {
   };
 }
 
+// ── Admin leads & org billing ────────────────────────────────────────────
+export type LeadRow = {
+  id: string;
+  orgName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  segment: string;
+  estClasses: number | null;
+  estStudents: number | null;
+  status: string;
+  orgId: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type OrgBillingDetail = {
+  orgId: string;
+  name: string;
+  tier: string;
+  subStatus: string;
+  pilotEndsAt: string | null;
+  classesUsed: number;
+  classLimit: number;
+  classStudentCap: number;
+  termsAccepted: boolean;
+  termsAcceptedAt: string | null;
+  perClass: {
+    classId: string;
+    className: string;
+    studentsLinked: number;
+    studentCap: number;
+  }[];
+};
+
 // ── Classes (first-class units) ──────────────────────────────────────────
 export interface OrgClass {
   id: string;
@@ -1018,6 +1053,37 @@ export const api = {
       '/subscription/portal',
       { method: 'POST' }
     ),
+
+  // ── Admin leads ───────────────────────────────────────────────────────
+  adminListLeads: () =>
+    apiFetch<{ data: LeadRow[] }>('/admin/leads'),
+
+  adminUpdateLeadStatus: (id: string, status: string, notes?: string) =>
+    apiFetch<{ data: null }>(`/admin/leads/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, ...(notes !== undefined ? { notes } : {}) }),
+    }),
+
+  adminProvisionPilot: (leadId: string, body: { orgId: string; tier: string; classLimit: number }) =>
+    apiFetch<{ data: { orgId: string } }>(`/admin/leads/${leadId}/provision`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  // ── Admin org billing ─────────────────────────────────────────────────
+  adminOrgBillingDetail: (orgId: string) =>
+    apiFetch<{ data: OrgBillingDetail }>(`/admin/orgs/${orgId}/billing-detail`),
+
+  adminActivateOrg: (orgId: string, billingRef: string) =>
+    apiFetch<{ data: null }>(`/admin/orgs/${orgId}/activate`, {
+      method: 'POST',
+      body: JSON.stringify({ billingRef }),
+    }),
+
+  adminExpireOrg: (orgId: string) =>
+    apiFetch<{ data: null }>(`/admin/orgs/${orgId}/expire`, {
+      method: 'POST',
+    }),
 };
 
 // ── Character helpers ──────────────────────────────────────────────────

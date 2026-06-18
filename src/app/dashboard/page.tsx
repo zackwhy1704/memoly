@@ -20,6 +20,12 @@ function timeAgo(iso: string) {
   return `${Math.floor(m / 60)}h ago`;
 }
 
+// Extended org info that may include pilot fields returned by the backend.
+interface OrgWithPilot {
+  subStatus?: string;
+  pilotEndsAt?: string | null;
+}
+
 export default function DashboardPage() {
   const org = useOrg();
 
@@ -29,8 +35,28 @@ export default function DashboardPage() {
     enabled: !!org,
   });
 
+  // Fetch pilot/billing status for the centre (may include subStatus + pilotEndsAt)
+  const centreMeQuery = useQuery({
+    queryKey: ['centreMe'],
+    queryFn: () => api.centreMe().then((r) => r.data),
+    staleTime: 5 * 60_000,
+  });
+  const orgPilot = centreMeQuery.data as (typeof centreMeQuery.data & OrgWithPilot) | undefined;
+
   return (
     <div className="max-w-6xl space-y-6">
+      {/* Pilot banner */}
+      {orgPilot?.subStatus === 'PILOT' && orgPilot?.pilotEndsAt && (
+        <div style={{ background: '#FFF3CD', border: '1px solid #FFB81A', borderRadius: 12, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, color: '#1F1733' }}>
+            🚀 Pilot mode — {Math.max(0, Math.ceil((new Date(orgPilot.pilotEndsAt).getTime() - Date.now()) / 86400000))} days left
+          </span>
+          <a href="mailto:hello@apalchi.com" style={{ color: '#7042ED', fontWeight: 700, fontSize: 13 }}>
+            Talk to us about going live →
+          </a>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

@@ -10,19 +10,22 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 'S$6.90 / month',
+    price: 'S$8.90 / month',
+    annual: 'S$89 / year',
     features: ['Unlimited chat', 'Full LEARN→TEST→PROVE loop', 'Basic analytics'],
   },
   {
     id: 'max',
     name: 'Max',
-    price: 'S$12.90 / month',
+    price: 'S$14.90 / month',
+    annual: 'S$149 / year',
     features: ['Everything in Pro', 'Group study', 'Priority AI speed'],
   },
   {
     id: 'family',
     name: 'Family',
-    price: 'S$19.90 / month',
+    price: 'S$24.90 / month',
+    annual: 'S$249 / year',
     features: ['Up to 4 learners', 'Parent dashboard', 'Everything in Max'],
   },
 ];
@@ -135,7 +138,8 @@ export default function BillingPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-ink2 mb-2">{plan.price}</p>
+                    <p className="text-sm text-ink2 mb-0.5">{plan.price}</p>
+                    <p className="text-xs text-ink3 mb-2">or {plan.annual} (save ~17%)</p>
                     <ul className="space-y-1">
                       {plan.features.map((f) => (
                         <li key={f} className="text-xs text-ink3 flex gap-1.5">

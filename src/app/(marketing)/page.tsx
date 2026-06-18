@@ -115,6 +115,7 @@ export default function MarketingPage() {
           <div className="mkt-nav-links">
             <a href="#how">How it works</a>
             <a href="#centres">For institutes</a>
+            <a href="/pricing">Pricing</a>
           </div>
           <div className="mkt-nav-cta">
             <Link className="mkt-ghost" href="/login">Log in</Link>

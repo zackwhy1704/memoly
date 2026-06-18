@@ -43,6 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <NavLink href="/admin">Overview</NavLink>
         <NavLink href="/admin/centres">Centres</NavLink>
         <NavLink href="/admin/users">Users</NavLink>
+        <NavLink href="/admin/leads">Leads</NavLink>
         <div className="mt-auto">
           <NavLink href="/dashboard">← Dashboard</NavLink>
         </div>
