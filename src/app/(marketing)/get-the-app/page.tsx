@@ -2,14 +2,16 @@
 
 import { useEffect, useRef } from 'react';
 
-const APP_SCHEME  = 'apalchi://';
-const IOS_STORE   = 'https://apps.apple.com/app/apalchi';
-const ANDROID_STORE = 'https://play.google.com/store/apps/details?id=com.apalchi';
+// Single source of truth for store URLs — set these env vars once the app
+// listings are live. When unset, badges show "coming soon" instead of #.
+// Android applicationId: com.apalchi.app (verified from android/app/build.gradle)
+const IOS_STORE     = process.env.NEXT_PUBLIC_IOS_URL     || null;
+const ANDROID_STORE = process.env.NEXT_PUBLIC_ANDROID_URL || null;
+const APP_SCHEME    = 'apalchi://';
 
 function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
-
 function isAndroid() {
   return /android/i.test(navigator.userAgent);
 }
@@ -21,19 +23,17 @@ export default function GetTheAppPage() {
     if (attempted.current) return;
     attempted.current = true;
 
-    const isMobile = isIOS() || isAndroid();
-    if (!isMobile) return;
+    const storeUrl = isIOS() ? IOS_STORE : isAndroid() ? ANDROID_STORE : null;
+    if (!storeUrl) return; // listing not live yet — just show the page
 
     // Try the custom scheme deeplink. If the app is installed it opens immediately.
-    // After 2 s (app not installed / no response), fall through to the store.
+    // After 2 s (app not installed), fall through to the store listing.
     const fallbackTimer = setTimeout(() => {
-      if (isIOS()) window.location.href = IOS_STORE;
-      else if (isAndroid()) window.location.href = ANDROID_STORE;
+      window.location.href = storeUrl;
     }, 2000);
 
     window.location.href = APP_SCHEME;
 
-    // If the page blurs the app opened — cancel the store redirect.
     const cancel = () => clearTimeout(fallbackTimer);
     window.addEventListener('blur', cancel, { once: true });
     return () => {
@@ -76,8 +76,8 @@ export default function GetTheAppPage() {
       </p>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
-        <AppBadge href={IOS_STORE} label="Download on the" store="App Store" icon="🍎" />
-        <AppBadge href={ANDROID_STORE} label="Get it on" store="Google Play" icon="▶" />
+        <AppBadge href={IOS_STORE}     label="Download on the" store="App Store"   icon="🍎" />
+        <AppBadge href={ANDROID_STORE} label="Get it on"       store="Google Play" icon="▶"  />
       </div>
 
       <p style={{ fontSize: 13, color: '#A8A0BD' }}>
@@ -96,27 +96,39 @@ function AppBadge({
   store,
   icon,
 }: {
-  href: string;
+  href: string | null;
   label: string;
   store: string;
   icon: string;
 }) {
+  const base: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '12px 20px',
+    borderRadius: 14,
+    minWidth: 160,
+    textDecoration: 'none',
+  };
+
+  if (!href) {
+    return (
+      <span style={{ ...base, background: '#E0DAF0', color: '#A8A0BD', cursor: 'default', opacity: 0.7 }}>
+        <span style={{ fontSize: 22 }}>{icon}</span>
+        <span>
+          <span style={{ display: 'block', fontSize: 10, fontWeight: 400 }}>{label}</span>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{store} — soon</span>
+        </span>
+      </span>
+    );
+  }
+
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 20px',
-        background: '#1F1733',
-        color: '#fff',
-        borderRadius: 14,
-        textDecoration: 'none',
-        minWidth: 160,
-      }}
+      style={{ ...base, background: '#1F1733', color: '#fff' }}
     >
       <span style={{ fontSize: 22 }}>{icon}</span>
       <span>

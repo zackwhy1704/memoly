@@ -606,6 +606,14 @@ export interface ExamReadiness {
 
 // ── API methods ────────────────────────────────────────────────────────
 export const api = {
+  // Demo / lead capture
+  demoRequest: (body: { orgName: string; contactName: string; email: string; phone: string }) =>
+    apiFetch<{ data: { ok: boolean } }>('/demo-request', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify(body),
+    }),
+
   // Auth
   login: (email: string, password: string) =>
     apiFetch<LoginResponse>('/auth/login', {
