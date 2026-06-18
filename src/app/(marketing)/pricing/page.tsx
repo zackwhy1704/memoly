@@ -286,26 +286,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Pilot framing */}
-      <section className="mkt-band">
-        <div className="mkt-wrap">
-          <div
-            className="mkt-centre"
-            style={{ gridTemplateColumns: '1fr', textAlign: 'center', maxWidth: 680, margin: '0 auto' }}
-          >
-            <div>
-              <h2>How the pilot works</h2>
-              <p>
-                30 days of full access on your real classes, then a human walkthrough. We don&apos;t do self-serve for centres — we make sure you&apos;re set up for success.
-              </p>
-              <Link className="mkt-btn" href="/demo">
-                Start a 30-day pilot →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="mkt-final">
         <div className="mkt-wrap">
