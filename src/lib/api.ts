@@ -657,6 +657,25 @@ export const api = {
       skipAuth: true,
     }),
 
+  // Google social sign-in/sign-up. `idToken` is the credential JWT returned by
+  // the Google Identity Services button (CredentialResponse.credential).
+  // Persists auth the same way as login — call saveAuth() on the result.
+  google: (idToken: string) =>
+    apiFetch<LoginResponse>('/auth/google', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ idToken }),
+    }),
+
+  // Self-serve email sign-up. Only email + password are required; displayName
+  // is optional and can be set later in account settings.
+  register: (email: string, password: string, displayName?: string) =>
+    apiFetch<LoginResponse>('/auth/register', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ email, password, ...(displayName ? { displayName } : {}) }),
+    }),
+
   getMe: () => apiFetch<MeResponse>('/auth/me'),
 
   getInvite: (token: string) =>

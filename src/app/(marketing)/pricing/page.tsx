@@ -15,7 +15,7 @@ const TIERS = [
     unit: '1 teacher · 1 class',
     studentCap: 'Up to 15 students',
     cta: 'Start a 30-day pilot',
-    ctaHref: '/demo',
+    ctaHref: '/signup',
     ctaExternal: false,
     pilotNote: 'Full access, no card required',
     featured: false,
@@ -29,7 +29,7 @@ const TIERS = [
     unit: 'Per class · multi-teacher',
     studentCap: 'Up to 20 students/class',
     cta: 'Start a 30-day pilot',
-    ctaHref: '/demo',
+    ctaHref: '/signup',
     ctaExternal: false,
     pilotNote: 'Full access on your real classes',
     featured: true,
@@ -43,8 +43,8 @@ const TIERS = [
     unit: 'Multiple campuses · dedicated support',
     studentCap: 'Custom class sizes',
     cta: 'Talk to sales',
-    ctaHref: 'mailto:hello@apalchi.com',
-    ctaExternal: true,
+    ctaHref: '/demo',
+    ctaExternal: false,
     pilotNote: 'SSO · signed DPA · invoice billing',
     featured: false,
   },
@@ -70,8 +70,9 @@ export default function PricingPage() {
           </div>
           <div className="mkt-nav-cta">
             <Link className="mkt-ghost" href="/login">Log in</Link>
-            <Link className="mkt-btn mkt-btn-primary" href="/demo">
-              Book a demo
+            <a href="/demo" style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600, textDecoration: 'none' }}>Demo</a>
+            <Link className="mkt-btn mkt-btn-primary" href="/signup">
+              Get started
             </Link>
           </div>
         </div>

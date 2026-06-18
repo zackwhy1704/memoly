@@ -7,6 +7,7 @@ import { useOrg } from '@/lib/org-context';
 import Link from 'next/link';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import EmptyState from '@/components/EmptyState';
+import PilotTrialCountdown from '@/components/PilotTrialCountdown';
 
 function pct(v: number) {
   return `${Math.round(v * 100)}%`;
@@ -43,19 +44,27 @@ export default function DashboardPage() {
   });
   const orgPilot = centreMeQuery.data as (typeof centreMeQuery.data & OrgWithPilot) | undefined;
 
+  // Personal trial fallback — shown when no org pilot is active
+  const entitlementQuery = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.entitlement().then((r) => r.data),
+    staleTime: 5 * 60_000,
+  });
+
+  // Prefer centre pilot; fall back to personal trial
+  const countdownEndsAt: string | null =
+    orgPilot?.subStatus === 'PILOT' && orgPilot?.pilotEndsAt
+      ? orgPilot.pilotEndsAt
+      : (entitlementQuery.data?.source === 'TRIAL' && entitlementQuery.data?.trialEndsAt)
+        ? entitlementQuery.data.trialEndsAt
+        : null;
+  const countdownKind: 'pilot' | 'trial' =
+    orgPilot?.subStatus === 'PILOT' && orgPilot?.pilotEndsAt ? 'pilot' : 'trial';
+
   return (
     <div className="max-w-6xl space-y-6">
-      {/* Pilot banner */}
-      {orgPilot?.subStatus === 'PILOT' && orgPilot?.pilotEndsAt && (
-        <div style={{ background: '#FFF3CD', border: '1px solid #FFB81A', borderRadius: 12, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 700, color: '#1F1733' }}>
-            🚀 Pilot mode — {Math.max(0, Math.ceil((new Date(orgPilot.pilotEndsAt).getTime() - Date.now()) / 86400000))} days left
-          </span>
-          <a href="mailto:hello@apalchi.com" style={{ color: '#7042ED', fontWeight: 700, fontSize: 13 }}>
-            Talk to us about going live →
-          </a>
-        </div>
-      )}
+      {/* Pilot / trial countdown banner */}
+      <PilotTrialCountdown endsAt={countdownEndsAt} kind={countdownKind} />
 
       {/* Header */}
       <div className="flex items-start justify-between">

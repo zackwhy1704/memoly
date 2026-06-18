@@ -1,9 +1,12 @@
 'use client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ThemeProvider } from '@/lib/theme';
 import { ToastProvider } from '@/components/Toast';
 import { initAnalytics } from '@/lib/analytics';
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -27,10 +30,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     },
   }));
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={qc}>
-        <ToastProvider>{children}</ToastProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <ThemeProvider>
+        <QueryClientProvider client={qc}>
+          <ToastProvider>{children}</ToastProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </GoogleOAuthProvider>
   );
 }

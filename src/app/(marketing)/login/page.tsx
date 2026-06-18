@@ -2,6 +2,7 @@
 
 import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
@@ -58,6 +59,37 @@ function LoginInner() {
     reducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (getToken()) router.replace('/dashboard');
   }, [router]);
+
+  async function handleGoogle(response: CredentialResponse) {
+    if (!response.credential) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.google(response.credential);
+      saveAuth(res.data.token, res.data.userId);
+      identify(res.data.userId, {});
+      trackEvent('login_google');
+      const redirectParam = searchParams.get('redirect');
+      const safeRedirect = redirectParam?.startsWith('/account/') ? redirectParam : null;
+      let dest = safeRedirect ?? '/get-the-app';
+      if (!safeRedirect) {
+        try {
+          const me = await api.getMe();
+          if (me.data.role === 'ADMIN') dest = '/admin';
+          else if (me.data.isCentreStaff) dest = '/dashboard';
+        } catch { dest = '/dashboard'; }
+      }
+      if (!reducedMotion.current && floatRef.current && stageRef.current) {
+        triggerReact(floatRef.current, stageRef.current, 'ok');
+        setTimeout(() => router.replace(dest), 750);
+      } else {
+        router.replace(dest);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.userMessage : 'Google sign-in failed. Please try again.');
+      setLoading(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -132,6 +164,24 @@ function LoginInner() {
 
         <h2>Sign in</h2>
         <p className="mkt-login-sub">Welcome back to Apalchi.</p>
+
+        {/* Google sign-in */}
+        <div style={{ marginBottom: 16 }}>
+          <GoogleLogin
+            onSuccess={handleGoogle}
+            onError={() => setError('Google sign-in failed. Please try again.')}
+            text="continue_with"
+            shape="rectangular"
+            size="large"
+            width="360"
+            logo_alignment="left"
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+          <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or sign in with email</span>
+          <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mkt-field">
