@@ -1,67 +1,56 @@
 import Link from 'next/link';
-import { headers } from 'next/headers';
 
 export const metadata = {
   title: 'Pricing — Apalchi for Centres',
   description: 'AI study buddies trained on YOUR materials. Transparent pricing for tuition centres and schools.',
 };
 
-function getTiers(currency: string) {
-  return [
-    {
-      name: 'Solo',
-      badge: null,
-      price: `${currency}99`,
-      pricePer: '/mo',
-      annual: `${currency}990/yr`,
-      unit: '1 teacher · 1 class',
-      studentCap: 'Up to 15 students',
-      cta: 'Start a 30-day pilot',
-      ctaHref: '/demo',
-      ctaExternal: false,
-      pilotNote: 'Full access, no card required',
-      featured: false,
-    },
-    {
-      name: 'Centre',
-      badge: 'Most popular',
-      price: `${currency}149`,
-      pricePer: '/class/mo',
-      annual: `Volume: ${currency}129/class past 5 · annual default`,
-      unit: 'Per class · multi-teacher',
-      studentCap: 'Up to 20 students/class',
-      cta: 'Start a 30-day pilot',
-      ctaHref: '/demo',
-      ctaExternal: false,
-      pilotNote: 'Full access on your real classes',
-      featured: true,
-    },
-    {
-      name: 'School',
-      badge: 'Enterprise',
-      price: 'Custom',
-      pricePer: '',
-      annual: 'Per negotiation',
-      unit: 'Per negotiation',
-      studentCap: '30–40 students/class (MOE-size)',
-      cta: 'Talk to sales',
-      ctaHref: 'mailto:hello@apalchi.com',
-      ctaExternal: true,
-      pilotNote: 'SSO, signed DPA, invoice billing',
-      featured: false,
-    },
-  ];
-}
+const TIERS = [
+  {
+    name: 'Solo',
+    badge: null,
+    price: '$99',
+    pricePer: '/mo',
+    annual: '$990/yr',
+    unit: '1 teacher · 1 class',
+    studentCap: 'Up to 15 students',
+    cta: 'Start a 30-day pilot',
+    ctaHref: '/demo',
+    ctaExternal: false,
+    pilotNote: 'Full access, no card required',
+    featured: false,
+  },
+  {
+    name: 'Centre',
+    badge: 'Most popular',
+    price: '$149',
+    pricePer: '/class/mo',
+    annual: 'Volume: $129/class past 5 · annual default',
+    unit: 'Per class · multi-teacher',
+    studentCap: 'Up to 20 students/class',
+    cta: 'Start a 30-day pilot',
+    ctaHref: '/demo',
+    ctaExternal: false,
+    pilotNote: 'Full access on your real classes',
+    featured: true,
+  },
+  {
+    name: 'School',
+    badge: 'Enterprise',
+    price: 'Custom',
+    pricePer: '',
+    annual: 'Annual contract',
+    unit: 'Multiple campuses · dedicated support',
+    studentCap: 'Custom class sizes',
+    cta: 'Talk to sales',
+    ctaHref: 'mailto:hello@apalchi.com',
+    ctaExternal: true,
+    pilotNote: 'SSO · signed DPA · invoice billing',
+    featured: false,
+  },
+];
 
-export default async function PricingPage() {
-  const headersList = await headers();
-  const country = headersList.get('x-vercel-ip-country') ?? 'SG';
-  const isSG = country === 'SG';
-  const currency = isSG ? 'S$' : '$';
-  const currencyLabel = isSG ? 'SGD' : 'USD';
-
-  const TIERS = getTiers(currency);
-
+export default function PricingPage() {
   return (
     <div>
       {/* Nav */}
@@ -251,7 +240,6 @@ export default async function PricingPage() {
             ))}
           </div>
 
-          {/* Currency / annual note */}
           <p
             style={{
               textAlign: 'center',
@@ -261,7 +249,7 @@ export default async function PricingPage() {
               marginTop: 24,
             }}
           >
-            All prices shown in {currencyLabel}. Annual billing is default and saves ~17%. Monthly available on request.
+            Annual billing is default and saves ~17%. Monthly available on request.
           </p>
         </div>
       </section>
