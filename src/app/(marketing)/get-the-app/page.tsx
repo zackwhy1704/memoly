@@ -65,12 +65,8 @@ export default function GetTheAppPage() {
       />
 
       <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-        Apalchi for students is on the app
+        Download Apalchi on the app!
       </h1>
-      <p style={{ fontSize: 15, color: '#6B618A', maxWidth: 400, lineHeight: 1.6, marginBottom: 8 }}>
-        This website is for <strong style={{ color: '#1F1733' }}>centres and teachers</strong>.
-        If you&apos;re a student, please sign in through the Apalchi mobile app.
-      </p>
       <p style={{ fontSize: 13, color: '#A8A0BD', marginBottom: 36 }}>
         Tap below — if you already have the app it will open automatically.
       </p>
