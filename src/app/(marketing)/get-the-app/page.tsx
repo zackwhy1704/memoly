@@ -1,16 +1,46 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { useEffect, useRef } from 'react';
+
+const APP_SCHEME  = 'apalchi://';
+const IOS_STORE   = 'https://apps.apple.com/app/apalchi';
+const ANDROID_STORE = 'https://play.google.com/store/apps/details?id=com.apalchi';
+
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isAndroid() {
+  return /android/i.test(navigator.userAgent);
+}
 
 export default function GetTheAppPage() {
-  const router = useRouter();
+  const attempted = useRef(false);
 
   useEffect(() => {
-    // If not logged in, redirect to the home/login page
-    if (!getToken()) router.replace('/login');
-  }, [router]);
+    if (attempted.current) return;
+    attempted.current = true;
+
+    const isMobile = isIOS() || isAndroid();
+    if (!isMobile) return;
+
+    // Try the custom scheme deeplink. If the app is installed it opens immediately.
+    // After 2 s (app not installed / no response), fall through to the store.
+    const fallbackTimer = setTimeout(() => {
+      if (isIOS()) window.location.href = IOS_STORE;
+      else if (isAndroid()) window.location.href = ANDROID_STORE;
+    }, 2000);
+
+    window.location.href = APP_SCHEME;
+
+    // If the page blurs the app opened — cancel the store redirect.
+    const cancel = () => clearTimeout(fallbackTimer);
+    window.addEventListener('blur', cancel, { once: true });
+    return () => {
+      clearTimeout(fallbackTimer);
+      window.removeEventListener('blur', cancel);
+    };
+  }, []);
 
   return (
     <div
@@ -27,7 +57,6 @@ export default function GetTheAppPage() {
         textAlign: 'center',
       }}
     >
-      {/* Mochi */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/mochi-base-transparent.png"
@@ -36,33 +65,26 @@ export default function GetTheAppPage() {
       />
 
       <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-        Take Mochi with you
+        Apalchi for students is on the app
       </h1>
-      <p style={{ fontSize: 15, color: '#6B618A', maxWidth: 380, lineHeight: 1.6, marginBottom: 36 }}>
-        Apalchi lives on your phone. Download the app to start learning with your own notes.
+      <p style={{ fontSize: 15, color: '#6B618A', maxWidth: 400, lineHeight: 1.6, marginBottom: 8 }}>
+        This website is for <strong style={{ color: '#1F1733' }}>centres and teachers</strong>.
+        If you&apos;re a student, please sign in through the Apalchi mobile app.
+      </p>
+      <p style={{ fontSize: 13, color: '#A8A0BD', marginBottom: 36 }}>
+        Tap below — if you already have the app it will open automatically.
       </p>
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 40 }}>
-        <AppBadge
-          href="https://apps.apple.com/app/apalchi"
-          label="Download on the"
-          store="App Store"
-          icon="🍎"
-        />
-        <AppBadge
-          href="https://play.google.com/store/apps/details?id=com.apalchi"
-          label="Get it on"
-          store="Google Play"
-          icon="▶"
-        />
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
+        <AppBadge href={IOS_STORE} label="Download on the" store="App Store" icon="🍎" />
+        <AppBadge href={ANDROID_STORE} label="Get it on" store="Google Play" icon="▶" />
       </div>
 
       <p style={{ fontSize: 13, color: '#A8A0BD' }}>
-        Already have the app?{' '}
+        Are you a centre owner or teacher?{' '}
         <a href="/login" style={{ color: '#7042ED', fontWeight: 700 }}>
-          Sign in
-        </a>{' '}
-        on a different device.
+          Sign in here
+        </a>
       </p>
     </div>
   );

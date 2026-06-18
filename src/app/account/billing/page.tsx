@@ -73,7 +73,7 @@ export default function BillingPage() {
   });
 
   const status     = statusQuery.data?.data as Record<string, unknown> | undefined;
-  const entitlement = entitlementQuery.data?.data as { isPremium?: boolean; plan?: string; source?: string } | undefined;
+  const entitlement = entitlementQuery.data?.data as { isPremium?: boolean; plan?: string } | undefined;
   const isPremium  = entitlement?.isPremium ?? false;
   const currentPlan = (status?.plan as string | undefined) ?? 'free';
 
@@ -96,11 +96,8 @@ export default function BillingPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <p className="text-lg font-bold text-ink capitalize">{currentPlan}</p>
-                {isPremium && entitlement?.source === 'centre' && (
-                  <p className="text-xs text-ink3 mt-0.5">Covered by your centre — no charge to you.</p>
-                )}
-              </div>
-              {isPremium && entitlement?.source !== 'centre' && (
+                    </div>
+              {isPremium && (
                 <button
                   onClick={() => { setPortalError(''); portalMut.mutate(); }}
                   disabled={portalMut.isPending}
@@ -114,8 +111,8 @@ export default function BillingPage() {
           {portalError && <p className="mt-2 text-sm text-bad">{portalError}</p>}
         </div>
 
-        {/* Upgrade plans — hidden for centre-covered users */}
-        {!(isPremium && entitlement?.source === 'centre') && (
+        {/* Upgrade plans — shown to all non-premium users */}
+        {!isPremium && (
           <div className="space-y-4">
             <p className="text-sm font-semibold text-ink">
               {isPremium ? 'Change plan' : 'Upgrade to unlock more'}
