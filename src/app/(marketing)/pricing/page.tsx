@@ -1,56 +1,67 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 
 export const metadata = {
   title: 'Pricing — Apalchi for Centres',
   description: 'AI study buddies trained on YOUR materials. Transparent pricing for tuition centres and schools.',
 };
 
-const TIERS = [
-  {
-    name: 'Solo',
-    badge: null,
-    price: 'S$99',
-    pricePer: '/mo',
-    annual: 'S$990/yr',
-    unit: '1 teacher · 1 class',
-    studentCap: 'Up to 15 students',
-    cta: 'Start a 30-day pilot',
-    ctaHref: '/demo',
-    ctaExternal: false,
-    pilotNote: 'Full access, no card required',
-    featured: false,
-  },
-  {
-    name: 'Centre',
-    badge: 'Most popular',
-    price: 'S$149',
-    pricePer: '/class/mo',
-    annual: 'Volume: S$129/class past 5 classes · annual default',
-    unit: 'Per class · multi-teacher',
-    studentCap: 'Up to 20 students/class',
-    cta: 'Start a 30-day pilot',
-    ctaHref: '/demo',
-    ctaExternal: false,
-    pilotNote: 'Full access on your real classes',
-    featured: true,
-  },
-  {
-    name: 'School',
-    badge: 'Enterprise',
-    price: 'Custom',
-    pricePer: '',
-    annual: 'Per negotiation',
-    unit: 'Per negotiation',
-    studentCap: '30–40 students/class (MOE-size)',
-    cta: 'Talk to sales',
-    ctaHref: 'mailto:hello@apalchi.com',
-    ctaExternal: true,
-    pilotNote: 'SSO, signed DPA, invoice billing',
-    featured: false,
-  },
-];
+function getTiers(currency: string) {
+  return [
+    {
+      name: 'Solo',
+      badge: null,
+      price: `${currency}99`,
+      pricePer: '/mo',
+      annual: `${currency}990/yr`,
+      unit: '1 teacher · 1 class',
+      studentCap: 'Up to 15 students',
+      cta: 'Start a 30-day pilot',
+      ctaHref: '/demo',
+      ctaExternal: false,
+      pilotNote: 'Full access, no card required',
+      featured: false,
+    },
+    {
+      name: 'Centre',
+      badge: 'Most popular',
+      price: `${currency}149`,
+      pricePer: '/class/mo',
+      annual: `Volume: ${currency}129/class past 5 · annual default`,
+      unit: 'Per class · multi-teacher',
+      studentCap: 'Up to 20 students/class',
+      cta: 'Start a 30-day pilot',
+      ctaHref: '/demo',
+      ctaExternal: false,
+      pilotNote: 'Full access on your real classes',
+      featured: true,
+    },
+    {
+      name: 'School',
+      badge: 'Enterprise',
+      price: 'Custom',
+      pricePer: '',
+      annual: 'Per negotiation',
+      unit: 'Per negotiation',
+      studentCap: '30–40 students/class (MOE-size)',
+      cta: 'Talk to sales',
+      ctaHref: 'mailto:hello@apalchi.com',
+      ctaExternal: true,
+      pilotNote: 'SSO, signed DPA, invoice billing',
+      featured: false,
+    },
+  ];
+}
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const headersList = await headers();
+  const country = headersList.get('x-vercel-ip-country') ?? 'SG';
+  const isSG = country === 'SG';
+  const currency = isSG ? 'S$' : '$';
+  const currencyLabel = isSG ? 'SGD' : 'USD';
+
+  const TIERS = getTiers(currency);
+
   return (
     <div>
       {/* Nav */}
@@ -78,16 +89,28 @@ export default function PricingPage() {
       </nav>
 
       {/* Hero */}
-      <header className="mkt-hero" style={{ paddingBottom: 48 }}>
-        <div className="mkt-wrap">
+      <header className="mkt-hero" style={{ paddingBottom: 48, textAlign: 'center' }}>
+        <div className="mkt-wrap" style={{ maxWidth: 720, margin: '0 auto' }}>
           <span className="mkt-eyebrow">
             <span className="mkt-eyebrow-dot" />
             B2B Pricing
           </span>
-          <h1 className="mkt-hero-h">
-            Apalchi for Centres —{' '}
-            <span className="mkt-hl">AI study buddies trained on YOUR materials</span>
+          <h1 className="mkt-hero-h" style={{ textAlign: 'center' }}>
+            Apalchi for Centres
           </h1>
+          <p
+            className="mkt-hl"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              fontSize: 'clamp(18px, 2.5vw, 26px)',
+              fontWeight: 800,
+              marginTop: 8,
+              marginBottom: 16,
+            }}
+          >
+            AI study buddies trained on YOUR materials
+          </p>
           <p className="mkt-sub">
             Not a generic question bank. Every student gets Mochi tutoring them on exactly what your centre teaches.
           </p>
@@ -228,7 +251,7 @@ export default function PricingPage() {
             ))}
           </div>
 
-          {/* Annual note */}
+          {/* Currency / annual note */}
           <p
             style={{
               textAlign: 'center',
@@ -238,7 +261,7 @@ export default function PricingPage() {
               marginTop: 24,
             }}
           >
-            All prices shown in SGD. Annual billing is default and saves ~17%. Monthly available on request.
+            All prices shown in {currencyLabel}. Annual billing is default and saves ~17%. Monthly available on request.
           </p>
         </div>
       </section>
