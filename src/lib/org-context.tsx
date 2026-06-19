@@ -14,7 +14,6 @@ interface OrgInfo {
 const OrgContext = createContext<OrgInfo | null>(null);
 
 export function OrgProvider({ children }: { children: React.ReactNode }) {
-  const DEMO_ORG_ID = process.env.NEXT_PUBLIC_DEMO_ORG_ID;
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -24,7 +23,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     staleTime: 5 * 60_000,
   });
 
-  if (isLoading && !DEMO_ORG_ID) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
         <p className="text-ink3 text-sm animate-pulse">Loading centre…</p>
@@ -34,18 +33,6 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   if (data) {
     return <OrgContext.Provider value={data}>{children}</OrgContext.Provider>;
-  }
-
-  // Local dev fallback for mock work.
-  if (DEMO_ORG_ID) {
-    const demo: OrgInfo = {
-      orgId: DEMO_ORG_ID,
-      orgName: 'Demo Centre',
-      seatsUsed: 0,
-      seatLimit: 30,
-      cohorts: [],
-    };
-    return <OrgContext.Provider value={demo}>{children}</OrgContext.Provider>;
   }
 
   // Logged in (auth guard ensures a token) but no centre yet → onboard inline.

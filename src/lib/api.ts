@@ -595,10 +595,18 @@ export type ReviewItemStatus = 'DRAFT' | 'APPROVED' | 'REJECTED';
 export interface ReviewItem {
   itemId: string;
   moduleTitle: string;
+  pageSlug: string | null;
   type: string;
   contentJson: string;
   answerJson?: string;
   status: ReviewItemStatus;
+}
+
+// ── AI Class Report ──────────────────────────────────────────────────
+export interface ClassReport {
+  narrative: string;
+  cached: boolean;
+  generatedAt: string;
 }
 
 // ── AI Class Brief ───────────────────────────────────────────────────
@@ -987,6 +995,18 @@ export const api = {
     apiFetch<{ data: { approvedCount: number } }>(
       `/centre/organizations/${orgId}/classes/${classId}/content/approve-all`,
       { method: 'POST' }
+    ),
+
+  regenerateContent: (orgId: string, classId: string, pageSlug: string, guidance?: string) =>
+    apiFetch<{ data: { pageSlug: string; moduleId: string; regenerated: boolean } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/content/${encodeURIComponent(pageSlug)}/regenerate`,
+      { method: 'POST', body: JSON.stringify(guidance ? { guidance } : {}) }
+    ),
+
+  // ── AI Class Report ────────────────────────────────────────────────
+  classReport: (orgId: string, classId: string) =>
+    apiFetch<{ data: ClassReport }>(
+      `/centre/organizations/${orgId}/classes/${classId}/report`
     ),
 
   // ── Exam Readiness ─────────────────────────────────────────────────

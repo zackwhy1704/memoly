@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type ReviewItem } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
@@ -55,6 +56,76 @@ function ContentPreview({ item }: { item: ReviewItem }) {
   }
 }
 
+function ModuleRegenSection({
+  orgId,
+  classId,
+  pageSlug,
+  onSuccess,
+}: {
+  orgId: string;
+  classId: string;
+  pageSlug: string;
+  onSuccess: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [guidance, setGuidance] = useState('');
+
+  const mut = useMutation({
+    mutationFn: () => api.regenerateContent(orgId, classId, pageSlug, guidance.trim() || undefined),
+    onSuccess: () => {
+      setOpen(false);
+      setGuidance('');
+      onSuccess();
+    },
+  });
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-ink3 hover:text-ink2 underline underline-offset-2 transition"
+      >
+        Regenerate with feedback
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2">
+      <textarea
+        value={guidance}
+        onChange={(e) => setGuidance(e.target.value)}
+        placeholder="Optional: tell Mochi what to focus on, fix, or change…"
+        rows={2}
+        className="w-full rounded-lg bg-panel2 border border-line px-3 py-2 text-sm text-ink placeholder-ink3 resize-none focus:outline-none focus:ring-1 focus:ring-accent/60"
+      />
+      {mut.isError && (
+        <p className="text-xs text-bad">
+          {(mut.error as Error)?.message || 'Regeneration failed — please try again.'}
+          {' '}
+          <button className="underline" onClick={() => mut.mutate()}>Retry</button>
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          onClick={() => mut.mutate()}
+          disabled={mut.isPending}
+          className="px-3 py-1.5 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
+        >
+          {mut.isPending ? 'Regenerating…' : 'Regenerate'}
+        </button>
+        <button
+          onClick={() => { setOpen(false); setGuidance(''); mut.reset(); }}
+          disabled={mut.isPending}
+          className="px-3 py-1.5 text-xs text-ink3 hover:text-ink transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ReviewTab({ orgId, classId }: { orgId: string; classId: string }) {
   const qc = useQueryClient();
 
@@ -84,12 +155,12 @@ export function ReviewTab({ orgId, classId }: { orgId: string; classId: string }
   const items = query.data?.data ?? [];
   const draftItems = items.filter((i) => i.status === 'DRAFT');
 
-  // Group by module
-  const grouped = new Map<string, ReviewItem[]>();
+  // Group by module title; track pageSlug per group for regenerate
+  const grouped = new Map<string, { items: ReviewItem[]; pageSlug: string | null }>();
   for (const item of draftItems) {
     const key = item.moduleTitle || 'Uncategorized';
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(item);
+    if (!grouped.has(key)) grouped.set(key, { items: [], pageSlug: item.pageSlug ?? null });
+    grouped.get(key)!.items.push(item);
   }
 
   if (draftItems.length === 0) {
@@ -121,9 +192,19 @@ export function ReviewTab({ orgId, classId }: { orgId: string; classId: string }
         </div>
       )}
 
-      {Array.from(grouped.entries()).map(([moduleTitle, moduleItems]) => (
+      {Array.from(grouped.entries()).map(([moduleTitle, { items: moduleItems, pageSlug }]) => (
         <div key={moduleTitle} className="space-y-2">
-          <h3 className="text-xs font-semibold text-ink2 uppercase tracking-wider">{moduleTitle}</h3>
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="text-xs font-semibold text-ink2 uppercase tracking-wider">{moduleTitle}</h3>
+            {pageSlug && (
+              <ModuleRegenSection
+                orgId={orgId}
+                classId={classId}
+                pageSlug={pageSlug}
+                onSuccess={() => qc.invalidateQueries({ queryKey: ['contentReview', orgId, classId] })}
+              />
+            )}
+          </div>
           <div className="space-y-2">
             {moduleItems.map((item) => (
               <div key={item.itemId} className="bg-panel border border-line rounded-2xl p-4">

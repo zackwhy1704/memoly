@@ -437,6 +437,7 @@ describe('api.contentReview', () => {
       {
         itemId: 'item-1',
         moduleTitle: 'Fractions',
+        pageSlug: 'fractions',
         type: 'LEARN',
         contentJson: '{"title":"Adding Fractions","body":"To add fractions..."}',
         status: 'DRAFT',
@@ -444,6 +445,7 @@ describe('api.contentReview', () => {
       {
         itemId: 'item-2',
         moduleTitle: 'Fractions',
+        pageSlug: 'fractions',
         type: 'HOT_TAKE',
         contentJson: '{"statement":"1/2 + 1/3 = 2/5","answer":false}',
         status: 'DRAFT',

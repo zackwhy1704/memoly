@@ -20,9 +20,10 @@ import { ReviewTab } from './tabs/ReviewTab';
 import { ExamReadinessTab } from './tabs/ExamReadinessTab';
 import { AddStudentsTab } from './tabs/AddStudentsTab';
 import { ClassBriefTab } from './tabs/ClassBriefTab';
+import { ReportTab } from './tabs/ReportTab';
 import TabErrorBoundary from '@/components/TabErrorBoundary';
 
-type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'brief' | 'add';
+type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'brief' | 'report' | 'add';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -112,7 +113,7 @@ export default function ClassDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-line overflow-x-auto">
-        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'challenges', 'review', 'readiness', 'brief', 'add'] as Tab[]).map((t) => {
+        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'challenges', 'review', 'readiness', 'brief', 'report', 'add'] as Tab[]).map((t) => {
           const label: Record<Tab, string> = {
             roster: 'Roster',
             modules: 'Modules',
@@ -124,6 +125,7 @@ export default function ClassDetailPage() {
             review: 'Review',
             readiness: 'Exam Readiness',
             brief: 'Class Brief',
+            report: 'AI Report',
             add: 'Add students',
           };
           return (
@@ -151,6 +153,7 @@ export default function ClassDetailPage() {
         {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
         {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
         {tab === 'brief' && <ClassBriefTab orgId={org.orgId} classId={classId} />}
+        {tab === 'report' && <ReportTab orgId={org.orgId} classId={classId} />}
         {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
       </TabErrorBoundary>
     </div>
