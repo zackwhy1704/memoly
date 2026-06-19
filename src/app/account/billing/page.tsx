@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
-import { getToken, clearAuth } from '@/lib/auth';
+import { getToken, logout } from '@/lib/auth';
 
 const PLANS = [
   {
@@ -34,12 +34,6 @@ export default function BillingPage() {
   const router = useRouter();
   const [checkoutError, setCheckoutError] = useState('');
   const [portalError, setPortalError]     = useState('');
-
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace('/login?redirect=/account/billing');
-    }
-  }, [router]);
 
   const statusQuery = useQuery({
     queryKey: ['subscriptionStatus'],
@@ -80,11 +74,6 @@ export default function BillingPage() {
   const isPremium  = entitlement?.isPremium ?? false;
   const currentPlan = (status?.plan as string | undefined) ?? 'free';
 
-  function handleSignOut() {
-    clearAuth();
-    router.replace('/login');
-  }
-
   if (!getToken()) return null;
 
   return (
@@ -99,7 +88,7 @@ export default function BillingPage() {
             ← Back
           </button>
           <button
-            onClick={handleSignOut}
+            onClick={logout}
             className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"
           >
             Sign out

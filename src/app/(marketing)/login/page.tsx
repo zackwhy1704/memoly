@@ -4,7 +4,7 @@ import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
-import { saveAuth, getToken, saveLastEmail, getLastEmail } from '@/lib/auth';
+import { saveAuth, saveLastEmail, getLastEmail } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
 
 const SPARK_COLORS = ['#00BBA4', '#FF6BAE', '#FFB81A', '#FF6660', '#2EC870', '#FFD100', '#2BA8F2'];
@@ -50,7 +50,6 @@ function LoginInner() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [pwFocused, setPwFocused] = useState(false);
-  const [lastEmail, setLastEmail] = useState('');
 
   const stageRef = useRef<HTMLDivElement>(null);
   const floatRef = useRef<HTMLDivElement>(null);
@@ -58,13 +57,9 @@ function LoginInner() {
 
   useEffect(() => {
     reducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (getToken()) router.replace('/dashboard');
     const cached = getLastEmail();
-    if (cached) {
-      setEmail(cached);
-      setLastEmail(cached);
-    }
-  }, [router]);
+    if (cached) setEmail(cached);
+  }, []);
 
   async function handleGoogle(response: CredentialResponse) {
     if (!response.credential) return;
@@ -80,7 +75,9 @@ function LoginInner() {
       identify(res.data.userId, {});
       trackEvent('login_google');
       const redirectParam = searchParams.get('redirect');
-      const safeRedirect = redirectParam?.startsWith('/account/') ? redirectParam : null;
+      const SAFE_PREFIXES = ['/account/', '/accept-invite/'];
+      const safeRedirect = redirectParam && SAFE_PREFIXES.some(p => redirectParam.startsWith(p))
+        ? redirectParam : null;
       let dest = safeRedirect ?? '/get-the-app';
       if (!safeRedirect) {
         try {
@@ -115,10 +112,11 @@ function LoginInner() {
       trackEvent('login');
 
       // Three-door routing: ADMIN → /admin, centre staff → /dashboard, student → /get-the-app.
-      // A ?redirect= param (e.g. /account/billing from a mobile deep-link) is honoured for any
-      // safe internal path starting with /account/ — it bypasses the persona routing.
+      // ?redirect= is honoured for known internal prefixes only — never external URLs.
       const redirectParam = searchParams.get('redirect');
-      const safeRedirect = redirectParam?.startsWith('/account/') ? redirectParam : null;
+      const SAFE_PREFIXES = ['/account/', '/accept-invite/'];
+      const safeRedirect = redirectParam && SAFE_PREFIXES.some(p => redirectParam.startsWith(p))
+        ? redirectParam : null;
 
       let dest = safeRedirect ?? '/get-the-app';
       if (!safeRedirect) {
@@ -187,7 +185,6 @@ function LoginInner() {
             width="360"
             logo_alignment="left"
             auto_select={false}
-            hint={lastEmail || undefined}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>

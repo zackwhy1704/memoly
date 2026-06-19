@@ -1,3 +1,5 @@
+import { clearAuth } from './auth';
+
 // Backend base URL. Defaults to the Railway production host so deploys work with
 // no env config; override with NEXT_PUBLIC_API_URL for local/staging backends.
 const BASE =
@@ -38,11 +40,10 @@ function statusToApiError(status: number, body: string): ApiError {
     case 400:
       return new ApiError(400, code, backendMsg || 'Something was off with that request.', false);
     case 401: {
-      // Clear auth and redirect — but only if we had a token (i.e. not a login attempt)
+      // Only redirect if we had a token — avoid redirect loop on login form submits.
       if (typeof window !== 'undefined' && localStorage.getItem('memoly_token')) {
-        localStorage.removeItem('memoly_token');
-        localStorage.removeItem('memoly_user_id');
-        window.location.href = '/login';
+        clearAuth();
+        window.location.assign('/login');
       }
       return new ApiError(401, code, 'Session expired — please sign in again.', false);
     }

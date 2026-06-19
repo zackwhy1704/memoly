@@ -22,7 +22,9 @@ export default function DashboardLayout({
     }
     api.getMe()
       .then((me) => {
-        if (me.data.role === 'ADMIN') {
+        if (me.data.role === 'ADMIN' && !me.data.isCentreStaff) {
+          // Pure platform admin with no centre — send to admin console.
+          // Staff-admins (admin who also owns/teaches at a centre) may use both.
           router.replace('/admin');
         } else if (!me.data.isCentreStaff) {
           // Student or non-staff — redirect to get-the-app
@@ -32,7 +34,8 @@ export default function DashboardLayout({
         }
       })
       .catch(() => {
-        // If /me fails (network error) allow through — don't log out the user
+        // Network failure — allow through rather than kicking the user out.
+        // 401s are handled globally in api.ts and never reach here.
         setReady(true);
       });
   }, [router]);

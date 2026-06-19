@@ -27,6 +27,14 @@ export function getLastEmail(): string {
   return localStorage.getItem(LAST_EMAIL_KEY) ?? '';
 }
 
+/** Clear session and hard-navigate to /login. Safe to call from any context. */
+export function logout(): void {
+  clearAuth();
+  if (typeof window !== 'undefined') {
+    window.location.assign('/login');
+  }
+}
+
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);

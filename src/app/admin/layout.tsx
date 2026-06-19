@@ -3,30 +3,30 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getToken, clearAuth } from '@/lib/auth';
+import { getToken } from '@/lib/auth';
 import { api } from '@/lib/api';
+import AccountFooter from '@/components/AccountFooter';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-
-  function handleSignOut() {
-    clearAuth();
-    router.replace('/login');
-  }
+  const [isCentreStaff, setIsCentreStaff] = useState(false);
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return; }
     api.getMe()
       .then((me) => {
         if (me.data.role !== 'ADMIN') {
-          // Not a platform admin — redirect to the appropriate area
           router.replace(me.data.isCentreStaff ? '/dashboard' : '/get-the-app');
         } else {
+          setIsCentreStaff(me.data.isCentreStaff);
           setReady(true);
         }
       })
-      .catch(() => { router.replace('/login'); });
+      .catch(() => {
+        // Network failure — allow through. 401s are handled globally in api.ts.
+        setReady(true);
+      });
   }, [router]);
 
   if (!ready) {
@@ -50,13 +50,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <NavLink href="/admin/users">Users</NavLink>
         <NavLink href="/admin/leads">Leads</NavLink>
         <NavLink href="/admin/safety">Safety</NavLink>
-        <div className="mt-auto pt-4 border-t border-line">
-          <button
-            onClick={handleSignOut}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-ink3 hover:bg-panel2 hover:text-ink transition"
-          >
-            Sign out
-          </button>
+        {isCentreStaff && (
+          <NavLink href="/dashboard">← Dashboard</NavLink>
+        )}
+        <div className="mt-auto">
+          <AccountFooter />
         </div>
       </nav>
       <main className="flex-1 min-w-0 px-8 py-8">{children}</main>

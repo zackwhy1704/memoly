@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { clearAuth } from '@/lib/auth';
-import { useTheme } from '@/lib/theme';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
+import AccountFooter from '@/components/AccountFooter';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: '⊞', exact: true },
@@ -18,15 +19,16 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, toggle } = useTheme();
   const org = useOrg();
 
-  function handleLogout() {
-    clearAuth();
-    router.replace('/login');
-  }
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.getMe().then((r) => r.data),
+    staleTime: 5 * 60_000,
+  });
+  const me = meQuery.data;
+  const personaLabel = me?.isOwner ? 'Owner' : 'Teacher';
 
   function isActive(item: { href: string; exact: boolean }) {
     if (item.exact) return pathname === item.href;
@@ -45,7 +47,7 @@ export default function Sidebar() {
           <span className="text-2xl">🐾</span>
           <div>
             <p className="text-ink font-bold text-lg leading-tight">Apalchi</p>
-            <p className="text-ink3 text-xs">Centre Admin</p>
+            <p className="text-ink3 text-xs">{personaLabel}</p>
           </div>
         </div>
       </div>
@@ -76,29 +78,11 @@ export default function Sidebar() {
       {org && (
         <div className="px-4 py-3 border-b border-line">
           <p className="text-ink text-sm font-semibold truncate">{org.orgName}</p>
-          <p className="text-ink3 text-xs">{org.seatsUsed}/{org.seatLimit} seats</p>
+          <p className="text-ink3 text-xs">{org.seatsUsed}/{org.seatLimit} seats · {personaLabel}</p>
         </div>
       )}
 
-      {/* Theme toggle + Logout */}
-      <div className="px-3 py-4 border-t border-line space-y-0.5">
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-ink3 hover:text-ink hover:bg-panel2 transition-colors"
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          <span className="text-base w-5 text-center">{theme === 'dark' ? '☀️' : '🌙'}</span>
-          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-        </button>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-ink3 hover:text-ink hover:bg-panel2 transition-colors"
-        >
-          <span className="text-base w-5 text-center">⎋</span>
-          Sign out
-        </button>
-      </div>
+      <AccountFooter />
     </div>
   );
 

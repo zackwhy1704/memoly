@@ -1,18 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { clearAuth } from '@/lib/auth';
+import { logout } from '@/lib/auth';
 import { useOrg } from '@/lib/org-context';
 
 export default function SettingsPage() {
-  const router = useRouter();
   const org = useOrg();
-
-  function handleSignOut() {
-    clearAuth();
-    router.replace('/login');
-  }
 
   return (
     <div className="max-w-xl space-y-6">
@@ -47,7 +40,7 @@ export default function SettingsPage() {
         <h2 className="text-sm font-semibold text-ink mb-1">Sign out</h2>
         <p className="text-ink3 text-xs mb-4">You will be redirected to the login page.</p>
         <button
-          onClick={handleSignOut}
+          onClick={logout}
           className="px-4 py-2 rounded-lg bg-bad/20 text-bad text-sm font-semibold
             hover:bg-bad/30 transition-colors"
         >

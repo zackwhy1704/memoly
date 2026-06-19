@@ -39,7 +39,6 @@ export default function AcceptInvitePage() {
   async function handleAccept() {
     if (phase === 'confirming') return;
     if (!getToken()) {
-      sessionStorage.setItem('pending_invite', token);
       router.replace(`/login?redirect=/accept-invite/${token}`);
       return;
     }
