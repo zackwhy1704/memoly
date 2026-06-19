@@ -175,15 +175,15 @@ function LoginInner() {
         <p className="mkt-login-sub">Welcome back to Apalchi.</p>
 
         {/* Google sign-in */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
           <GoogleLogin
             onSuccess={handleGoogle}
             onError={() => setError('Google sign-in failed. Please try again.')}
             text="continue_with"
             shape="rectangular"
             size="large"
-            width="360"
-            logo_alignment="left"
+            width="320"
+            logo_alignment="center"
             auto_select={false}
           />
         </div>
