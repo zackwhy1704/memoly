@@ -31,21 +31,25 @@ function AnalysisContent() {
       .catch(() => setError('Failed to load avatars.'));
   }, [selectedAvatarId]);
 
-  // Load wiki pages whenever avatar changes
-  useEffect(() => {
-    if (!selectedAvatarId) return;
+  function loadPages(avatarId: string) {
     setLoading(true);
     setError('');
     setPages([]);
-
     api
-      .wikiPages(selectedAvatarId)
+      .wikiPages(avatarId)
       .then((res) => setPages(res.data ?? []))
       .catch((err) => {
         const msg = err instanceof ApiError ? err.userMessage : err instanceof Error ? err.message : 'Failed to load wiki pages.';
         setError(msg);
       })
       .finally(() => setLoading(false));
+  }
+
+  // Load wiki pages whenever avatar changes
+  useEffect(() => {
+    if (!selectedAvatarId) return;
+    loadPages(selectedAvatarId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAvatarId]);
 
   const filteredPages = pages.filter(
@@ -141,8 +145,16 @@ function AnalysisContent() {
 
       {/* Error */}
       {error && (
-        <div className="bg-bad/10 border border-bad/30 rounded-xl p-5 text-bad text-sm">
-          {error}
+        <div className="bg-bad/10 border border-bad/30 rounded-xl p-5 text-bad text-sm flex items-start justify-between gap-4">
+          <span>{error}</span>
+          {selectedAvatarId && (
+            <button
+              onClick={() => loadPages(selectedAvatarId)}
+              className="shrink-0 px-3 py-1.5 bg-bad text-white rounded-lg text-xs font-semibold hover:bg-bad/80 transition-colors"
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
 

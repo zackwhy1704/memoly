@@ -20,6 +20,7 @@ import { ReviewTab } from './tabs/ReviewTab';
 import { ExamReadinessTab } from './tabs/ExamReadinessTab';
 import { AddStudentsTab } from './tabs/AddStudentsTab';
 import { ClassBriefTab } from './tabs/ClassBriefTab';
+import TabErrorBoundary from '@/components/TabErrorBoundary';
 
 type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'brief' | 'add';
 
@@ -139,17 +140,19 @@ export default function ClassDetailPage() {
         })}
       </div>
 
-      {tab === 'roster' && <RosterTab orgId={org.orgId} classId={classId} />}
-      {tab === 'modules' && <ModulesTab orgId={org.orgId} classId={classId} />}
-      {tab === 'heatmap' && <HeatmapTab orgId={org.orgId} classId={classId} />}
-      {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
-      {tab === 'content' && <ContentTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
-      {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
-      {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
-      {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
-      {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
-      {tab === 'brief' && <ClassBriefTab orgId={org.orgId} classId={classId} />}
-      {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
+      <TabErrorBoundary resetKey={tab}>
+        {tab === 'roster' && <RosterTab orgId={org.orgId} classId={classId} />}
+        {tab === 'modules' && <ModulesTab orgId={org.orgId} classId={classId} />}
+        {tab === 'heatmap' && <HeatmapTab orgId={org.orgId} classId={classId} />}
+        {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
+        {tab === 'content' && <ContentTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
+        {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
+        {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
+        {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
+        {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
+        {tab === 'brief' && <ClassBriefTab orgId={org.orgId} classId={classId} />}
+        {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
+      </TabErrorBoundary>
     </div>
   );
 }

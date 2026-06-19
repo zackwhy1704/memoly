@@ -35,7 +35,7 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
         </thead>
         <tbody>
           {members.map((mem) => {
-            const inThisClass = mem.classes.some((c) => c.classId === classId);
+            const inThisClass = (mem.classes ?? []).some((c) => c.classId === classId);
             return (
               <tr key={mem.userId} className="border-b border-line last:border-0">
                 <td className="px-5 py-3.5 font-medium text-ink">
@@ -45,7 +45,7 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
                   )}
                 </td>
                 <td className="px-5 py-3.5 text-ink3 text-xs">
-                  {mem.classes.length > 0 ? mem.classes.map((c) => c.className).join(', ') : '—'}
+                  {(mem.classes ?? []).length > 0 ? (mem.classes ?? []).map((c) => c.className).join(', ') : '—'}
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   {inThisClass ? (

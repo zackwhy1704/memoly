@@ -95,6 +95,9 @@ export default function DashboardPage() {
       >
         {(data) => {
           const d = data.data;
+          const classes = d.classes ?? [];
+          const atRisk = d.atRisk ?? [];
+          const recentActivity = d.recentActivity ?? [];
           return (
             <>
               {/* KPI cards */}
@@ -171,7 +174,7 @@ export default function DashboardPage() {
                 <div className="bg-panel border border-line rounded-2xl p-5">
                   <p className="text-sm font-semibold text-ink mb-4">Class Grasp (quiz accuracy)</p>
                   <div className="space-y-4">
-                    {d.classes.map((cls) => (
+                    {classes.map((cls) => (
                       <div key={cls.cohort}>
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-sm text-ink">{cls.cohort}</span>
@@ -186,7 +189,7 @@ export default function DashboardPage() {
                         <p className="text-xs text-ink3 mt-1">{cls.studentCount} students</p>
                       </div>
                     ))}
-                    {d.classes.length === 0 && (
+                    {classes.length === 0 && (
                       <p className="text-ink3 text-sm text-center py-4">No classes yet.</p>
                     )}
                   </div>
@@ -196,7 +199,7 @@ export default function DashboardPage() {
                 <div className="bg-panel border border-line rounded-2xl p-5">
                   <p className="text-sm font-semibold text-ink mb-4">Needs Attention</p>
                   <div className="space-y-3">
-                    {d.atRisk.map((s) => (
+                    {atRisk.map((s) => (
                       <Link
                         key={s.studentId}
                         href={`/dashboard/students/${s.studentId}`}
@@ -215,7 +218,7 @@ export default function DashboardPage() {
                         </span>
                       </Link>
                     ))}
-                    {d.atRisk.length === 0 && (
+                    {atRisk.length === 0 && (
                       <p className="text-ink3 text-sm text-center py-4">All students on track</p>
                     )}
                   </div>
@@ -225,9 +228,9 @@ export default function DashboardPage() {
               {/* Recent activity */}
               <div className="bg-panel border border-line rounded-2xl p-5">
                 <p className="text-sm font-semibold text-ink mb-4">Recent Activity</p>
-                {d.recentActivity.length > 0 ? (
+                {recentActivity.length > 0 ? (
                   <div className="space-y-2">
-                    {d.recentActivity.map((act, i) => (
+                    {recentActivity.map((act, i) => (
                       <div key={i} className="flex items-center gap-3 py-2 border-b border-line last:border-0">
                         <span className={`text-lg w-6 text-center ${act.wasCorrect ? 'text-ok' : 'text-bad'}`}>
                           {act.wasCorrect ? '✓' : '✗'}

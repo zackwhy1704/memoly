@@ -88,9 +88,9 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
                     <td className="pr-3 text-right">
                       <span className="text-xs text-ink2 capitalize">{topic.replace(/-/g, ' ')}</span>
                     </td>
-                    {hd.cells[ti].map((val, si) => (
-                      <td key={si} className="p-0">
-                        <HeatCell value={val} />
+                    {hd.students.map((s, si) => (
+                      <td key={s.id} className="p-0">
+                        <HeatCell value={hd.cells[ti]?.[si] ?? null} />
                       </td>
                     ))}
                   </tr>
@@ -151,9 +151,9 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
                   <td className="pr-3 text-right">
                     <span className="text-xs text-ink2 capitalize">{concept.replace(/-/g, ' ')}</span>
                   </td>
-                  {cd.cells[ci].map((val, si) => (
-                    <td key={si} className="p-0">
-                      <ConceptHeatCell value={val} />
+                  {cd.students.map((s, si) => (
+                    <td key={s.id} className="p-0">
+                      <ConceptHeatCell value={cd.cells[ci]?.[si] ?? null} />
                     </td>
                   ))}
                 </tr>

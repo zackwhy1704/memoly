@@ -181,11 +181,11 @@ export default function OrgBillingDetailPage() {
         </div>
 
         {/* Per-class breakdown */}
-        {detail.perClass.length > 0 && (
+        {(detail.perClass ?? []).length > 0 && (
           <div>
             <p className="text-xs font-semibold text-ink2 uppercase tracking-wide mb-2">Per-class breakdown</p>
             <div className="space-y-2">
-              {detail.perClass.map((cls) => (
+              {(detail.perClass ?? []).map((cls) => (
                 <div key={cls.classId} className="flex items-center justify-between gap-4 py-2 border-b border-line last:border-0">
                   <div>
                     <p className="text-sm font-semibold text-ink">{cls.className}</p>

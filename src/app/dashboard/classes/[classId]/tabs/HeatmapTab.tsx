@@ -50,9 +50,9 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
                   <td className="pr-3 text-right">
                     <span className="text-xs text-ink2 capitalize">{topic.replace(/-/g, ' ')}</span>
                   </td>
-                  {d.cells[ti].map((val, si) => (
-                    <td key={si} className="p-0">
-                      <HeatCell value={val} />
+                  {d.students.map((s, si) => (
+                    <td key={s.id} className="p-0">
+                      <HeatCell value={d.cells[ti]?.[si] ?? null} />
                     </td>
                   ))}
                 </tr>
