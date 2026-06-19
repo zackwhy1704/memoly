@@ -97,6 +97,7 @@ export default function SignupPage() {
             size="large"
             width="400"
             logo_alignment="left"
+            auto_select={false}
           />
         </div>
 

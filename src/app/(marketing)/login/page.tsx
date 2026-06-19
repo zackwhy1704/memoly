@@ -175,6 +175,7 @@ function LoginInner() {
             size="large"
             width="360"
             logo_alignment="left"
+            auto_select={false}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
