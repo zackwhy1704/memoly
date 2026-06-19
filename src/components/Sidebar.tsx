@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
+import { useMe } from '@/lib/use-me';
 import AccountFooter from '@/components/AccountFooter';
 
 const navItems = [
@@ -22,12 +21,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const org = useOrg();
 
-  const meQuery = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.getMe().then((r) => r.data),
-    staleTime: 5 * 60_000,
-  });
-  const me = meQuery.data;
+  const { data: me } = useMe();
   const personaLabel = me?.isOwner ? 'Owner' : 'Teacher';
 
   function isActive(item: { href: string; exact: boolean }) {

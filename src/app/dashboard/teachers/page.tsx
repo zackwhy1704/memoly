@@ -1,20 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, OrgStaffMember } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
+import { useMe } from '@/lib/use-me';
 
 export default function TeachersPage() {
   const org = useOrg();
   const qc = useQueryClient();
 
-  const meQuery = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.getMe(),
-    staleTime: 5 * 60_000,
-  });
-  const isOwner = meQuery.data?.data.isOwner ?? false;
+  const { data: me } = useMe();
+  const isOwner = me?.isOwner ?? false;
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState('');

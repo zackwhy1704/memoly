@@ -32,10 +32,14 @@ export function ReportTab({ orgId, classId }: { orgId: string; classId: string }
   const report = query.data?.data;
   if (!report) return null;
 
-  const generatedDate = new Date(report.generatedAt).toLocaleString();
+  const narrative = report.narrative ?? '';
+  const generatedDate = report.generatedAt
+    ? new Date(report.generatedAt).toLocaleString()
+    : 'unknown';
+  const cachedSuffix = report.cached ? ' (cached)' : '';
 
   function handleCopy() {
-    navigator.clipboard.writeText(report!.narrative);
+    navigator.clipboard.writeText(narrative);
   }
 
   function handlePrint() {
@@ -48,8 +52,8 @@ export function ReportTab({ orgId, classId }: { orgId: string; classId: string }
       h1{font-size:1.25rem}p{margin:0.75rem 0}small{color:#6B618A}</style>
       </head><body>
       <h1>Class Performance Report</h1>
-      <small>Generated: ${generatedDate}${report!.cached ? ' (cached)' : ''}</small>
-      ${report!.narrative.split('\n\n').map((p) => `<p>${p}</p>`).join('')}
+      <small>Generated: ${generatedDate}${cachedSuffix}</small>
+      ${narrative.split('\n\n').map((p) => `<p>${p}</p>`).join('')}
       </body></html>`);
     win.document.close();
     win.print();
@@ -61,7 +65,7 @@ export function ReportTab({ orgId, classId }: { orgId: string; classId: string }
         <div>
           <h2 className="text-base font-semibold text-ink">AI Class Report</h2>
           <p className="text-xs text-ink3 mt-0.5">
-            Generated {generatedDate}{report.cached ? ' · cached' : ''}
+            Generated {generatedDate}{cachedSuffix ? ' · cached' : ''}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -80,13 +84,19 @@ export function ReportTab({ orgId, classId }: { orgId: string; classId: string }
         </div>
       </div>
 
-      <div className="bg-panel border border-line rounded-2xl p-6 space-y-4">
-        {report.narrative.split('\n\n').filter(Boolean).map((para, i) => (
-          <p key={i} className="text-sm text-ink leading-relaxed">
-            {para}
-          </p>
-        ))}
-      </div>
+      {narrative ? (
+        <div className="bg-panel border border-line rounded-2xl p-6 space-y-4">
+          {narrative.split('\n\n').filter(Boolean).map((para, i) => (
+            <p key={i} className="text-sm text-ink leading-relaxed">
+              {para}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-panel border border-line rounded-2xl p-6 text-sm text-ink3">
+          No report content yet — students need to complete at least one lesson first.
+        </div>
+      )}
     </div>
   );
 }

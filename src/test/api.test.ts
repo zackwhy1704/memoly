@@ -67,7 +67,7 @@ afterEach(() => {
 describe('statusToApiError (via apiFetch)', () => {
   it('400 → status 400, not retryable', async () => {
     mockFetch(400, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(400);
     expect(err.retryable).toBe(false);
@@ -76,7 +76,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('400 uses backend message when present', async () => {
     mockFetch(400, { error: 'Name is required.' });
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.userMessage).toBe('Name is required.');
   });
 
@@ -85,7 +85,7 @@ describe('statusToApiError (via apiFetch)', () => {
     localStorageMock.setItem('memoly_user_id', 'user-1');
     mockFetch(401, '{}');
 
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(401);
     expect(err.retryable).toBe(false);
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('memoly_token');
@@ -95,7 +95,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('403 → not retryable, access denied message', async () => {
     mockFetch(403, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(403);
     expect(err.retryable).toBe(false);
     expect(err.userMessage).toContain("don't have access");
@@ -103,7 +103,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('404 → not retryable', async () => {
     mockFetch(404, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(404);
     expect(err.retryable).toBe(false);
     expect(err.userMessage).toContain('Not found');
@@ -111,7 +111,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('413 → file too large, not retryable', async () => {
     mockFetch(413, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(413);
     expect(err.retryable).toBe(false);
     expect(err.userMessage).toContain('25MB');
@@ -119,7 +119,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('429 → retryable', async () => {
     mockFetch(429, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(429);
     expect(err.retryable).toBe(true);
     expect(err.userMessage).toContain('Too many requests');
@@ -127,7 +127,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('500 → retryable', async () => {
     mockFetch(500, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(500);
     expect(err.retryable).toBe(true);
     expect(err.userMessage).toContain('went wrong');
@@ -135,7 +135,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('503 → retryable, service busy', async () => {
     mockFetch(503, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(503);
     expect(err.retryable).toBe(true);
     expect(err.userMessage).toContain('busy');
@@ -143,7 +143,7 @@ describe('statusToApiError (via apiFetch)', () => {
 
   it('504 → retryable, timeout message', async () => {
     mockFetch(504, '{}');
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err.status).toBe(504);
     expect(err.retryable).toBe(true);
     expect(err.userMessage).toContain('taking longer');
@@ -154,7 +154,7 @@ describe('statusToApiError (via apiFetch)', () => {
 describe('apiFetch network error', () => {
   it('fetch throws → ApiError with status=0, retryable=true, offline message', async () => {
     mockFetchNetworkError();
-    const err = await apiFetch('/test').catch((e) => e);
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(0);
     expect(err.retryable).toBe(true);

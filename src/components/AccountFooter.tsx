@@ -1,8 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 import { getLastEmail, logout } from '@/lib/auth';
+import { useMe } from '@/lib/use-me';
 import { useTheme } from '@/lib/theme';
 
 function personaLabel(me: { role: string; isOwner: boolean } | undefined): string {
@@ -16,13 +15,8 @@ export default function AccountFooter() {
   const { theme, toggle } = useTheme();
   const email = getLastEmail();
 
-  const meQuery = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.getMe().then((r) => r.data),
-    staleTime: 5 * 60_000,
-  });
-
-  const label = personaLabel(meQuery.data);
+  const { data: me } = useMe();
+  const label = personaLabel(me);
 
   return (
     <div className="px-3 py-4 border-t border-line space-y-0.5">
