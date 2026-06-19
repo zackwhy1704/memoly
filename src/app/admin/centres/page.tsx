@@ -8,17 +8,28 @@ export default function AdminCentresPage() {
   const [invites, setInvites]   = useState<AdminInvite[]>([]);
   const [loading, setLoading]   = useState(true);
 
+  const [fetchError, setFetchError]     = useState('');
   const [centreName, setCentreName]     = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [creating, setCreating]         = useState(false);
   const [createError, setCreateError]   = useState('');
   const [createdToken, setCreatedToken] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([api.adminOrgs(), api.adminInvites()])
-      .then(([o, i]) => { setOrgs(o.data); setInvites(i.data); })
-      .finally(() => setLoading(false));
-  }, []);
+  async function load() {
+    setLoading(true);
+    setFetchError('');
+    try {
+      const [o, i] = await Promise.all([api.adminOrgs(), api.adminInvites()]);
+      setOrgs(o.data);
+      setInvites(i.data);
+    } catch (err: unknown) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to load centres and invites.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
 
   async function handleCreateInvite(e: FormEvent) {
     e.preventDefault();
@@ -45,6 +56,21 @@ export default function AdminCentresPage() {
 
   if (loading) {
     return <p className="text-ink3 text-sm">Loading…</p>;
+  }
+
+  if (fetchError) {
+    return (
+      <div className="bg-bad/10 border border-bad/30 rounded-xl p-4 text-bad text-sm max-w-xl">
+        <p className="font-semibold mb-2">Could not load centres</p>
+        <p>{fetchError}</p>
+        <button
+          onClick={load}
+          className="mt-3 px-3 py-1.5 bg-bad text-white rounded-lg text-xs font-semibold"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

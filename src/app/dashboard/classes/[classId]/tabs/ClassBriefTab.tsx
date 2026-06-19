@@ -32,6 +32,10 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
           (res as { data: ClassBriefData | null }).data ?? null;
         if (!brief) return null;
 
+        const focusConcepts = brief.focusConcepts ?? [];
+        const checkOn = brief.checkOn ?? [];
+        const suggestedGroups = brief.suggestedGroups ?? [];
+
         return (
           <div className="space-y-4">
             {/* Header row — Mochi as teaching-assistant voice */}
@@ -83,12 +87,12 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             )}
 
             {/* Focus concepts */}
-            {brief.focusConcepts.length > 0 && (
+            {focusConcepts.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
                 <p className="text-sm font-semibold text-ink">
                   Mochi noticed these need attention
                 </p>
-                {brief.focusConcepts.map((c) => {
+                {focusConcepts.map((c) => {
                   const failPct = Math.round(c.failRate * 100);
                   const barColor =
                     failPct >= 70 ? 'bg-bad' : failPct >= 40 ? 'bg-warn' : 'bg-ok';
@@ -122,13 +126,13 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             )}
 
             {/* Check on */}
-            {brief.checkOn.length > 0 && (
+            {checkOn.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5">
                 <p className="text-sm font-semibold text-ink mb-2">
                   Mochi suggests checking in with
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {brief.checkOn.map((name) => (
+                  {checkOn.map((name) => (
                     <span
                       key={name}
                       className="px-3 py-1 bg-bad/10 text-bad text-xs font-semibold rounded-full border border-bad/20"
@@ -141,11 +145,11 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             )}
 
             {/* Suggested groups */}
-            {brief.suggestedGroups.length > 0 && (
+            {suggestedGroups.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5">
                 <p className="text-sm font-semibold text-ink mb-3">Suggested peer groups</p>
                 <div className="space-y-2">
-                  {brief.suggestedGroups.map((group, i) => (
+                  {suggestedGroups.map((group, i) => (
                     <div key={i} className="flex items-center gap-2 flex-wrap">
                       {group.map((name, j) => (
                         <span key={name}>
@@ -164,8 +168,8 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             )}
 
             {/* Empty state */}
-            {brief.focusConcepts.length === 0 &&
-              brief.checkOn.length === 0 &&
+            {focusConcepts.length === 0 &&
+              checkOn.length === 0 &&
               !brief.skipLine && (
                 <div className="text-center py-8 text-ink3 text-sm">
                   Mochi hasn&apos;t spotted any patterns yet.

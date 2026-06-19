@@ -4,16 +4,21 @@ import { useEffect, useState } from 'react';
 import { api, AdminUser } from '@/lib/api';
 
 export default function AdminUsersPage() {
-  const [users, setUsers]     = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage]       = useState(0);
+  const [users, setUsers]           = useState<AdminUser[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [fetchError, setFetchError] = useState('');
+  const [page, setPage]             = useState(0);
 
-  useEffect(() => {
+  function loadPage(p: number) {
     setLoading(true);
-    api.adminUsers(page, 50)
+    setFetchError('');
+    api.adminUsers(p, 50)
       .then((res) => setUsers(res.data))
+      .catch((err: unknown) => setFetchError(err instanceof Error ? err.message : 'Failed to load users.'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }
+
+  useEffect(() => { loadPage(page); }, [page]);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -24,6 +29,17 @@ export default function AdminUsersPage() {
 
       {loading ? (
         <p className="text-ink3 text-sm">Loading…</p>
+      ) : fetchError ? (
+        <div className="bg-bad/10 border border-bad/30 rounded-xl p-4 text-bad text-sm max-w-xl">
+          <p className="font-semibold mb-2">Could not load users</p>
+          <p>{fetchError}</p>
+          <button
+            onClick={() => loadPage(page)}
+            className="mt-3 px-3 py-1.5 bg-bad text-white rounded-lg text-xs font-semibold"
+          >
+            Retry
+          </button>
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full text-sm">

@@ -33,7 +33,9 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
   const data = query.data?.data;
   if (!data) return null;
 
-  const weakConcepts = data.concepts
+  const concepts = data.concepts ?? [];
+
+  const weakConcepts = concepts
     .filter((c) => c.avgMastery < 0.6)
     .sort((a, b) => a.avgMastery - b.avgMastery);
 
@@ -55,18 +57,18 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
         </div>
         <div className="bg-panel border border-line rounded-2xl p-5 text-center">
           <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Concepts Tracked</p>
-          <p className="text-3xl font-bold tabular-nums text-ink">{data.concepts.length}</p>
+          <p className="text-3xl font-bold tabular-nums text-ink">{concepts.length}</p>
         </div>
       </div>
 
       {/* Per-concept mastery bars (weakest first) */}
       <div className="bg-panel border border-line rounded-2xl p-5">
         <p className="text-sm font-semibold text-ink mb-4">Concept Mastery (weakest first)</p>
-        {data.concepts.length === 0 ? (
+        {concepts.length === 0 ? (
           <p className="text-ink3 text-sm">No concept data available yet.</p>
         ) : (
           <div className="space-y-3">
-            {[...data.concepts].sort((a, b) => a.avgMastery - b.avgMastery).map((c) => {
+            {[...concepts].sort((a, b) => a.avgMastery - b.avgMastery).map((c) => {
               const pct = Math.round(c.avgMastery * 100);
               const barColor = pct >= 70 ? 'bg-ok' : pct >= 40 ? 'bg-warn' : 'bg-bad';
               const textColor = pct >= 70 ? 'text-ok' : pct >= 40 ? 'text-warn' : 'text-bad';

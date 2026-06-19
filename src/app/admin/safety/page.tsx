@@ -38,126 +38,124 @@ export default function AdminSafetyPage() {
     query.isError &&
     (query.error as { status?: number })?.status === 403;
 
+  function severityClass(severity: string) {
+    if (severity === 'HIGH') return 'bg-bad/15 text-bad';
+    if (severity === 'MEDIUM') return 'bg-warn/15 text-warn';
+    return 'bg-panel2 text-ink2';
+  }
+
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Safety Flag Review</h1>
+    <div className="space-y-6 max-w-4xl">
+      <h1 className="text-2xl font-bold text-ink">Safety Flag Review</h1>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Child User ID</label>
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="user-abc123"
-                required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Window (hours)</label>
-              <input
-                type="number"
-                value={sinceHours}
-                onChange={(e) => setSinceHours(Number(e.target.value))}
-                min={1}
-                max={720}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
+      <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-xl p-5 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-ink3 mb-1">Child User ID</label>
+            <input
+              type="text"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder="user-abc123"
+              required
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-ink3 mb-1">Window (hours)</label>
+            <input
+              type="number"
+              value={sinceHours}
+              onChange={(e) => setSinceHours(Number(e.target.value))}
+              min={1}
+              max={720}
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+          </div>
+        </div>
 
-          {!secret && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Admin Secret</label>
-              <input
-                type="password"
-                value={secretInput}
-                onChange={(e) => setSecretInput(e.target.value)}
-                placeholder="Enter admin secret"
-                required
-                autoComplete="off"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition"
-          >
-            Load flags
-          </button>
-        </form>
-
-        {is403 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700 font-medium">
-            Invalid admin secret.
+        {!secret && (
+          <div>
+            <label className="block text-xs font-semibold text-ink3 mb-1">Admin Secret</label>
+            <input
+              type="password"
+              value={secretInput}
+              onChange={(e) => setSecretInput(e.target.value)}
+              placeholder="Enter admin secret"
+              required
+              autoComplete="off"
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
           </div>
         )}
 
-        {submitted && !!userId && !!secret && !is403 && (
-          <AsyncBoundary
-            query={query}
-            loadingIcon="🔍"
-            loadingLabel="Loading safety flags…"
-            errorMessage="Could not load safety flags."
-          >
-            {(res) => {
-              const flags = (res as { data: SafetyFlagDto[] }).data ?? [];
-              if (flags.length === 0) {
-                return (
-                  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-                    No flags found for this user in the last {sinceHours} hours.
-                  </div>
-                );
-              }
+        <button
+          type="submit"
+          className="px-4 py-2 bg-accent text-white text-sm font-semibold rounded-lg hover:bg-accent/80 transition"
+        >
+          Load flags
+        </button>
+      </form>
+
+      {is403 && (
+        <div className="bg-bad/10 border border-bad/30 rounded-xl px-5 py-4 text-sm text-bad font-medium">
+          Invalid admin secret.
+        </div>
+      )}
+
+      {submitted && !!userId && !!secret && !is403 && (
+        <AsyncBoundary
+          query={query}
+          loadingIcon="🔍"
+          loadingLabel="Loading safety flags…"
+          errorMessage="Could not load safety flags."
+        >
+          {(res) => {
+            const flags = (res as { data: SafetyFlagDto[] }).data ?? [];
+            if (flags.length === 0) {
               return (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        {['Timestamp', 'Category', 'Severity', 'Source', 'Snippet'].map((h) => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {flags.map((f) => (
-                        <tr key={f.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-gray-600 whitespace-nowrap font-mono text-xs">
-                            {new Date(f.createdAt).toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-gray-800 font-medium">{f.category}</td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              f.severity === 'HIGH'
-                                ? 'bg-red-100 text-red-700'
-                                : f.severity === 'MEDIUM'
-                                ? 'bg-orange-100 text-orange-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {f.severity}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">{f.source}</td>
-                          <td className="px-4 py-3 text-gray-700 max-w-xs truncate" title={f.snippet ?? ''}>
-                            {f.snippet ?? <span className="text-gray-400 italic">—</span>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="bg-surface border border-line rounded-xl p-8 text-center text-ink3 text-sm">
+                  No flags found for this user in the last {sinceHours} hours.
                 </div>
               );
-            }}
-          </AsyncBoundary>
-        )}
-      </div>
-    </main>
+            }
+            return (
+              <div className="bg-surface border border-line rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-panel2 border-b border-line">
+                    <tr>
+                      {['Timestamp', 'Category', 'Severity', 'Source', 'Snippet'].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-ink3 uppercase tracking-wide">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {flags.map((f) => (
+                      <tr key={f.id} className="hover:bg-panel2/50">
+                        <td className="px-4 py-3 text-ink2 whitespace-nowrap font-mono text-xs">
+                          {new Date(f.createdAt).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-ink font-medium">{f.category}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${severityClass(f.severity)}`}>
+                            {f.severity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-ink2">{f.source}</td>
+                        <td className="px-4 py-3 text-ink max-w-xs truncate" title={f.snippet ?? ''}>
+                          {f.snippet ?? <span className="text-ink3 italic">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }}
+        </AsyncBoundary>
+      )}
+    </div>
   );
 }
