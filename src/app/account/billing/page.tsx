@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
-import { getToken } from '@/lib/auth';
+import { getToken, clearAuth } from '@/lib/auth';
 
 const PLANS = [
   {
@@ -80,11 +80,31 @@ export default function BillingPage() {
   const isPremium  = entitlement?.isPremium ?? false;
   const currentPlan = (status?.plan as string | undefined) ?? 'free';
 
+  function handleSignOut() {
+    clearAuth();
+    router.replace('/login');
+  }
+
   if (!getToken()) return null;
 
   return (
     <div className="min-h-screen bg-bg py-10 px-4">
       <div className="max-w-2xl mx-auto space-y-8">
+        {/* Top bar */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"
+          >
+            ← Back
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
         <div>
           <h1 className="text-2xl font-bold text-ink">Billing & Subscription</h1>
           <p className="text-ink3 text-sm mt-1">Manage your Apalchi plan.</p>

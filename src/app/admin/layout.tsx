@@ -3,12 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getToken } from '@/lib/auth';
+import { getToken, clearAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+
+  function handleSignOut() {
+    clearAuth();
+    router.replace('/login');
+  }
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return; }
@@ -44,8 +49,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <NavLink href="/admin/centres">Centres</NavLink>
         <NavLink href="/admin/users">Users</NavLink>
         <NavLink href="/admin/leads">Leads</NavLink>
-        <div className="mt-auto">
-          <NavLink href="/dashboard">← Dashboard</NavLink>
+        <NavLink href="/admin/safety">Safety</NavLink>
+        <div className="mt-auto pt-4 border-t border-line">
+          <button
+            onClick={handleSignOut}
+            className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-ink3 hover:bg-panel2 hover:text-ink transition"
+          >
+            Sign out
+          </button>
         </div>
       </nav>
       <main className="flex-1 min-w-0 px-8 py-8">{children}</main>
