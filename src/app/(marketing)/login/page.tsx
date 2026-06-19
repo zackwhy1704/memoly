@@ -4,7 +4,7 @@ import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
-import { saveAuth, getToken } from '@/lib/auth';
+import { saveAuth, getToken, saveLastEmail, getLastEmail } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
 
 const SPARK_COLORS = ['#00BBA4', '#FF6BAE', '#FFB81A', '#FF6660', '#2EC870', '#FFD100', '#2BA8F2'];
@@ -50,6 +50,7 @@ function LoginInner() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [pwFocused, setPwFocused] = useState(false);
+  const [lastEmail, setLastEmail] = useState('');
 
   const stageRef = useRef<HTMLDivElement>(null);
   const floatRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,11 @@ function LoginInner() {
   useEffect(() => {
     reducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (getToken()) router.replace('/dashboard');
+    const cached = getLastEmail();
+    if (cached) {
+      setEmail(cached);
+      setLastEmail(cached);
+    }
   }, [router]);
 
   async function handleGoogle(response: CredentialResponse) {
@@ -67,6 +73,10 @@ function LoginInner() {
     try {
       const res = await api.google(response.credential);
       saveAuth(res.data.token, res.data.userId);
+      try {
+        const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload.email) saveLastEmail(payload.email);
+      } catch { /* non-critical */ }
       identify(res.data.userId, {});
       trackEvent('login_google');
       const redirectParam = searchParams.get('redirect');
@@ -100,6 +110,7 @@ function LoginInner() {
     try {
       const res = await api.login(email, password);
       saveAuth(res.data.token, res.data.userId);
+      saveLastEmail(email);
       identify(res.data.userId, { email });
       trackEvent('login');
 
@@ -176,6 +187,7 @@ function LoginInner() {
             width="360"
             logo_alignment="left"
             auto_select={false}
+            hint={lastEmail || undefined}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>

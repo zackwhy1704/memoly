@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 const TOKEN_KEY = 'memoly_token';
 const USER_ID_KEY = 'memoly_user_id';
+const LAST_EMAIL_KEY = 'memoly_last_email';
 
 export function saveAuth(token: string, userId: string) {
   localStorage.setItem(TOKEN_KEY, token);
@@ -14,6 +15,16 @@ export function saveAuth(token: string, userId: string) {
 export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_ID_KEY);
+  // intentionally keep LAST_EMAIL_KEY so the login form can pre-fill on next visit
+}
+
+export function saveLastEmail(email: string) {
+  localStorage.setItem(LAST_EMAIL_KEY, email);
+}
+
+export function getLastEmail(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem(LAST_EMAIL_KEY) ?? '';
 }
 
 export function getToken(): string | null {
