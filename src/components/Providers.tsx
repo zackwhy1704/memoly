@@ -5,12 +5,17 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ThemeProvider } from '@/lib/theme';
 import { ToastProvider } from '@/components/Toast';
 import { initAnalytics } from '@/lib/analytics';
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+import { GOOGLE_CLIENT_ID, isGoogleEnabled } from '@/lib/google';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initAnalytics();
+    if (process.env.NODE_ENV === 'development' && !isGoogleEnabled) {
+      console.warn(
+        'Google sign-in disabled: NEXT_PUBLIC_GOOGLE_CLIENT_ID not set. ' +
+          'Add it to .env.local (see .env.example) and restart the dev server.',
+      );
+    }
   }, []);
 
   const [qc] = useState(() => new QueryClient({

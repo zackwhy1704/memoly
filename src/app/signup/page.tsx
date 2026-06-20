@@ -7,6 +7,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
+import { isGoogleEnabled } from '@/lib/google';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -87,26 +88,30 @@ export default function SignupPage() {
           Start a 30-day pilot — no card required.
         </p>
 
-        {/* Google button */}
-        <div style={{ marginBottom: 16 }}>
-          <GoogleLogin
-            onSuccess={handleGoogle}
-            onError={() => setError('Google sign-in failed. Please try again.')}
-            text="continue_with"
-            shape="rectangular"
-            size="large"
-            width="400"
-            logo_alignment="left"
-            auto_select={false}
-          />
-        </div>
+        {/* Google button — only when a web client ID is configured. */}
+        {isGoogleEnabled && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <GoogleLogin
+                onSuccess={handleGoogle}
+                onError={() => setError('Google sign-in failed. Please try again.')}
+                text="continue_with"
+                shape="rectangular"
+                size="large"
+                width="400"
+                logo_alignment="left"
+                auto_select={false}
+              />
+            </div>
 
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
-          <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or</span>
-          <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
-        </div>
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+              <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+            </div>
+          </>
+        )}
 
         {/* Email section */}
         {!showEmail ? (

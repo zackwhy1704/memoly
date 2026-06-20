@@ -38,7 +38,12 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-line">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🐾</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/mochi-base-transparent.png"
+            alt="Apalchi"
+            className="w-8 h-8 object-contain"
+          />
           <div>
             <p className="text-ink font-bold text-lg leading-tight">Apalchi</p>
             <p className="text-ink3 text-xs">{personaLabel}</p>

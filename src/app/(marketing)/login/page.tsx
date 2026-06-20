@@ -6,6 +6,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
 import { saveAuth, saveLastEmail, getLastEmail } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
+import { isGoogleEnabled } from '@/lib/google';
 
 const SPARK_COLORS = ['#00BBA4', '#FF6BAE', '#FFB81A', '#FF6660', '#2EC870', '#FFD100', '#2BA8F2'];
 
@@ -174,24 +175,28 @@ function LoginInner() {
         <h2>Sign in</h2>
         <p className="mkt-login-sub">Welcome back to Apalchi.</p>
 
-        {/* Google sign-in */}
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
-          <GoogleLogin
-            onSuccess={handleGoogle}
-            onError={() => setError('Google sign-in failed. Please try again.')}
-            text="continue_with"
-            shape="rectangular"
-            size="large"
-            width="320"
-            logo_alignment="center"
-            auto_select={false}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
-          <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or sign in with email</span>
-          <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
-        </div>
+        {/* Google sign-in — only when a web client ID is configured. */}
+        {isGoogleEnabled && (
+          <>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleGoogle}
+                onError={() => setError('Google sign-in failed. Please try again.')}
+                text="continue_with"
+                shape="rectangular"
+                size="large"
+                width="320"
+                logo_alignment="center"
+                auto_select={false}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+              <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or sign in with email</span>
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+            </div>
+          </>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mkt-field">

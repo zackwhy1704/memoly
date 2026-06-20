@@ -57,8 +57,9 @@ export default function DashboardLayout({
         <Sidebar />
         {/* Main content — offset by sidebar width on large screens */}
         <main className="flex-1 lg:ml-64 min-w-0">
-          {/* Top padding for mobile hamburger */}
-          <div className="pt-16 lg:pt-0 px-4 lg:px-8 py-8">{children}</div>
+          {/* Top padding: extra on mobile to clear the hamburger; a comfortable
+              gap on desktop so page titles aren't flush to the top edge. */}
+          <div className="pt-16 lg:pt-10 px-4 lg:px-8 py-8">{children}</div>
         </main>
       </div>
     </OrgProvider>
