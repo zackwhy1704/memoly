@@ -13,12 +13,12 @@ function GraspRing({ value, size = 56 }: { value: number; size?: number }) {
   const dash = circ * value;
   return (
     <svg width={size} height={size} className="-rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth={6} fill="none" />
+      <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--color-line)" strokeWidth={6} fill="none" />
       <circle
         cx={size / 2}
         cy={size / 2}
         r={r}
-        stroke="#8B7DF7"
+        stroke="var(--color-accent)"
         strokeWidth={6}
         fill="none"
         strokeDasharray={`${dash} ${circ}`}
@@ -119,29 +119,29 @@ export default function StudentPage() {
                     <AreaChart data={d.graspOverTime} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="sGraspGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8B7DF7" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#8B7DF7" stopOpacity={0} />
+                          <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <XAxis
                         dataKey="week"
-                        tick={{ fontSize: 11, fill: '#66666F' }}
+                        tick={{ fontSize: 11, fill: 'var(--color-ink3)' }}
                         tickFormatter={(v: string) => v.slice(5)}
                         axisLine={false}
                         tickLine={false}
                       />
                       <YAxis
                         domain={[0, 1]}
-                        tick={{ fontSize: 11, fill: '#66666F' }}
+                        tick={{ fontSize: 11, fill: 'var(--color-ink3)' }}
                         tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
                         axisLine={false}
                         tickLine={false}
                       />
                       <Tooltip
-                        contentStyle={{ background: '#141418', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#ECECEF', fontSize: 12 }}
+                        contentStyle={{ background: 'var(--color-panel)', border: '1px solid var(--color-line)', borderRadius: 8, color: 'var(--color-ink)', fontSize: 12 }}
                         formatter={(v) => [`${Math.round((v as number) * 100)}%`, 'Grasp']}
                       />
-                      <Area type="monotone" dataKey="value" stroke="#8B7DF7" strokeWidth={2} fill="url(#sGraspGrad)" dot={false} />
+                      <Area type="monotone" dataKey="value" stroke="var(--color-accent)" strokeWidth={2} fill="url(#sGraspGrad)" dot={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>

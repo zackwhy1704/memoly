@@ -47,12 +47,12 @@ export default function PilotTrialCountdown({ endsAt, kind }: PilotTrialCountdow
         flexWrap: 'wrap',
       }}
     >
-      <span style={{ fontWeight: 700, color: '#1F1733', fontSize: 14 }}>
+      <span style={{ fontWeight: 700, color: '#2A2118', fontSize: 14 }}>
         {isUrgent ? '⚠️' : '🚀'} {message}
       </span>
       <a
         href={ctaHref}
-        style={{ color: '#7042ED', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', textDecoration: 'none' }}
+        style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', textDecoration: 'none' }}
       >
         {ctaText}
       </a>

@@ -32,7 +32,8 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   if (state === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
-        <span className="text-3xl animate-bounce">🐾</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/mochi-base-transparent.png" alt="Loading…" className="w-9 h-9 object-contain animate-bounce" />
       </div>
     );
   }

@@ -131,32 +131,32 @@ export default function DashboardPage() {
                     <AreaChart data={d.graspTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="graspGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8B7DF7" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#8B7DF7" stopOpacity={0} />
+                          <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <XAxis
                         dataKey="week"
-                        tick={{ fontSize: 11, fill: '#66666F' }}
+                        tick={{ fontSize: 11, fill: 'var(--color-ink3)' }}
                         tickFormatter={(v: string) => v.slice(5)}
                         axisLine={false}
                         tickLine={false}
                       />
                       <YAxis
                         domain={[0, 1]}
-                        tick={{ fontSize: 11, fill: '#66666F' }}
+                        tick={{ fontSize: 11, fill: 'var(--color-ink3)' }}
                         tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
                         axisLine={false}
                         tickLine={false}
                       />
                       <Tooltip
-                        contentStyle={{ background: '#141418', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#ECECEF', fontSize: 12 }}
+                        contentStyle={{ background: 'var(--color-panel)', border: '1px solid var(--color-line)', borderRadius: 8, color: 'var(--color-ink)', fontSize: 12 }}
                         formatter={(v) => [`${Math.round((v as number) * 100)}%`, 'Grasp']}
                       />
                       <Area
                         type="monotone"
                         dataKey="value"
-                        stroke="#8B7DF7"
+                        stroke="var(--color-accent)"
                         strokeWidth={2}
                         fill="url(#graspGrad)"
                         dot={false}

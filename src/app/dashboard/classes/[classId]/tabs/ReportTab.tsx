@@ -48,8 +48,8 @@ export function ReportTab({ orgId, classId }: { orgId: string; classId: string }
     win.document.write(`
       <!DOCTYPE html><html><head>
       <title>Class Report</title>
-      <style>body{font-family:sans-serif;max-width:680px;margin:40px auto;line-height:1.7;color:#1F1733}
-      h1{font-size:1.25rem}p{margin:0.75rem 0}small{color:#6B618A}</style>
+      <style>body{font-family:sans-serif;max-width:680px;margin:40px auto;line-height:1.7;color:#2A2118}
+      h1{font-size:1.25rem}p{margin:0.75rem 0}small{color:#6B604E}</style>
       </head><body>
       <h1>Class Performance Report</h1>
       <small>Generated: ${generatedDate}${cachedSuffix}</small>

@@ -71,7 +71,7 @@ describe('ClassAvatar', () => {
     expect(badge).toBeInTheDocument();
     // Default band colour drives the ring; neutral glyph; no initials at default size.
     const ring = container.querySelector('div.rounded-full');
-    expect(ring).toHaveStyle({ border: '3px solid #7042ED' });
+    expect(ring).toHaveStyle({ border: '3px solid #DD5E3A' });
     expect(screen.getByText('📖')).toBeInTheDocument();
   });
 

@@ -52,7 +52,7 @@ export default function GetTheAppPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 24px',
-        background: 'linear-gradient(160deg, #f4f0ff 0%, #fff 60%)',
+        background: 'linear-gradient(160deg, #FBF4EE 0%, #fff 60%)',
         fontFamily: 'Nunito, system-ui, sans-serif',
         textAlign: 'center',
       }}
@@ -64,10 +64,10 @@ export default function GetTheAppPage() {
         style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 24 }}
       />
 
-      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
+      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#2A2118', marginBottom: 8 }}>
         Download Apalchi on the app!
       </h1>
-      <p style={{ fontSize: 13, color: '#A8A0BD', marginBottom: 36 }}>
+      <p style={{ fontSize: 13, color: '#9C9078', marginBottom: 36 }}>
         Tap below — if you already have the app it will open automatically.
       </p>
 
@@ -76,9 +76,9 @@ export default function GetTheAppPage() {
         <AppBadge href={ANDROID_STORE} label="Get it on"       store="Google Play" icon="▶"  />
       </div>
 
-      <p style={{ fontSize: 13, color: '#A8A0BD' }}>
+      <p style={{ fontSize: 13, color: '#9C9078' }}>
         Are you a centre owner or teacher?{' '}
-        <a href="/login" style={{ color: '#7042ED', fontWeight: 700 }}>
+        <a href="/login" style={{ color: 'var(--color-accent)', fontWeight: 700 }}>
           Sign in here
         </a>
       </p>
@@ -109,7 +109,7 @@ function AppBadge({
 
   if (!href) {
     return (
-      <span style={{ ...base, background: '#E0DAF0', color: '#A8A0BD', cursor: 'default', opacity: 0.7 }}>
+      <span style={{ ...base, background: '#E8E1D4', color: '#9C9078', cursor: 'default', opacity: 0.7 }}>
         <span style={{ fontSize: 22 }}>{icon}</span>
         <span>
           <span style={{ display: 'block', fontSize: 10, fontWeight: 400 }}>{label}</span>
@@ -124,7 +124,7 @@ function AppBadge({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      style={{ ...base, background: '#1F1733', color: '#fff' }}
+      style={{ ...base, background: '#2A2118', color: '#fff' }}
     >
       <span style={{ fontSize: 22 }}>{icon}</span>
       <span>

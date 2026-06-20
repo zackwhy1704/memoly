@@ -98,7 +98,7 @@ export default function ClassesPage() {
                       ) : (
                         <div
                           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: (cls.accentColor ?? '#7042ED') + '22' }}
+                          style={{ background: (cls.accentColor ?? '#DD5E3A') + '22' }}
                         >
                           <MochiBadge characterType={cls.characterType} size={36} />
                         </div>

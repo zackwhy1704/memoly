@@ -50,7 +50,7 @@ export default function ClassAvatar({
   size?: number;
 }) {
   // Fallback when a class has no CENTRE_CLASS appearance (e.g. older data).
-  const band = appearance?.bandColorHex || '#7042ED';
+  const band = appearance?.bandColorHex || '#DD5E3A';
   const initials = (appearance?.initials || '').trim();
   const glyph = glyphEmoji(appearance?.subjectGlyph);
 

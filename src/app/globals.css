@@ -1,38 +1,41 @@
 @import "tailwindcss";
 
 /* Static design tokens — never change at runtime.
-   Kept in @theme so Tailwind generates utility classes (bg-accent, text-ok, etc.) */
+   Kept in @theme so Tailwind generates utility classes (bg-accent, text-ok, etc.)
+   Warm "Mochi" brand: coral accent + gold secondary. Constant across light/dark. */
 @theme {
-  --color-accent: #8B7DF7;
-  --color-ok:     #43C97A;
-  --color-warn:   #E3B341;
-  --color-bad:    #F0656A;
+  --color-accent: #DD5E3A;  /* coral — primary buttons, active nav, links */
+  --color-gold:   #E0A33F;  /* secondary — premium/Max, streaks, achievements */
+  --color-ok:     #4FAE78;  /* success (warm green) */
+  --color-warn:   #E3A93F;  /* warning (warm amber) */
+  --color-bad:    #DC4A55;  /* error red — deliberately redder than the coral */
 }
 
 /* Dynamic tokens — dark theme defaults (runtime CSS variables, NOT @theme).
-   Tailwind utility classes for these (bg-bg, text-ink, etc.) work because
-   Tailwind v4 reads the CSS variable by name at runtime. */
+   Warm charcoal, not purple-black. Tailwind utility classes for these
+   (bg-bg, text-ink, etc.) work because Tailwind v4 reads the CSS variable by
+   name at runtime. */
 :root {
-  --color-bg:    #0A0A0C;
-  --color-side:  #0E0E12;
-  --color-panel: #141418;
-  --color-panel2:#1C1C22;
-  --color-line:  rgba(255,255,255,0.08);
-  --color-ink:   #ECECEF;
-  --color-ink2:  #9A9AA6;
-  --color-ink3:  #66666F;
+  --color-bg:    #14100C;
+  --color-side:  #1A150F;
+  --color-panel: #1E1811;
+  --color-panel2:#2A2218;
+  --color-line:  rgba(245,235,220,0.09);
+  --color-ink:   #F6F1E8;
+  --color-ink2:  #C7BCA9;
+  --color-ink3:  #897F6D;
 }
 
-/* Light theme — flips every surface to white/grey */
+/* Light theme — warm cream surfaces, not stark white */
 [data-theme="light"] {
-  --color-bg:    #FFFFFF;
-  --color-side:  #FAFAFA;
+  --color-bg:    #FBF7EF;
+  --color-side:  #FFFFFF;
   --color-panel: #FFFFFF;
-  --color-panel2:#F3F4F8;
-  --color-line:  rgba(0,0,0,0.09);
-  --color-ink:   #14132A;
-  --color-ink2:  #61607A;
-  --color-ink3:  #A2A1B4;
+  --color-panel2:#F3ECDF;
+  --color-line:  rgba(55,40,20,0.10);
+  --color-ink:   #2A2118;
+  --color-ink2:  #6B604E;
+  --color-ink3:  #A39885;
 }
 
 /* Re-declare the dynamic colours into @theme so Tailwind generates
