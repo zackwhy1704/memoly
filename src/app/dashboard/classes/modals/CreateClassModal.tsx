@@ -23,7 +23,7 @@ export default function CreateClassModal({
   const [level, setLevel] = useState('');
   const [characterType, setCharacterType] = useState('MOCHI');
   const [brandName, setBrandName] = useState('');
-  const [accentColor, setAccentColor] = useState('#DD5E3A');
+  const [accentColor, setAccentColor] = useState('#4C6FFF');
   // Two-step journey, mirroring the mobile app: create the Mochi, then upload.
   const [created, setCreated] = useState<OrgClass | null>(null);
 

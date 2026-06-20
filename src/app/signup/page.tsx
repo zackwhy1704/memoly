@@ -68,7 +68,7 @@ export default function SignupPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 24px',
-        background: 'linear-gradient(160deg, #FBF4EE 0%, #fff 60%)',
+        background: 'linear-gradient(160deg, #f4f0ff 0%, #fff 60%)',
         fontFamily: 'Nunito, system-ui, sans-serif',
       }}
     >
@@ -81,10 +81,10 @@ export default function SignupPage() {
           style={{ width: 72, height: 72, objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
         />
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#2A2118', textAlign: 'center', marginBottom: 6 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', textAlign: 'center', marginBottom: 6 }}>
           Create your Apalchi account
         </h1>
-        <p style={{ fontSize: 14, color: '#6B604E', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: '#6B618A', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
           Start a 30-day pilot — no card required.
         </p>
 
@@ -106,9 +106,9 @@ export default function SignupPage() {
 
             {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ flex: 1, height: 1, background: '#E8E1D4' }} />
-              <span style={{ fontSize: 12, color: '#9C9078', fontWeight: 600 }}>or</span>
-              <div style={{ flex: 1, height: 1, background: '#E8E1D4' }} />
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+              <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
             </div>
           </>
         )}
@@ -121,8 +121,8 @@ export default function SignupPage() {
               width: '100%',
               padding: '13px 0',
               background: '#fff',
-              color: '#2A2118',
-              border: '1.5px solid #E8E1D4',
+              color: '#1F1733',
+              border: '1.5px solid #E0DAF0',
               borderRadius: 12,
               fontSize: 15,
               fontWeight: 700,
@@ -134,7 +134,7 @@ export default function SignupPage() {
         ) : (
           <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label htmlFor="su-email" style={{ fontSize: 13, fontWeight: 700, color: '#2A2118' }}>Email address</label>
+              <label htmlFor="su-email" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Email address</label>
               <input
                 id="su-email"
                 type="email"
@@ -143,11 +143,11 @@ export default function SignupPage() {
                 placeholder="you@centre.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E8E1D4', fontSize: 14, color: '#2A2118', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
+                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label htmlFor="su-pw" style={{ fontSize: 13, fontWeight: 700, color: '#2A2118' }}>Password <span style={{ fontWeight: 400, color: '#9C9078' }}>(min 8 characters)</span></label>
+              <label htmlFor="su-pw" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Password <span style={{ fontWeight: 400, color: '#A8A0BD' }}>(min 8 characters)</span></label>
               <input
                 id="su-pw"
                 type="password"
@@ -156,7 +156,7 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E8E1D4', fontSize: 14, color: '#2A2118', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
+                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
               />
             </div>
             <button
@@ -165,7 +165,7 @@ export default function SignupPage() {
               style={{
                 marginTop: 4,
                 padding: '13px 0',
-                background: 'var(--color-accent)',
+                background: '#4C6FFF',
                 color: '#fff',
                 borderRadius: 12,
                 border: 'none',
@@ -199,13 +199,13 @@ export default function SignupPage() {
         )}
 
         {/* Footer links */}
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#9C9078', marginTop: 24 }}>
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#A8A0BD', marginTop: 24 }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: 'var(--color-accent)', fontWeight: 700 }}>Log in</Link>
+          <Link href="/login" style={{ color: '#4C6FFF', fontWeight: 700 }}>Log in</Link>
         </p>
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#9C9078', marginTop: 8 }}>
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#A8A0BD', marginTop: 8 }}>
           Running a school or large centre?{' '}
-          <Link href="/demo" style={{ color: 'var(--color-accent)', fontWeight: 700 }}>Book a demo instead</Link>
+          <Link href="/demo" style={{ color: '#4C6FFF', fontWeight: 700 }}>Book a demo instead</Link>
         </p>
       </div>
     </div>

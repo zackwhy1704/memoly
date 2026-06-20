@@ -141,7 +141,7 @@ export default function PricingPage() {
                       padding: '3px 10px',
                       borderRadius: 999,
                       marginBottom: 12,
-                      background: tier.featured ? 'rgba(255,255,255,0.22)' : tier.badge === 'Enterprise' ? '#2A2118' : 'var(--primaryL)',
+                      background: tier.featured ? 'rgba(255,255,255,0.22)' : tier.badge === 'Enterprise' ? '#1F1733' : 'var(--primaryL)',
                       color: tier.featured ? '#fff' : tier.badge === 'Enterprise' ? '#fff' : 'var(--primaryD)',
                       textTransform: 'uppercase' as const,
                       letterSpacing: '0.05em',

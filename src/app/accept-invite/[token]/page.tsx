@@ -66,7 +66,7 @@ export default function AcceptInvitePage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 24px',
-        background: 'linear-gradient(160deg, #FBF4EE 0%, #fff 60%)',
+        background: 'linear-gradient(160deg, #f4f0ff 0%, #fff 60%)',
         fontFamily: 'Nunito, system-ui, sans-serif',
         textAlign: 'center',
       }}
@@ -79,22 +79,22 @@ export default function AcceptInvitePage() {
       />
 
       {phase === 'loading' && (
-        <p style={{ color: '#6B604E', fontSize: 15 }}>Loading invite…</p>
+        <p style={{ color: '#6B618A', fontSize: 15 }}>Loading invite…</p>
       )}
 
       {phase === 'preview' && (
         <>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#2A2118', marginBottom: 8 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
             {isOwner ? "You're invited to join Apalchi" : `Join ${centreName} as a teacher`}
           </h1>
-          <p style={{ color: '#6B604E', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 8 }}>
+          <p style={{ color: '#6B618A', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 8 }}>
             {isOwner ? (
-              <>Set up{' '}<strong style={{ color: '#2A2118' }}>{centreName}</strong>{' '}as your centre on Apalchi.</>
+              <>Set up{' '}<strong style={{ color: '#1F1733' }}>{centreName}</strong>{' '}as your centre on Apalchi.</>
             ) : (
-              <>You&apos;ve been invited to teach at{' '}<strong style={{ color: '#2A2118' }}>{centreName}</strong>.</>
+              <>You&apos;ve been invited to teach at{' '}<strong style={{ color: '#1F1733' }}>{centreName}</strong>.</>
             )}
           </p>
-          <p style={{ color: '#9C9078', fontSize: 13, marginBottom: 32 }}>
+          <p style={{ color: '#A8A0BD', fontSize: 13, marginBottom: 32 }}>
             {getToken()
               ? (isOwner ? 'Click below to create your centre.' : 'Click below to join the centre.')
               : 'Sign in first, then come back to this link.'}
@@ -103,7 +103,7 @@ export default function AcceptInvitePage() {
             onClick={handleAccept}
             style={{
               padding: '13px 32px',
-              background: 'var(--color-accent)',
+              background: '#4C6FFF',
               color: '#fff',
               borderRadius: 12,
               border: 'none',
@@ -120,17 +120,17 @@ export default function AcceptInvitePage() {
       )}
 
       {phase === 'confirming' && (
-        <p style={{ color: '#6B604E', fontSize: 15 }}>
+        <p style={{ color: '#6B618A', fontSize: 15 }}>
           {isOwner ? 'Creating your centre…' : 'Joining centre…'}
         </p>
       )}
 
       {phase === 'done' && (
         <>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#2A2118', marginBottom: 8 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
             {isOwner ? 'Centre created!' : 'You\'re in!'}
           </h1>
-          <p style={{ color: '#6B604E', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 32 }}>
+          <p style={{ color: '#6B618A', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 32 }}>
             {isOwner ? (
               <>Your centre <strong>{centreName}</strong> is live — set up classes and invite students.</>
             ) : (
@@ -138,7 +138,7 @@ export default function AcceptInvitePage() {
             )}
           </p>
           {isOwner && (
-            <p style={{ color: '#9C9078', fontSize: 11, marginBottom: 24, fontFamily: 'monospace' }}>
+            <p style={{ color: '#A8A0BD', fontSize: 11, marginBottom: 24, fontFamily: 'monospace' }}>
               org id: {orgId}
             </p>
           )}
@@ -146,7 +146,7 @@ export default function AcceptInvitePage() {
             onClick={() => router.replace('/dashboard')}
             style={{
               padding: '13px 32px',
-              background: 'var(--color-accent)',
+              background: '#4C6FFF',
               color: '#fff',
               borderRadius: 12,
               border: 'none',
@@ -162,7 +162,7 @@ export default function AcceptInvitePage() {
 
       {phase === 'error' && (
         <>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#2A2118', marginBottom: 8 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
             Something went wrong
           </h1>
           <p style={{ color: '#FF6660', fontSize: 14, maxWidth: 360, marginBottom: 24 }}>
@@ -170,7 +170,7 @@ export default function AcceptInvitePage() {
           </p>
           <a
             href="/"
-            style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 14 }}
+            style={{ color: '#4C6FFF', fontWeight: 700, fontSize: 14 }}
           >
             Go home
           </a>

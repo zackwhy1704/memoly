@@ -191,9 +191,9 @@ function LoginInner() {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ flex: 1, height: 1, background: '#E8E1D4' }} />
-              <span style={{ fontSize: 12, color: '#9C9078', fontWeight: 600 }}>or sign in with email</span>
-              <div style={{ flex: 1, height: 1, background: '#E8E1D4' }} />
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
+              <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or sign in with email</span>
+              <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
             </div>
           </>
         )}

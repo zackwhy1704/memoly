@@ -23,7 +23,7 @@ describe('glyphEmoji', () => {
 
 describe('ClassAvatar', () => {
   const appearance: ClassAvatarAppearance = {
-    bandColorHex: '#7042ED',
+    bandColorHex: '#4C6FFF',
     subjectGlyph: 'math',
     initials: 'P4',
   };
@@ -40,7 +40,7 @@ describe('ClassAvatar', () => {
 
     // The band colour drives the ring border, not the whole avatar body.
     const ring = container.querySelector('div.rounded-full');
-    expect(ring).toHaveStyle({ border: '3px solid #7042ED' });
+    expect(ring).toHaveStyle({ border: '3px solid #4C6FFF' });
 
     // Subject glyph lives in the corner chip.
     expect(screen.getByText('➗')).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('ClassAvatar', () => {
     expect(badge).toBeInTheDocument();
     // Default band colour drives the ring; neutral glyph; no initials at default size.
     const ring = container.querySelector('div.rounded-full');
-    expect(ring).toHaveStyle({ border: '3px solid #DD5E3A' });
+    expect(ring).toHaveStyle({ border: '3px solid #4C6FFF' });
     expect(screen.getByText('📖')).toBeInTheDocument();
   });
 

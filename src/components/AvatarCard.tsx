@@ -10,7 +10,7 @@ export default function AvatarCard({ avatar }: AvatarCardProps) {
   const subjectCls = subjectColor(avatar.subject);
   const isCentre = avatar.centreManaged === true;
   const brandName = avatar.centreBrandName ?? avatar.name;
-  const accentHex = avatar.centreAccentColor ?? '#DD5E3A';
+  const accentHex = avatar.centreAccentColor ?? '#4C6FFF';
 
   const borderStyle = isCentre
     ? { borderColor: accentHex, borderWidth: 2 }
