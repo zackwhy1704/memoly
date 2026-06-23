@@ -36,6 +36,10 @@ export function logout(): void {
 }
 
 export function getToken(): string | null {
+  // In mock mode the dashboard runs with no backend; hand the auth gate a
+  // dummy token so it doesn't bounce to /login. The token is never sent —
+  // every api.* call is short-circuited to mock data.
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') return 'mock-token';
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 }

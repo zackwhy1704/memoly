@@ -1,4 +1,8 @@
 import { clearAuth } from './auth';
+import {
+  USE_MOCK, mockMe, mockCentreMe, mockEntitlement,
+  mockOverview, mockHeatmap, mockStudent, mockRoster, mockClasses,
+} from './mock';
 
 // Backend base URL. Defaults to the Railway production host so deploys work with
 // no env config; override with NEXT_PUBLIC_API_URL for local/staging backends.
@@ -685,7 +689,9 @@ export const api = {
       body: JSON.stringify({ email, password, ...(displayName ? { displayName } : {}) }),
     }),
 
-  getMe: () => apiFetch<MeResponse>('/auth/me'),
+  getMe: () => USE_MOCK
+    ? Promise.resolve({ data: mockMe } as MeResponse)
+    : apiFetch<MeResponse>('/auth/me'),
 
   getInvite: (token: string) =>
     apiFetch<{ data: { centreName: string; role: string } }>(
@@ -805,43 +811,50 @@ export const api = {
     apiFetch<void>(`/avatars/${avatarId}/files/${fileId}`, { method: 'DELETE' }),
 
   // Centre me (orgId resolver)
-  centreMe: () =>
-    apiFetch<{ data: { orgId: string; orgName: string; seatsUsed: number; seatLimit: number; cohorts: string[] } }>(
-      '/centre/me'
-    ),
+  centreMe: () => USE_MOCK
+    ? Promise.resolve({ data: mockCentreMe })
+    : apiFetch<{ data: { orgId: string; orgName: string; seatsUsed: number; seatLimit: number; cohorts: string[] } }>(
+        '/centre/me'
+      ),
 
   // Analytics
-  overview: (orgId: string, cohort?: string) =>
-    apiFetch<{ data: OverviewData }>(
-      `/centre/organizations/${orgId}/overview${cohort ? `?cohort=${encodeURIComponent(cohort)}` : ''}`
-    ),
+  overview: (orgId: string, cohort?: string) => USE_MOCK
+    ? Promise.resolve({ data: mockOverview as unknown as OverviewData })
+    : apiFetch<{ data: OverviewData }>(
+        `/centre/organizations/${orgId}/overview${cohort ? `?cohort=${encodeURIComponent(cohort)}` : ''}`
+      ),
 
   // Legacy cohort-based summary (renamed from /classes → /cohorts on the
   // backend now that classes are first-class). Kept for backward compat.
-  cohorts: (orgId: string) =>
-    apiFetch<{ data: Array<{ cohort: string; studentCount: number; avgGrasp: number }> }>(
-      `/centre/organizations/${orgId}/cohorts`
-    ),
+  cohorts: (orgId: string) => USE_MOCK
+    ? Promise.resolve({ data: mockOverview.classes })
+    : apiFetch<{ data: Array<{ cohort: string; studentCount: number; avgGrasp: number }> }>(
+        `/centre/organizations/${orgId}/cohorts`
+      ),
 
   // Legacy cohort heatmap.
-  cohortHeatmap: (orgId: string, cohort: string) =>
-    apiFetch<{ data: HeatmapData }>(
-      `/centre/organizations/${orgId}/classes/${encodeURIComponent(cohort)}/heatmap`
-    ),
+  cohortHeatmap: (orgId: string, cohort: string) => USE_MOCK
+    ? Promise.resolve({ data: mockHeatmap as unknown as HeatmapData })
+    : apiFetch<{ data: HeatmapData }>(
+        `/centre/organizations/${orgId}/classes/${encodeURIComponent(cohort)}/heatmap`
+      ),
 
-  student: (orgId: string, studentId: string) =>
-    apiFetch<{ data: StudentData }>(
-      `/centre/organizations/${orgId}/students/${studentId}`
-    ),
+  student: (orgId: string, studentId: string) => USE_MOCK
+    ? Promise.resolve({ data: mockStudent as unknown as StudentData })
+    : apiFetch<{ data: StudentData }>(
+        `/centre/organizations/${orgId}/students/${studentId}`
+      ),
 
-  roster: (orgId: string, cohort?: string, page = 0, size = 50) =>
-    apiFetch<{ data: RosterData }>(
-      `/centre/organizations/${orgId}/roster?page=${page}&size=${size}${cohort ? `&cohort=${encodeURIComponent(cohort)}` : ''}`
-    ),
+  roster: (orgId: string, cohort?: string, page = 0, size = 50) => USE_MOCK
+    ? Promise.resolve({ data: mockRoster as RosterData })
+    : apiFetch<{ data: RosterData }>(
+        `/centre/organizations/${orgId}/roster?page=${page}&size=${size}${cohort ? `&cohort=${encodeURIComponent(cohort)}` : ''}`
+      ),
 
   // ── Classes (first-class units) ────────────────────────────────────────
-  classes: (orgId: string) =>
-    apiFetch<{ data: OrgClass[] }>(`/centre/organizations/${orgId}/classes`),
+  classes: (orgId: string) => USE_MOCK
+    ? Promise.resolve({ data: mockClasses as OrgClass[] })
+    : apiFetch<{ data: OrgClass[] }>(`/centre/organizations/${orgId}/classes`),
 
   createClass: (orgId: string, body: CreateClassBody) =>
     apiFetch<{ data: OrgClass }>(`/centre/organizations/${orgId}/classes`, {
@@ -1077,10 +1090,11 @@ export const api = {
   subscriptionStatus: () =>
     apiFetch<{ data: Record<string, unknown> }>('/subscription/status'),
 
-  entitlement: () =>
-    apiFetch<{ data: { isPremium: boolean; source: string; plan: string; status: string; trialEndsAt: string | null } }>(
-      '/subscription/entitlement'
-    ),
+  entitlement: () => USE_MOCK
+    ? Promise.resolve({ data: mockEntitlement })
+    : apiFetch<{ data: { isPremium: boolean; source: string; plan: string; status: string; trialEndsAt: string | null } }>(
+        '/subscription/entitlement'
+      ),
 
   checkout: (plan: string) =>
     apiFetch<{ data: { checkoutUrl: string } }>(

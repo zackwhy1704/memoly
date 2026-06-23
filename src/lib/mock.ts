@@ -100,3 +100,41 @@ export const mockRoster = {
   ],
   totalElements: 8,
 };
+
+// Identity / org / billing mocks so the dashboard renders with no backend.
+export const mockMe = {
+  userId: 'mock-owner',
+  email: 'demo@apalchi.test',
+  displayName: 'Demo Owner',
+  setupComplete: true,
+  role: 'USER',
+  isCentreStaff: true,
+  isOwner: true,
+  accountStatus: 'ACTIVE',
+  defaultAnswerMode: 'GUIDED',
+};
+
+export const mockCentreMe = {
+  orgId: 'mock-org',
+  orgName: 'Demo Tuition Centre',
+  seatsUsed: 24,
+  seatLimit: 50,
+  cohorts: ['Sec 3A', 'Sec 3B'],
+};
+
+export const mockEntitlement = {
+  isPremium: true,
+  source: 'SELF',
+  plan: 'CENTRE',
+  status: 'ACTIVE',
+  trialEndsAt: null as string | null,
+};
+
+export const mockClasses = [
+  { id: 'c1', name: 'Sec 3A Maths', subject: 'MATHS', level: 'Sec 3', joinCode: 'ABC123',
+    corpusAvatarId: null, characterType: 'MOCHI', brandName: null, accentColor: '#4C6FFF',
+    examDate: null, cosmeticEyewear: null, cosmeticClothes: null, cosmeticShoes: null, studentCount: 12 },
+  { id: 'c2', name: 'Sec 3B Science', subject: 'SCIENCE', level: 'Sec 3', joinCode: 'DEF456',
+    corpusAvatarId: null, characterType: 'MOCHI', brandName: null, accentColor: '#43C97A',
+    examDate: null, cosmeticEyewear: null, cosmeticClothes: null, cosmeticShoes: null, studentCount: 12 },
+];
