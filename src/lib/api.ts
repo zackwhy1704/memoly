@@ -607,10 +607,14 @@ export interface ReviewItem {
 }
 
 // ── AI Class Report ──────────────────────────────────────────────────
+// Async contract: the GET returns fast in every state and never blocks on
+// Claude. The client polls while `generating`.
 export interface ClassReport {
-  narrative: string;
-  cached: boolean;
-  generatedAt: string;
+  status: 'ready' | 'generating' | 'failed';
+  narrative?: string;
+  cached?: boolean;
+  generatedAt?: string;
+  message?: string;
 }
 
 // ── AI Class Brief ───────────────────────────────────────────────────
@@ -1017,9 +1021,11 @@ export const api = {
     ),
 
   // ── AI Class Report ────────────────────────────────────────────────
-  classReport: (orgId: string, classId: string) =>
+  // `refresh: true` forces regeneration server-side (used by "Try again"
+  // after a failure). Normal polls omit it.
+  classReport: (orgId: string, classId: string, opts?: { refresh?: boolean }) =>
     apiFetch<{ data: ClassReport }>(
-      `/centre/organizations/${orgId}/classes/${classId}/report`
+      `/centre/organizations/${orgId}/classes/${classId}/report${opts?.refresh ? '?refresh=true' : ''}`
     ),
 
   // ── Exam Readiness ─────────────────────────────────────────────────

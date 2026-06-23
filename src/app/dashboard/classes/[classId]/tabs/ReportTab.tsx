@@ -1,36 +1,59 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 
 export function ReportTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const queryClient = useQueryClient();
+
   const query = useQuery({
     queryKey: ['classReport', orgId, classId],
     queryFn: () => api.classReport(orgId, classId),
     staleTime: 55 * 60 * 1000, // slightly under the 60-min server cache TTL
+    // Poll every 3s while the report is generating; stop once ready/failed.
+    refetchInterval: (q) =>
+      q.state.data?.data?.status === 'generating' ? 3000 : false,
   });
 
-  if (query.isLoading) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-16 text-ink3">
-        <span className="text-4xl animate-pulse">📋</span>
-        <p className="text-sm">Generating class report… this may take a moment.</p>
-      </div>
-    );
-  }
-
+  // Transport-level failure (genuine network / non-2xx), distinct from a
+  // server-reported 'failed' generation status below.
   if (query.error) {
-    // Surface the ApiError's friendly message — notably for 504, where the report
-    // is likely "still processing in the background" rather than truly failed.
-    const message = query.error instanceof ApiError
-      ? query.error.userMessage
-      : 'Could not generate the class report.';
+    const message =
+      query.error instanceof ApiError
+        ? query.error.userMessage
+        : 'Could not load the class report.';
     return <ErrorView message={message} onRetry={() => query.refetch()} />;
   }
 
   const report = query.data?.data;
-  if (!report) return null;
+
+  // First load (no data yet) or generation in progress → spinner.
+  if (query.isLoading || report?.status === 'generating') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16 text-ink3">
+        <span className="text-4xl animate-pulse">📋</span>
+        <p className="text-sm">Generating class report… (~10–20s)</p>
+      </div>
+    );
+  }
+
+  // Server-reported generation failure → message + Try again (forces refresh).
+  if (report?.status === 'failed') {
+    const handleTryAgain = async () => {
+      // Force regeneration server-side, then re-poll via the normal query.
+      await api.classReport(orgId, classId, { refresh: true });
+      queryClient.invalidateQueries({ queryKey: ['classReport', orgId, classId] });
+    };
+    return (
+      <ErrorView
+        message={report.message ?? 'The class report could not be generated.'}
+        onRetry={handleTryAgain}
+      />
+    );
+  }
+
+  if (!report || report.status !== 'ready') return null;
 
   const narrative = report.narrative ?? '';
   const generatedDate = report.generatedAt
