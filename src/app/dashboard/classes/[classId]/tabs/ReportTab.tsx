@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 
 export function ReportTab({ orgId, classId }: { orgId: string; classId: string }) {
@@ -21,12 +21,12 @@ export function ReportTab({ orgId, classId }: { orgId: string; classId: string }
   }
 
   if (query.error) {
-    return (
-      <ErrorView
-        message="Could not generate the class report."
-        onRetry={() => query.refetch()}
-      />
-    );
+    // Surface the ApiError's friendly message — notably for 504, where the report
+    // is likely "still processing in the background" rather than truly failed.
+    const message = query.error instanceof ApiError
+      ? query.error.userMessage
+      : 'Could not generate the class report.';
+    return <ErrorView message={message} onRetry={() => query.refetch()} />;
   }
 
   const report = query.data?.data;
