@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, AdminUser } from '@/lib/api';
 
-const PAGE_SIZE = 200; // backend caps at 200; covers the whole user base at current scale
+const PAGE_SIZE = 200; // backend caps here
 
 export default function AdminUsersPage() {
   const [users, setUsers]           = useState<AdminUser[]>([]);
@@ -11,21 +11,32 @@ export default function AdminUsersPage() {
   const [fetchError, setFetchError] = useState('');
   const [page, setPage]             = useState(0);
   const [query, setQuery]           = useState('');
+  const [debounced, setDebounced]   = useState('');
 
-  function loadPage(p: number) {
+  // Debounce keystrokes so we don't fire a request per character. Reset to the
+  // first page whenever the search term changes.
+  useEffect(() => {
+    const t = setTimeout(() => { setDebounced(query.trim()); setPage(0); }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Server-side search: the backend filters by email/display name across ALL
+  // users when `q` is set, so matches aren't limited to the current page.
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setFetchError('');
-    api.adminUsers(p, PAGE_SIZE)
-      .then((res) => setUsers(res.data))
-      .catch((err: unknown) => setFetchError(err instanceof Error ? err.message : 'Failed to load users.'))
-      .finally(() => setLoading(false));
-  }
+    api.adminUsers(page, PAGE_SIZE, debounced || undefined)
+      .then((res) => { if (!cancelled) setUsers(res.data); })
+      .catch((err: unknown) => { if (!cancelled) setFetchError(err instanceof Error ? err.message : 'Failed to load users.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [page, debounced]);
 
-  useEffect(() => { loadPage(page); }, [page]);
-
-  // Client-side lookup across the loaded set: matches name, email, user id, or centre id.
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  // Fallback client filter — keeps results correct even before the backend
+  // search deploy lands (old API ignores `q` and returns an unfiltered page).
+  const rows = useMemo(() => {
+    const q = debounced.toLowerCase();
     if (!q) return users;
     return users.filter((u) =>
       (u.displayName ?? '').toLowerCase().includes(q) ||
@@ -33,15 +44,16 @@ export default function AdminUsersPage() {
       u.userId.toLowerCase().includes(q) ||
       (u.centreId ?? '').toLowerCase().includes(q)
     );
-  }, [users, query]);
+  }, [users, debounced]);
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-ink">Users</h1>
         <p className="text-ink3 text-sm mt-1">
-          Page {page + 1} — loaded {users.length} user{users.length === 1 ? '' : 's'}
-          {query.trim() && <> · {filtered.length} match{filtered.length === 1 ? '' : 'es'}</>}
+          {debounced
+            ? `${rows.length} match${rows.length === 1 ? '' : 'es'} for “${debounced}” (searching all users)`
+            : `Page ${page + 1} — ${users.length} user${users.length === 1 ? '' : 's'}`}
         </p>
       </div>
 
@@ -64,15 +76,15 @@ export default function AdminUsersPage() {
           <p className="font-semibold mb-2">Could not load users</p>
           <p>{fetchError}</p>
           <button
-            onClick={() => loadPage(page)}
+            onClick={() => setDebounced((d) => d)}
             className="mt-3 px-3 py-1.5 bg-bad text-white rounded-lg text-xs font-semibold"
           >
             Retry
           </button>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="bg-surface border border-line rounded-xl p-8 text-center text-ink3 text-sm">
-          {query.trim() ? `No users match “${query.trim()}” on this page.` : 'No users found.'}
+          {debounced ? `No users match “${debounced}”.` : 'No users found.'}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">
@@ -88,7 +100,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u) => (
+              {rows.map((u) => (
                 <tr key={u.userId} className="border-b border-line last:border-0 hover:bg-panel2/50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-ink">{u.displayName || '—'}</p>
@@ -114,8 +126,8 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Pagination — hidden while searching so results aren't split across pages */}
-      {!query.trim() && (
+      {/* Pagination — only when browsing (no active search). */}
+      {!debounced && (
         <div className="flex gap-3">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}

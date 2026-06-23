@@ -1051,8 +1051,10 @@ export const api = {
   adminOrgs: () =>
     apiFetch<{ data: AdminOrg[] }>('/admin/organizations'),
 
-  adminUsers: (page = 0, size = 50) =>
-    apiFetch<{ data: AdminUser[] }>(`/admin/users?page=${page}&size=${size}`),
+  adminUsers: (page = 0, size = 50, q?: string) =>
+    apiFetch<{ data: AdminUser[] }>(
+      `/admin/users?page=${page}&size=${size}${q && q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''}`
+    ),
 
   adminInvites: () =>
     apiFetch<{ data: AdminInvite[] }>('/admin/invites'),
