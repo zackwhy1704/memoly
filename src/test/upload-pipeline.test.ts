@@ -1,12 +1,40 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   validateFile,
+  runUploadPipeline,
   MAX_FILE_BYTES,
   ALLOWED_EXT,
   MAX_FILES,
   type FileStage,
   type FileProgress,
 } from '@/lib/upload-pipeline';
+
+vi.mock('@/lib/api', () => ({
+  ApiError: class ApiError extends Error {},
+  api: {
+    checkRelevance: vi.fn().mockResolvedValue({ data: { isRelevant: true } }),
+    uploadFile: vi.fn().mockResolvedValue({ data: { id: 'f1', pageCount: 1 } }),
+    recompile: vi.fn().mockResolvedValue({ data: {} }),
+    avatar: vi.fn().mockResolvedValue({ data: { brainState: 'READY', wikiPageCount: 1 } }),
+  },
+}));
+
+import { api } from '@/lib/api';
+
+// ── Bug #1: non-blocking upload ──────────────────────────────────────
+describe('runUploadPipeline recompileAndPoll option', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('recompileAndPoll:false uploads WITHOUT triggering recompile or the brain poll', async () => {
+    const file = new File([new Uint8Array(1024)], 'notes.pdf', { type: 'application/pdf' });
+    const result = await runUploadPipeline('av1', [file], () => {}, { recompileAndPoll: false });
+
+    expect(api.uploadFile).toHaveBeenCalledTimes(1); // upload still happens
+    expect(api.recompile).not.toHaveBeenCalled();     // …but compile is deferred
+    expect(api.avatar).not.toHaveBeenCalled();        // …and we never block-poll
+    expect(result.brainReady).toBe(false);
+  });
+});
 
 // ── Helper: create a mock File ───────────────────────────────────────
 function createFile(name: string, size: number): File {

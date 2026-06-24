@@ -5,7 +5,9 @@ import {
   ACCEPT_ATTR,
   MAX_FILES,
   runUploadPipeline,
+  recompileAndPollBrain,
   uploadSingleFile,
+  type CompileState,
   type FileProgress,
 } from '@/lib/upload-pipeline';
 import { api } from '@/lib/api';
@@ -37,11 +39,13 @@ export default function MochiUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<FileProgress[]>([]);
   const [running, setRunning] = useState(false);
+  // Compile runs out-of-band after uploads finish (Bug #1) so the uploader stays
+  // usable. 'idle' = no compile in flight.
+  const [compileState, setCompileState] = useState<CompileState | 'idle'>('idle');
+  const [compilePages, setCompilePages] = useState(0);
   const [result, setResult] = useState<{
     ok: number;
     failed: number;
-    brainReady: boolean;
-    wikiPageCount: number;
   } | null>(null);
   const [mode, setMode] = useState<InputMode>('upload');
   const [pasteText, setPasteText] = useState('');
@@ -58,24 +62,43 @@ export default function MochiUploader({
     setReviewSaving({});
   }
 
+  // Fires recompile + brain poll OUT of band (Bug #1) so uploads never block on
+  // the slow compile. Drives the "Compiling… / Ready" chip.
+  const startCompileWatch = useCallback(() => {
+    setCompileState('compiling');
+    setCompilePages(0);
+    void recompileAndPollBrain(avatarId, setCompileState).then((o) => {
+      setCompilePages(o.wikiPageCount);
+      onComplete?.(o.wikiPageCount);
+    });
+  }, [avatarId, onComplete]);
+
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList).slice(0, MAX_FILES);
 
     setRunning(true);
     setResult(null);
+    setCompileState('idle');
+    setCompilePages(0);
     resetReviewState();
-    const pipelineResult = await runUploadPipeline(avatarId, files, setProgress);
+    // Uploads only — recompile/poll runs non-blocking below, so the uploader
+    // returns to idle the moment uploads finish and more files can be queued.
+    const pipelineResult = await runUploadPipeline(avatarId, files, setProgress, {
+      recompileAndPoll: false,
+    });
     setRunning(false);
 
     const ok = pipelineResult.files.filter((f) => f.stage === 'done' || f.stage === 'warning').length;
     const failed = pipelineResult.files.filter((f) => f.stage === 'error').length;
-    setResult({ ok, failed, brainReady: pipelineResult.brainReady, wikiPageCount: pipelineResult.wikiPageCount });
+    setResult({ ok, failed });
+    if (inputRef.current) inputRef.current.value = '';
     if (ok > 0) {
       trackEvent('content_uploaded', { avatarId, fileCount: ok });
+      startCompileWatch();
+    } else {
+      onComplete?.(0);
     }
-    if (inputRef.current) inputRef.current.value = '';
-    onComplete?.(pipelineResult.wikiPageCount);
   }
 
   const retryFile = useCallback(async (index: number) => {
@@ -91,11 +114,11 @@ export default function MochiUploader({
       });
     });
 
-    if (updated.stage === 'done' || updated.stage === 'warning') {
-      try { await api.recompile(avatarId); } catch { /* non-fatal */ }
-    }
     setRunning(false);
-  }, [avatarId, progress]);
+    if (updated.stage === 'done' || updated.stage === 'warning') {
+      startCompileWatch(); // non-blocking recompile + poll
+    }
+  }, [avatarId, progress, startCompileWatch]);
 
   const removeFile = useCallback(async (index: number) => {
     setProgress((prev) => {
@@ -109,6 +132,8 @@ export default function MochiUploader({
     if (pasteText.length < MIN_PASTE_CHARS) return;
     setPasteSubmitting(true);
     setResult(null);
+    setCompileState('idle');
+    setCompilePages(0);
     resetReviewState();
 
     try {
@@ -116,16 +141,20 @@ export default function MochiUploader({
       const timestamp = Date.now();
       const file = new File([blob], `typed-notes-${timestamp}.txt`, { type: 'text/plain' });
 
-      const pipelineResult = await runUploadPipeline(avatarId, [file], setProgress);
+      const pipelineResult = await runUploadPipeline(avatarId, [file], setProgress, {
+        recompileAndPoll: false,
+      });
 
       const ok = pipelineResult.files.filter((f) => f.stage === 'done' || f.stage === 'warning').length;
       const failed = pipelineResult.files.filter((f) => f.stage === 'error').length;
-      setResult({ ok, failed, brainReady: pipelineResult.brainReady, wikiPageCount: pipelineResult.wikiPageCount });
+      setResult({ ok, failed });
       if (ok > 0) {
         trackEvent('content_uploaded', { avatarId, fileCount: ok, source: 'paste' });
         setPasteText('');
+        startCompileWatch();
+      } else {
+        onComplete?.(0);
       }
-      onComplete?.(pipelineResult.wikiPageCount);
     } finally {
       setPasteSubmitting(false);
     }
@@ -167,6 +196,8 @@ export default function MochiUploader({
   function uploadMore() {
     setResult(null);
     setProgress([]);
+    setCompileState('idle');
+    setCompilePages(0);
     resetReviewState();
     if (mode === 'upload') {
       inputRef.current?.click();
@@ -254,6 +285,9 @@ export default function MochiUploader({
               <p className="text-xs text-ink3 mt-1">
                 Up to {MAX_FILES} at a time &middot; PDF, images, or text &middot; max 25MB each
               </p>
+              <p className="text-xs text-ink3 mt-0.5">
+                Tip: pick several files at once — they compile together (one pass).
+              </p>
             </button>
           )}
         </>
@@ -281,13 +315,31 @@ export default function MochiUploader({
         onReviewCancel={(i) => setReviewExpanded((s) => ({ ...s, [i]: false }))}
       />
 
+      {/* Non-blocking compile indicator — uploads don't wait on it */}
+      {compileState !== 'idle' && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-panel2 border border-line text-sm">
+          {compileState === 'compiling' && (
+            <>
+              <span className="inline-block w-3.5 h-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              <span className="text-ink2">Compiling your notes… you can add more files meanwhile.</span>
+            </>
+          )}
+          {compileState === 'ready' && (
+            <span className="text-ok">&#10003; Notes compiled — {compilePages} page{compilePages === 1 ? '' : 's'} ready.</span>
+          )}
+          {compileState === 'timeout' && (
+            <span className="text-ink2">Still compiling — modules will appear here shortly.</span>
+          )}
+        </div>
+      )}
+
       {/* Upload result summary */}
       {result && (
         <UploadResult
           ok={result.ok}
           failed={result.failed}
-          brainReady={result.brainReady}
-          wikiPageCount={result.wikiPageCount}
+          brainReady={compileState === 'ready'}
+          wikiPageCount={compilePages}
           classId={classId}
           onUploadMore={uploadMore}
         />

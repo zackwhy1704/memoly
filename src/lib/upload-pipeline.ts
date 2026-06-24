@@ -168,11 +168,58 @@ export async function uploadSingleFile(
  * one avatar. Files are processed sequentially so one failure never blocks the
  * rest. `onUpdate` is called after every state change for live UI.
  */
+export type CompileState = 'compiling' | 'ready' | 'timeout';
+export interface RecompileOutcome {
+  brainReady: boolean;
+  wikiPageCount: number;
+}
+
+/**
+ * Fires a one-time recompile, then polls brainState until READY or ~90s.
+ * Reuses the proven {@code GET /avatars/{id}} brainState signal. Designed to run
+ * NON-BLOCKING after uploads finish, so the uploader can return to idle and the
+ * caller can drive a "Compiling… / Ready" chip from {@code onTick}.
+ */
+export async function recompileAndPollBrain(
+  avatarId: string,
+  onTick?: (state: CompileState) => void
+): Promise<RecompileOutcome> {
+  onTick?.('compiling');
+  // recompile once for the batch (mobile fires per upload; recompile is idempotent)
+  try {
+    await api.recompile(avatarId);
+  } catch {
+    /* non-fatal — backend also schedules recompile after upload */
+  }
+
+  let brainReady = false;
+  let wikiPageCount = 0;
+  for (let attempt = 0; attempt < 18; attempt++) {
+    await sleep(5000);
+    try {
+      const a = await api.avatar(avatarId);
+      wikiPageCount = a.data.wikiPageCount ?? 0;
+      if ((a.data.brainState ?? 'READY') === 'READY' && wikiPageCount > 0) {
+        brainReady = true;
+        break;
+      }
+    } catch {
+      /* transient — keep polling until the cap */
+    }
+  }
+  onTick?.(brainReady ? 'ready' : 'timeout');
+  return { brainReady, wikiPageCount };
+}
+
 export async function runUploadPipeline(
   avatarId: string,
   files: File[],
-  onUpdate: (progress: FileProgress[]) => void
+  onUpdate: (progress: FileProgress[]) => void,
+  opts: { recompileAndPoll?: boolean } = {}
 ): Promise<PipelineResult> {
+  // recompileAndPoll defaults true for back-compat. The uploader passes false so
+  // the slow recompile/poll runs OUT of band (Bug #1 — upload no longer blocks).
+  const { recompileAndPoll = true } = opts;
   const batch = files.slice(0, MAX_FILES);
   const progress: FileProgress[] = batch.map((f) => ({ name: f.name, stage: 'queued', file: f }));
   const emit = () => onUpdate([...progress]);
@@ -190,32 +237,12 @@ export async function runUploadPipeline(
     }
   }
 
-  // 4. recompile once for the batch (mobile fires per upload; recompile is idempotent)
-  if (anyUploaded) {
-    try {
-      await api.recompile(avatarId);
-    } catch {
-      /* non-fatal — backend also schedules recompile after upload */
-    }
-  }
-
-  // 5. poll brainState until READY (cap ~90s; otherwise it finishes in background)
   let brainReady = false;
   let wikiPageCount = 0;
-  if (anyUploaded) {
-    for (let attempt = 0; attempt < 18; attempt++) {
-      await sleep(5000);
-      try {
-        const a = await api.avatar(avatarId);
-        wikiPageCount = a.data.wikiPageCount ?? 0;
-        if ((a.data.brainState ?? 'READY') === 'READY' && wikiPageCount > 0) {
-          brainReady = true;
-          break;
-        }
-      } catch {
-        /* transient — keep polling until the cap */
-      }
-    }
+  if (anyUploaded && recompileAndPoll) {
+    const outcome = await recompileAndPollBrain(avatarId);
+    brainReady = outcome.brainReady;
+    wikiPageCount = outcome.wikiPageCount;
   }
 
   return { files: progress, brainReady, wikiPageCount };
