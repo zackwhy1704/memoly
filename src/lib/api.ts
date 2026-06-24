@@ -653,6 +653,16 @@ export interface ReviewItem {
   contentJson: string;
   answerJson?: string;
   status: ReviewItemStatus;
+  /** Groundedness gate (B3) payload as a JSON string, or null when clean. */
+  verification?: string | null;
+}
+
+/** Parsed shape of ReviewItem.verification (groundedness gate output). */
+export interface ContentVerification {
+  status: string;
+  gate: string;
+  sourcePageVerified?: boolean;
+  flags: Array<{ claim: string; reason: string; sourceQuote: string | null }>;
 }
 
 // ── AI Class Report ──────────────────────────────────────────────────

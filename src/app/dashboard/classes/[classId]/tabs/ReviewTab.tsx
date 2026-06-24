@@ -2,9 +2,75 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type ReviewItem } from '@/lib/api';
+import { api, type ReviewItem, type ContentVerification } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+
+function parseVerification(raw?: string | null): ContentVerification | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as ContentVerification;
+    return v?.status === 'flagged' && Array.isArray(v.flags) && v.flags.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function WarningIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z M12 9v4 M12 17h.01"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Groundedness gate (B3) flag callout. Icon + severity colour + text (never colour
+ * alone), the flagged claim, and the cited source line in a monospace block so the
+ * teacher adjudicates "did the AI invent this?" before approving.
+ */
+function VerificationFlags({ verification }: { verification: ContentVerification }) {
+  const contradicts = verification.flags.some((f) => /contradict/i.test(f.reason));
+  const sev = contradicts
+    ? { wrap: 'border-bad/30 bg-bad/10', text: 'text-bad', label: 'Contradicts your notes' }
+    : { wrap: 'border-warn/30 bg-warn/10', text: 'text-warn', label: 'Needs your review' };
+
+  return (
+    <div className={`rounded-xl border ${sev.wrap} px-3 py-2.5`} role="alert">
+      <div className="flex items-center gap-2">
+        <WarningIcon className={`w-4 h-4 shrink-0 ${sev.text}`} />
+        <span className={`text-xs font-semibold ${sev.text}`}>
+          {sev.label} · {verification.flags.length} claim{verification.flags.length !== 1 ? 's' : ''}
+        </span>
+        <span className="ml-auto text-[10px] font-medium text-ink3">
+          source: {verification.sourcePageVerified ? 'teacher-verified' : 'unverified'}
+        </span>
+      </div>
+      <ul className="mt-2 space-y-2">
+        {verification.flags.map((f, i) => (
+          <li key={i} className="text-xs">
+            <p className="text-ink">
+              <span className="text-ink3">Claim: </span>{f.claim}
+            </p>
+            {f.sourceQuote ? (
+              <p className="mt-1 rounded-md bg-panel2 border border-line px-2 py-1 font-mono text-[11px] text-ink2">
+                {f.sourceQuote}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-ink3 italic">{f.reason}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function ContentTypeBadge({ type }: { type: string }) {
   const styles: Record<string, string> = {
@@ -206,12 +272,19 @@ export function ReviewTab({ orgId, classId }: { orgId: string; classId: string }
             )}
           </div>
           <div className="space-y-2">
-            {moduleItems.map((item) => (
-              <div key={item.itemId} className="bg-panel border border-line rounded-2xl p-4">
+            {moduleItems.map((item) => {
+              const verification = parseVerification(item.verification);
+              const contradicts = verification?.flags.some((f) => /contradict/i.test(f.reason));
+              const borderClass = verification
+                ? contradicts ? 'border-bad/40' : 'border-warn/40'
+                : 'border-line';
+              return (
+              <div key={item.itemId} className={`bg-panel border ${borderClass} rounded-2xl p-4`}>
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0 space-y-2">
                     <ContentTypeBadge type={item.type} />
                     <ContentPreview item={item} />
+                    {verification && <VerificationFlags verification={verification} />}
                   </div>
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <button
@@ -231,7 +304,8 @@ export function ReviewTab({ orgId, classId }: { orgId: string; classId: string }
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
