@@ -253,6 +253,8 @@ export interface RelevanceResponse {
     score: number;
     reason: string;
     isRelevant: boolean;
+    /** A2: false when the upload isn't study material at all (receipt/selfie/blank). */
+    studyMaterial?: boolean;
   };
 }
 

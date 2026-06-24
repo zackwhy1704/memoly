@@ -36,6 +36,8 @@ export interface FileProgress {
   file?: File;
   /** Whether this file had low relevance. */
   lowRelevance?: boolean;
+  /** A2: whether this file doesn't look like study material (receipt/selfie/blank). */
+  notStudyMaterial?: boolean;
   /** Backend response metadata. */
   servedBy?: string;
   degraded?: boolean;
@@ -100,11 +102,17 @@ export async function uploadSingleFile(
   onProgress({ name: file.name, stage: 'checkingRelevance', file });
   let skipRelevance = false;
   let lowRelevance = false;
+  let notStudyMaterial = false;
   try {
     const sample = await contentSampleFor(file);
     const rel = await api.checkRelevance(avatarId, sample);
     if (!rel.data.isRelevant) {
       lowRelevance = true;
+      skipRelevance = true;
+    }
+    // A2: distinct from off-topic — this doesn't look like study material at all.
+    if (rel.data.studyMaterial === false) {
+      notStudyMaterial = true;
       skipRelevance = true;
     }
   } catch {
@@ -125,7 +133,9 @@ export async function uploadSingleFile(
     const fileId = typeof resData?.id === 'string' ? resData.id : (typeof res.data?.id === 'string' ? res.data.id : undefined);
 
     // Determine stage based on quality
-    const qualityStage = quality === 'REJECTED' ? 'error' as const : lowRelevance ? 'warning' as const : 'done' as const;
+    const qualityStage = quality === 'REJECTED'
+      ? 'error' as const
+      : (lowRelevance || notStudyMaterial) ? 'warning' as const : 'done' as const;
 
     const result: FileProgress = {
       name: file.name,
@@ -133,6 +143,7 @@ export async function uploadSingleFile(
       pageCount: res.data?.pageCount,
       file,
       lowRelevance,
+      notStudyMaterial,
       servedBy,
       degraded: degraded ?? false,
       quality,
@@ -143,11 +154,13 @@ export async function uploadSingleFile(
         ? qualityReason ?? 'Content quality too low to process.'
         : quality === 'BORDERLINE'
           ? qualityReason ?? 'Text quality is borderline — please review.'
-          : lowRelevance
-            ? 'Looks off-topic for this class — added anyway.'
-            : degraded
-              ? 'Read with backup engine — double-check the text looks right.'
-              : undefined,
+          : notStudyMaterial
+            ? "This doesn't look like study material — added anyway. Remove it if that's not right."
+            : lowRelevance
+              ? 'Looks off-topic for this class — added anyway.'
+              : degraded
+                ? 'Read with backup engine — double-check the text looks right.'
+                : undefined,
     };
     onProgress(result);
     return result;
