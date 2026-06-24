@@ -13,8 +13,17 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
   });
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading heatmap...</p>;
   if (query.error) return <ErrorView message="Could not load heatmap data." onRetry={() => query.refetch()} />;
+
+  // Coerce every array defensively — a fresh class / zero students / partial
+  // backend shape can leave these null/absent, and the raw `.map`/`.length`
+  // would crash the whole tab. Degrade to EmptyState instead.
   const d = query.data?.data;
-  if (!d || d.topics.length === 0) {
+  const students = Array.isArray(d?.students) ? d.students : [];
+  const topics = Array.isArray(d?.topics) ? d.topics : [];
+  const cells = Array.isArray(d?.cells) ? d.cells : [];
+  const weakest = Array.isArray(d?.weakest) ? d.weakest : [];
+
+  if (topics.length === 0 || students.length === 0) {
     return (
       <EmptyState
         icon="📊"
@@ -32,7 +41,7 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
             <thead>
               <tr>
                 <th className="w-36 pr-2" />
-                {d.students.map((s) => (
+                {students.map((s) => (
                   <th key={s.id} className="w-10 text-center">
                     <div
                       className="w-10 h-10 rounded-full bg-panel2 border border-line flex items-center justify-center text-xs font-bold text-ink2"
@@ -45,14 +54,14 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
               </tr>
             </thead>
             <tbody>
-              {d.topics.map((topic, ti) => (
+              {topics.map((topic, ti) => (
                 <tr key={topic}>
                   <td className="pr-3 text-right">
                     <span className="text-xs text-ink2 capitalize">{topic.replace(/-/g, ' ')}</span>
                   </td>
-                  {d.students.map((s, si) => (
+                  {students.map((s, si) => (
                     <td key={s.id} className="p-0">
-                      <HeatCell value={d.cells[ti]?.[si] ?? null} />
+                      <HeatCell value={cells[ti]?.[si] ?? null} />
                     </td>
                   ))}
                 </tr>
@@ -65,7 +74,7 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
       <div className="bg-panel border border-line rounded-2xl p-5">
         <p className="text-sm font-semibold text-ink mb-4">Reteach First — Weakest Topics</p>
         <div className="space-y-3">
-          {d.weakest.map((w, i) => (
+          {weakest.map((w, i) => (
             <div key={w.topic} className="flex items-center gap-3">
               <span className="text-ink3 text-xs w-4 text-right">{i + 1}.</span>
               <div className="flex-1">
