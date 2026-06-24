@@ -19,6 +19,8 @@ export function CreateAssignmentModal({
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AssignmentType>('POST_CLASS');
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [selectedPrereqs, setSelectedPrereqs] = useState<string[]>([]);
+  const [personalized, setPersonalized] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [masteryThreshold, setMasteryThreshold] = useState(60);
 
@@ -27,6 +29,14 @@ export function CreateAssignmentModal({
     queryFn: () => api.classModules(orgId, classId),
   });
 
+  const modules = modulesQuery.data?.data ?? [];
+
+  // The backend bounds per-student selection by wiki slug, not module id.
+  const slugsFor = (ids: string[]) =>
+    ids
+      .map((id) => modules.find((m) => m.moduleId === id)?.wikiSlug)
+      .filter((s): s is string => !!s);
+
   const create = useMutation({
     mutationFn: () => {
       const body: CreateAssignmentBody = {
@@ -34,21 +44,37 @@ export function CreateAssignmentModal({
         type,
         moduleIds: selectedModules,
         dueDate: dueDate || undefined,
-        masteryThreshold: type === 'REVISION' ? masteryThreshold : undefined,
+        // Threshold drives REVISION auto-select AND the personalized weak cut-off.
+        masteryThreshold: type === 'REVISION' || personalized ? masteryThreshold : undefined,
+        personalized: personalized || undefined,
+        topicScope: personalized ? slugsFor(selectedModules) : undefined,
+        prereqScope:
+          personalized && type === 'PRE_CLASS' && selectedPrereqs.length > 0
+            ? slugsFor(selectedPrereqs)
+            : undefined,
       };
       return api.createAssignment(orgId, classId, body);
     },
     onSuccess: () => {
-      trackEvent('assignment_created', { type, classId, moduleCount: selectedModules.length });
+      trackEvent('assignment_created', {
+        type,
+        classId,
+        moduleCount: selectedModules.length,
+        personalized,
+      });
       onCreated();
       onClose();
     },
   });
 
-  const modules = modulesQuery.data?.data ?? [];
-
   const toggleModule = (id: string) => {
     setSelectedModules((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
+
+  const togglePrereq = (id: string) => {
+    setSelectedPrereqs((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
   };
@@ -128,6 +154,52 @@ export function CreateAssignmentModal({
             )}
           </div>
 
+          {/* Personalize per student */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={personalized}
+                onChange={(e) => setPersonalized(e.target.checked)}
+                className="w-4 h-4 rounded border-line text-accent focus:ring-accent/40"
+              />
+              <span className="text-xs font-semibold text-ink2">Personalize per student</span>
+            </label>
+            {personalized && (
+              <p className="text-[11px] text-ink3 mt-1">
+                {type === 'PRE_CLASS'
+                  ? 'Everyone gets the primer; each student also gets a diagnostic on the prerequisites they’re weakest on.'
+                  : 'Each student gets homework targeted to the concepts they’re below threshold on, within the selected topics.'}
+              </p>
+            )}
+          </div>
+
+          {/* Prerequisite diagnostic (pre-class personalized) */}
+          {personalized && type === 'PRE_CLASS' && (
+            <div>
+              <label className="block text-xs font-medium text-ink2 mb-1.5">
+                Diagnose prerequisites (prior topics)
+              </label>
+              {modules.length === 0 ? (
+                <p className="text-ink3 text-xs">No modules available.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {modules.map((m) => (
+                    <label key={m.moduleId} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedPrereqs.includes(m.moduleId)}
+                        onChange={() => togglePrereq(m.moduleId)}
+                        className="w-4 h-4 rounded border-line text-accent focus:ring-accent/40"
+                      />
+                      <span className="text-sm text-ink">{m.title}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Due date */}
           <div>
             <label className="block text-xs font-medium text-ink2 mb-1.5">Due date (optional)</label>
@@ -139,8 +211,9 @@ export function CreateAssignmentModal({
             />
           </div>
 
-          {/* Mastery threshold for REVISION */}
-          {type === 'REVISION' && (
+          {/* Mastery threshold — drives REVISION auto-select and the personalized
+              weak-concept cut-off. */}
+          {(type === 'REVISION' || personalized) && (
             <div>
               <label className="block text-xs font-medium text-ink2 mb-1.5">
                 Mastery threshold: {masteryThreshold}%

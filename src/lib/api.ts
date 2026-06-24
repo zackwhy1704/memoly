@@ -550,6 +550,35 @@ export interface CreateAssignmentBody {
   stages?: string[];
   masteryThreshold?: number;
   dueDate?: string;
+  /** Personalize per student: resolve each student's targeted set at start. */
+  personalized?: boolean;
+  /** Wiki slugs the assignment covers (bounds per-student weak selection). */
+  topicScope?: string[];
+  /** Pre-class only: prior-topic wiki slugs to diagnose per student. */
+  prereqScope?: string[];
+}
+
+// ── Pre-class readiness (Phase 2) ────────────────────────────────────
+export interface ReadinessConcept {
+  slug: string;
+  title: string;
+  masteryPct: number | null;
+  attempted: boolean;
+  weak: boolean;
+}
+export interface ReadinessStudent {
+  userId: string;
+  avatarId: string;
+  weakCount: number;
+  concepts: ReadinessConcept[];
+}
+export interface AssignmentReadiness {
+  assignmentId: string;
+  classId: string;
+  type: AssignmentType;
+  prereqScope: string | null;
+  masteryThreshold: number;
+  students: ReadinessStudent[];
 }
 
 // ── Model answers & release ──────────────────────────────────────────
@@ -957,6 +986,11 @@ export const api = {
   assignment: (orgId: string, classId: string, assignmentId: string) =>
     apiFetch<{ data: AssignmentDetail }>(
       `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}`
+    ),
+
+  assignmentReadiness: (orgId: string, classId: string, assignmentId: string) =>
+    apiFetch<{ data: AssignmentReadiness }>(
+      `/centre/organizations/${orgId}/classes/${classId}/assignments/${assignmentId}/readiness`
     ),
 
   deleteAssignment: (orgId: string, classId: string, assignmentId: string) =>

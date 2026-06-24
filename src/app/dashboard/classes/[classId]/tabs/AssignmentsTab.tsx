@@ -7,6 +7,7 @@ import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { AnswerReleasePanel } from '../modals/AnswerReleasePanel';
+import { ReadinessModal } from '../modals/ReadinessModal';
 
 function AssignmentTypeBadge({ type }: { type: AssignmentType }) {
   const styles: Record<AssignmentType, string> = {
@@ -46,6 +47,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [readinessId, setReadinessId] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ['assignments', orgId, classId],
@@ -151,7 +153,17 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                         assignmentId={a.id}
                         dueDate={a.dueDate}
                       />
-                      <div className="px-5 py-3 flex justify-end border-t border-line">
+                      <div className="px-5 py-3 flex items-center justify-between border-t border-line">
+                        {a.type === 'PRE_CLASS' ? (
+                          <button
+                            onClick={() => setReadinessId(a.id)}
+                            className="text-xs font-semibold text-accent hover:underline"
+                          >
+                            View pre-class readiness
+                          </button>
+                        ) : (
+                          <span />
+                        )}
                         <button
                           onClick={() => deleteMut.mutate(a.id)}
                           disabled={deleteMut.isPending}
@@ -175,6 +187,15 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
           classId={classId}
           onClose={() => setShowCreate(false)}
           onCreated={() => qc.invalidateQueries({ queryKey: ['assignments', orgId, classId] })}
+        />
+      )}
+
+      {readinessId && (
+        <ReadinessModal
+          orgId={orgId}
+          classId={classId}
+          assignmentId={readinessId}
+          onClose={() => setReadinessId(null)}
         />
       )}
     </div>
