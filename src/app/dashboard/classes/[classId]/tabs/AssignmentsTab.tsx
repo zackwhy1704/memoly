@@ -134,17 +134,41 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                           <tr className="border-b border-line text-xs uppercase tracking-wider text-ink3">
                             <th className="text-left px-5 py-2.5 font-medium">Student</th>
                             <th className="text-left px-5 py-2.5 font-medium">Status</th>
-                            <th className="text-left px-5 py-2.5 font-medium">Score</th>
+                            <th className="text-left px-5 py-2.5 font-medium">Targeted topics</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(detailQuery.data?.data.perStudentStatus ?? []).map((s) => (
-                            <tr key={s.userId} className="border-b border-line last:border-0">
-                              <td className="px-5 py-2.5 text-ink">{s.displayName}</td>
-                              <td className="px-5 py-2.5"><StudentStatusBadge status={s.status} /></td>
-                              <td className="px-5 py-2.5 tabular-nums text-ink2">{s.score != null ? `${Math.round(s.score)}%` : '—'}</td>
+                          {(detailQuery.data?.data.students ?? []).map((s) => {
+                            const topics = (s.resolvedModules ?? []).map((m) => m.title);
+                            return (
+                              <tr key={s.userId} className="border-b border-line last:border-0">
+                                <td className="px-5 py-2.5 text-ink">
+                                  {s.displayName || `Student ${s.userId.slice(0, 8)}`}
+                                </td>
+                                <td className="px-5 py-2.5"><StudentStatusBadge status={s.status} /></td>
+                                <td className="px-5 py-2.5 text-ink2">
+                                  {topics.length > 0 ? (
+                                    <span className="flex flex-wrap gap-1">
+                                      {topics.map((t, i) => (
+                                        <span key={i} className="px-2 py-0.5 rounded-md text-[11px] bg-panel2 text-ink2">
+                                          {t}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  ) : (
+                                    <span className="text-ink3">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {(detailQuery.data?.data.students ?? []).length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="px-5 py-4 text-ink3 text-xs">
+                                No students have this assignment yet.
+                              </td>
                             </tr>
-                          ))}
+                          )}
                         </tbody>
                       </table>
                       <AnswerReleasePanel

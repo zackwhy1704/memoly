@@ -529,18 +529,37 @@ export interface AssignmentSummary {
   overdueCount: number;
 }
 
+export interface ResolvedModule {
+  id: string;
+  title: string;
+}
+
 export interface AssignmentStudentRow {
   userId: string;
   displayName: string;
   status: AssignmentStudentStatus;
-  score: number | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  /** Per-student targeted modules (personalized assignments) — id + title. */
+  resolvedModules?: ResolvedModule[];
 }
 
-export interface AssignmentDetail extends AssignmentSummary {
-  moduleIds: string[];
-  stages: string[];
+export interface AssignmentDetail {
+  id: string;
+  classId: string;
+  title: string;
+  type: AssignmentType;
+  moduleIds: string | null;
+  stages: string | null;
   masteryThreshold: number | null;
-  perStudentStatus: AssignmentStudentRow[];
+  personalized?: boolean;
+  topicScope?: string | null;
+  prereqScope?: string | null;
+  pendingCount?: number;
+  inProgressCount?: number;
+  completedCount?: number;
+  overdueCount?: number;
+  students: AssignmentStudentRow[];
 }
 
 export interface CreateAssignmentBody {
@@ -568,6 +587,7 @@ export interface ReadinessConcept {
 }
 export interface ReadinessStudent {
   userId: string;
+  displayName: string;
   avatarId: string;
   weakCount: number;
   concepts: ReadinessConcept[];

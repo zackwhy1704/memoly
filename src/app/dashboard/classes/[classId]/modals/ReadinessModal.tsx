@@ -73,7 +73,7 @@ export function ReadinessModal({
                   <div key={s.userId} className="border border-line rounded-xl px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-ink">
-                        Student {s.userId.slice(0, 8)}
+                        {s.displayName || `Student ${s.userId.slice(0, 8)}`}
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${

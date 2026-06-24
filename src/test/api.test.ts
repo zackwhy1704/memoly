@@ -353,16 +353,13 @@ describe('api.createAssignment', () => {
   it('POSTs to the correct endpoint with body', async () => {
     const mockDetail: AssignmentDetail = {
       id: 'asgn-2',
+      classId: 'cls-1',
       title: 'Revision Quiz',
       type: 'REVISION',
-      dueDate: null,
-      completedCount: 0,
-      totalStudents: 20,
-      overdueCount: 0,
-      moduleIds: ['mod-1'],
-      stages: [],
+      moduleIds: 'mod-1',
+      stages: 'PROVE',
       masteryThreshold: 60,
-      perStudentStatus: [],
+      students: [],
     };
     mockFetch(201, { data: mockDetail });
     localStorageMock.setItem('memoly_token', 'tok');
@@ -388,26 +385,32 @@ describe('api.assignment (detail)', () => {
   it('GETs assignment detail with per-student status', async () => {
     const mockDetail: AssignmentDetail = {
       id: 'asgn-1',
+      classId: 'cls-1',
       title: 'Chapter 5 Review',
       type: 'POST_CLASS',
-      dueDate: '2026-06-15',
-      completedCount: 1,
-      totalStudents: 2,
-      overdueCount: 1,
-      moduleIds: ['mod-1'],
-      stages: [],
+      moduleIds: 'mod-1',
+      stages: 'TEST,PROVE',
       masteryThreshold: null,
-      perStudentStatus: [
-        { userId: 'u-1', displayName: 'Alice', status: 'COMPLETED', score: 92 },
-        { userId: 'u-2', displayName: 'Bob', status: 'OVERDUE', score: null },
+      personalized: true,
+      completedCount: 1,
+      overdueCount: 1,
+      students: [
+        {
+          userId: 'u-1',
+          displayName: 'Alice',
+          status: 'COMPLETED',
+          resolvedModules: [{ id: 'mod-1', title: 'Speed' }],
+        },
+        { userId: 'u-2', displayName: 'Bob', status: 'OVERDUE', resolvedModules: [] },
       ],
     };
     mockFetch(200, { data: mockDetail });
     localStorageMock.setItem('memoly_token', 'tok');
 
     const result = await api.assignment('org-1', 'cls-1', 'asgn-1');
-    expect(result.data.perStudentStatus).toHaveLength(2);
-    expect(result.data.perStudentStatus[0].status).toBe('COMPLETED');
+    expect(result.data.students).toHaveLength(2);
+    expect(result.data.students[0].status).toBe('COMPLETED');
+    expect(result.data.students[0].resolvedModules?.[0].title).toBe('Speed');
 
     const fetchFn = vi.mocked(globalThis.fetch);
     const url = fetchFn.mock.calls[0][0] as string;
