@@ -6,8 +6,28 @@ import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { NarrationAction } from '../components/NarrationAction';
 
-function MasteryBar({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
+/**
+ * Mastery as a 0–100 integer, or null when there's no finite data yet.
+ * The backend returns null/absent avgMastery for a fresh module (no attempts),
+ * and `Math.round(null * 100)` is NaN — which renders as "NaN%" and an invalid
+ * `width: NaN%` (a broken bar). null lets the UI show "—" instead of a fake 0%.
+ */
+export function masteryPct(value: number | null | undefined): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.round(value * 100);
+}
+
+function MasteryBar({ value }: { value: number | null | undefined }) {
+  const pct = masteryPct(value);
+  if (pct === null) {
+    // No mastery recorded yet — show an empty track + dash, not a misleading 0%.
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 bg-panel2 rounded-full" />
+        <span className="text-xs font-mono tabular-nums text-ink3">—</span>
+      </div>
+    );
+  }
   const color = pct >= 70 ? 'bg-ok' : pct >= 40 ? 'bg-warn' : 'bg-bad';
   const textColor = pct >= 70 ? 'text-ok' : pct >= 40 ? 'text-warn' : 'text-bad';
   return (
@@ -130,7 +150,7 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
               <StageBadge stage={m.stage} />
             </div>
             <div className="text-xs text-ink2 tabular-nums shrink-0">
-              {m.completedCount}/{m.studentCount} completed
+              {m.completedCount ?? 0}/{m.studentCount ?? 0} completed
             </div>
             <div className="min-w-[140px] flex-1 max-w-[220px]">
               <MasteryBar value={m.avgMastery} />

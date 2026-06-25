@@ -499,9 +499,11 @@ export interface ClassModule {
   title: string;
   wikiSlug: string;
   stage: string;
-  studentCount: number;
-  completedCount: number;
-  avgMastery: number;
+  // Null/absent for a fresh module with no student attempts yet — the UI shows
+  // "—" rather than a misleading 0%. See masteryPct() in ModulesTab.
+  studentCount: number | null;
+  completedCount: number | null;
+  avgMastery: number | null;
 }
 
 export interface ConceptMasteryData {
