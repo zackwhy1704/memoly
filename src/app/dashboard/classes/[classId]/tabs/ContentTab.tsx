@@ -41,7 +41,7 @@ export function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string
       </div>
 
       <FilesPanel avatarId={corpusAvatarId} />
-      <BrainPagesSection avatarId={corpusAvatarId} />
+      <BrainPagesSection avatarId={corpusAvatarId} orgId={org?.orgId} classId={classId} />
     </div>
   );
 }

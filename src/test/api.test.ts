@@ -761,6 +761,33 @@ describe('api.applyCorrection', () => {
   });
 });
 
+describe('api.regenerateContent (propagation → DRAFT for Review)', () => {
+  it('POSTs to the centre regenerate endpoint with optional guidance', async () => {
+    mockFetch(200, { data: { pageSlug: 'photosynthesis', moduleId: 'm-1', regenerated: true } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const res = await api.regenerateContent('org-1', 'cls-1', 'photosynthesis', 'use simpler examples');
+    expect(res.data.regenerated).toBe(true);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/content/photosynthesis/regenerate');
+    expect(opts?.method).toBe('POST');
+    expect(JSON.parse(opts?.body as string)).toEqual({ guidance: 'use simpler examples' });
+  });
+
+  it('omits guidance from the body when not provided', async () => {
+    mockFetch(200, { data: { pageSlug: 'p', moduleId: 'm', regenerated: true } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.regenerateContent('org-1', 'cls-1', 'p');
+
+    const opts = vi.mocked(globalThis.fetch).mock.calls[0][1];
+    expect(JSON.parse(opts?.body as string)).toEqual({});
+  });
+});
+
 // ── asArray: the systemic unwrap guard ───────────────────────────────
 // apiFetch returns the FULL body `{ data: T, ... }`, so for list endpoints
 // query.data is the WRAPPER, not the array. `?? []` only catches null/undefined,

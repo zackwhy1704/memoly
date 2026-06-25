@@ -168,6 +168,9 @@ export interface WikiPage {
   slug: string;
   title: string;
   content: string;
+  // NOTE: the backend lowercases the certainty enum in WikiPageResponse
+  // (verified|inferred|uncertain). Prefer `reviewState` for display and normalise
+  // case if you read `certainty` directly. Kept as-is to avoid breaking WikiPageCard.
   certainty: 'VERIFIED' | 'INFERRED' | 'CONFLICTED';
   hasConflict: boolean;
   updatedAt: string;
@@ -177,6 +180,15 @@ export interface WikiPage {
   humanVerified?: boolean;
   humanCorrection?: string | null;
   qualityScore?: number;
+  // Server-derived confidence label: VERIFIED | FLAGGED | LOW_CONFIDENCE | UNVERIFIED.
+  reviewState?: string;
+  verifiedBy?: string | null;
+  conflictNote?: string | null;
+  flagNote?: string | null;
+  sourceFileNames?: string[];
+  prerequisiteSlugs?: string[];
+  certaintyScore?: number;
+  quizUseCount?: number;
 }
 
 export interface KnowledgeFile {
