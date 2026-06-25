@@ -4,6 +4,7 @@ import {
   apiFetch,
   api,
   asArray,
+  toDueInstant,
   type ClassModule,
   type ConceptMasteryData,
   type NarrationData,
@@ -379,6 +380,43 @@ describe('api.createAssignment', () => {
     expect(url).toContain('/centre/organizations/org-1/classes/cls-1/assignments');
     expect(opts?.method).toBe('POST');
     expect(JSON.parse(opts?.body as string).masteryThreshold).toBe(60);
+  });
+
+  it('expands a bare date dueDate to a full ISO instant (backend Instant.parse)', async () => {
+    mockFetch(201, { data: { id: 'a', classId: 'c', title: 't', type: 'REVISION', moduleIds: '', stages: '', masteryThreshold: 0, students: [] } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.createAssignment('org-1', 'cls-1', {
+      title: 'Quiz', type: 'REVISION', moduleIds: ['mod-1'], dueDate: '2026-06-26',
+    });
+
+    const sent = JSON.parse(vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as string);
+    // No longer the bare date that 500'd; a parseable instant ending in Z.
+    expect(sent.dueDate).not.toBe('2026-06-26');
+    expect(sent.dueDate).toMatch(/^2026-06-26T.*Z$/);
+    expect(Number.isNaN(Date.parse(sent.dueDate))).toBe(false);
+  });
+
+  it('leaves an already-full instant dueDate untouched', async () => {
+    mockFetch(201, { data: { id: 'a', classId: 'c', title: 't', type: 'REVISION', moduleIds: '', stages: '', masteryThreshold: 0, students: [] } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.createAssignment('org-1', 'cls-1', {
+      title: 'Quiz', type: 'REVISION', moduleIds: ['mod-1'], dueDate: '2026-06-26T09:00:00.000Z',
+    });
+
+    const sent = JSON.parse(vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as string);
+    expect(sent.dueDate).toBe('2026-06-26T09:00:00.000Z');
+  });
+});
+
+describe('toDueInstant', () => {
+  it('expands a bare YYYY-MM-DD to an end-of-day UTC instant', () => {
+    expect(toDueInstant('2026-06-26')).toBe('2026-06-26T23:59:59.999Z');
+  });
+
+  it('passes a full instant through unchanged', () => {
+    expect(toDueInstant('2026-06-26T09:00:00.000Z')).toBe('2026-06-26T09:00:00.000Z');
   });
 });
 

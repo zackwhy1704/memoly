@@ -129,6 +129,20 @@ export function asArray<T>(resp: unknown): T[] {
   return [];
 }
 
+/**
+ * Normalise an assignment due date to a full ISO-8601 instant. An `<input
+ * type="date">` yields a bare `YYYY-MM-DD`, but the backend parses dueDate with
+ * `Instant.parse`, which throws `DateTimeParseException` on a date with no time
+ * (this 500'd "create assignment"). Expand a bare date to end-of-day UTC; pass
+ * through anything that already carries a time component.
+ */
+export function toDueInstant(dueDate: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    return new Date(`${dueDate}T23:59:59.999Z`).toISOString();
+  }
+  return dueDate;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────
 
 /** Server-derived uniform for a CENTRE_CLASS avatar. Present only when
@@ -1066,7 +1080,13 @@ export const api = {
   createAssignment: (orgId: string, classId: string, body: CreateAssignmentBody) =>
     apiFetch<{ data: AssignmentDetail }>(
       `/centre/organizations/${orgId}/classes/${classId}/assignments`,
-      { method: 'POST', body: JSON.stringify(body) }
+      {
+        method: 'POST',
+        // Backend parses dueDate with Instant.parse → expand a bare date to an instant.
+        body: JSON.stringify(
+          body.dueDate ? { ...body, dueDate: toDueInstant(body.dueDate) } : body
+        ),
+      }
     ),
 
   assignment: (orgId: string, classId: string, assignmentId: string) =>
