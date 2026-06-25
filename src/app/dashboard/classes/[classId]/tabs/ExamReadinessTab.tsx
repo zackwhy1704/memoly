@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type CreateAssignmentBody } from '@/lib/api';
+import { api, asArray, type CreateAssignmentBody, type ExamReadinessConcept } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 
 export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: string }) {
@@ -33,7 +33,7 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
   const data = query.data?.data;
   if (!data) return null;
 
-  const concepts = data.concepts ?? [];
+  const concepts = asArray<ExamReadinessConcept>(data.concepts);
 
   const weakConcepts = concepts
     .filter((c) => c.avgMastery < 0.6)

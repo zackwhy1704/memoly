@@ -3,6 +3,7 @@ import {
   ApiError,
   apiFetch,
   api,
+  asArray,
   type ClassModule,
   type ConceptMasteryData,
   type NarrationData,
@@ -713,5 +714,47 @@ describe('api.reviewFile', () => {
     const opts = fetchFn.mock.calls[0][1];
     const body = JSON.parse(opts?.body as string);
     expect('editedText' in body).toBe(false);
+  });
+});
+
+// ── asArray: the systemic unwrap guard ───────────────────────────────
+// apiFetch returns the FULL body `{ data: T, ... }`, so for list endpoints
+// query.data is the WRAPPER, not the array. `?? []` only catches null/undefined,
+// so `.map`/`.filter` on the wrapper object threw "x is not a function" at runtime.
+// asArray normalises every shape the boundary can produce into a real T[].
+describe('asArray (unwrap guard)', () => {
+  it('unwraps the { data: [...] } wrapper into the inner array', () => {
+    const wrapper = { data: [{ id: 1 }, { id: 2 }] };
+    expect(asArray<{ id: number }>(wrapper)).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it('returns a raw array unchanged', () => {
+    const raw = [{ id: 1 }];
+    expect(asArray<{ id: number }>(raw)).toBe(raw);
+  });
+
+  it('returns [] for null / undefined (no throw on missing data)', () => {
+    expect(asArray(null)).toEqual([]);
+    expect(asArray(undefined)).toEqual([]);
+  });
+
+  it('returns [] for an object whose .data is not an array', () => {
+    // e.g. a single-object response or an error envelope — never crash on .map
+    expect(asArray({ data: { id: 1 } })).toEqual([]);
+    expect(asArray({ data: 'oops' })).toEqual([]);
+    expect(asArray({ notData: [1, 2] })).toEqual([]);
+  });
+
+  it('returns [] for primitives', () => {
+    expect(asArray('string')).toEqual([]);
+    expect(asArray(42)).toEqual([]);
+    expect(asArray(true)).toEqual([]);
+  });
+
+  it('result is always safely mappable (the invariant the crash violated)', () => {
+    // Every shape the boundary can hand us must be .map-able without throwing.
+    for (const shape of [null, undefined, { data: { x: 1 } }, 'str', { data: [10] }, [20]]) {
+      expect(() => asArray<number>(shape).map((n) => n)).not.toThrow();
+    }
   });
 });

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, type AssignmentType, type AssignmentStudentStatus } from '@/lib/api';
+import { api, asArray, type AssignmentType, type AssignmentStudentStatus, type AssignmentSummary, type AssignmentStudentRow } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
@@ -71,7 +71,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading assignments...</p>;
   if (query.error) return <ErrorView message="Could not load assignments." onRetry={() => query.refetch()} />;
 
-  const assignments = query.data?.data ?? [];
+  const assignments = asArray<AssignmentSummary>(query.data);
 
   return (
     <div className="space-y-4">
@@ -138,7 +138,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                           </tr>
                         </thead>
                         <tbody>
-                          {(detailQuery.data?.data.students ?? []).map((s) => {
+                          {asArray<AssignmentStudentRow>(detailQuery.data?.data?.students).map((s) => {
                             const topics = (s.resolvedModules ?? []).map((m) => m.title);
                             return (
                               <tr key={s.userId} className="border-b border-line last:border-0">
@@ -162,7 +162,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                               </tr>
                             );
                           })}
-                          {(detailQuery.data?.data.students ?? []).length === 0 && (
+                          {asArray<AssignmentStudentRow>(detailQuery.data?.data?.students).length === 0 && (
                             <tr>
                               <td colSpan={3} className="px-5 py-4 text-ink3 text-xs">
                                 No students have this assignment yet.

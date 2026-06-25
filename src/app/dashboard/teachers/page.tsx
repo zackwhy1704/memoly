@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ApiError, OrgStaffMember } from '@/lib/api';
+import { api, asArray, ApiError, OrgStaffMember } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import { useMe } from '@/lib/use-me';
 
@@ -56,7 +56,7 @@ export default function TeachersPage() {
     inviteMut.mutate(inviteEmail.trim());
   }
 
-  const staff: OrgStaffMember[] = staffQuery.data?.data ?? [];
+  const staff: OrgStaffMember[] = asArray<OrgStaffMember>(staffQuery.data);
   const isLoading = staffQuery.isLoading;
   const loadError = staffQuery.error;
 

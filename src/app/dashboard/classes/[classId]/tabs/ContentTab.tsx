@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import { api, asArray, type KnowledgeFile } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
 import ErrorView from '@/components/ErrorView';
@@ -28,7 +28,7 @@ export function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string
     );
   }
 
-  const files = query.data?.data ?? [];
+  const files = asArray<KnowledgeFile>(query.data);
 
   return (
     <div className="space-y-4">

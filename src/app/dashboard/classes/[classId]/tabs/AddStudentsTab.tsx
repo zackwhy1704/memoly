@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, asArray, type CentreMember } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 
 export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: string }) {
@@ -21,7 +21,7 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
 
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading members...</p>;
   if (query.error) return <ErrorView message="Could not load centre members." onRetry={() => query.refetch()} />;
-  const members = query.data?.data ?? [];
+  const members = asArray<CentreMember>(query.data);
 
   return (
     <div className="bg-panel border border-line rounded-2xl overflow-hidden">

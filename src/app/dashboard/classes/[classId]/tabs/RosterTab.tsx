@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, asArray, type ClassRosterAnalyticsRow } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 
 export function RosterTab({ orgId, classId }: { orgId: string; classId: string }) {
@@ -21,7 +21,7 @@ export function RosterTab({ orgId, classId }: { orgId: string; classId: string }
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading roster...</p>;
   if (query.error) return <ErrorView message="Could not load class roster." onRetry={() => query.refetch()} />;
 
-  const rows = query.data?.data ?? [];
+  const rows = asArray<ClassRosterAnalyticsRow>(query.data);
 
   return (
     <div className="bg-panel border border-line rounded-2xl overflow-hidden">

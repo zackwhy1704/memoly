@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { api, type MuddiestPoint } from '@/lib/api';
+import { api, asArray, type MuddiestPoint, type ClassModule } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { NarrationAction } from '../components/NarrationAction';
@@ -52,7 +52,7 @@ function MuddiestBar({ classId, moduleId }: { classId: string; moduleId: string 
     );
   }
 
-  const points = (query.data ?? []).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+  const points = asArray<MuddiestPoint>(query.data).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
 
   if (points.length === 0) {
     return (
@@ -105,7 +105,7 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading modules...</p>;
   if (query.error) return <ErrorView message="Could not load modules." onRetry={() => query.refetch()} />;
 
-  const modules = query.data?.data ?? [];
+  const modules = asArray<ClassModule>(query.data);
 
   if (modules.length === 0) {
     return (

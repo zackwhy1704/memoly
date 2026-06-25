@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { api, type AssignmentType, type CreateAssignmentBody } from '@/lib/api';
+import { api, asArray, type AssignmentType, type CreateAssignmentBody, type ClassModule } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 
 export function CreateAssignmentModal({
@@ -29,7 +29,7 @@ export function CreateAssignmentModal({
     queryFn: () => api.classModules(orgId, classId),
   });
 
-  const modules = modulesQuery.data?.data ?? [];
+  const modules = asArray<ClassModule>(modulesQuery.data);
 
   // The backend bounds per-student selection by wiki slug, not module id.
   const slugsFor = (ids: string[]) =>

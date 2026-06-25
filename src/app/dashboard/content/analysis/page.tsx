@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { api, ApiError, Avatar, WikiPage } from '@/lib/api';
+import { api, asArray, ApiError, Avatar, WikiPage } from '@/lib/api';
 import WikiPageCard from '@/components/WikiPageCard';
 
 function AnalysisContent() {
@@ -37,7 +37,7 @@ function AnalysisContent() {
     setPages([]);
     api
       .wikiPages(avatarId)
-      .then((res) => setPages(res.data ?? []))
+      .then((res) => setPages(asArray<WikiPage>(res)))
       .catch((err) => {
         const msg = err instanceof ApiError ? err.userMessage : err instanceof Error ? err.message : 'Failed to load wiki pages.';
         setError(msg);

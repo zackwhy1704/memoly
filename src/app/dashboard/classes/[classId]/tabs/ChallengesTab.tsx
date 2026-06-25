@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, type Challenge, type CreateChallengeBody } from '@/lib/api';
+import { api, asArray, type Challenge, type CreateChallengeBody } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
@@ -233,7 +233,7 @@ export function ChallengesTab({ orgId, classId }: { orgId: string; classId: stri
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading challenges...</p>;
   if (query.error) return <ErrorView message="Could not load challenges." onRetry={() => query.refetch()} />;
 
-  const challenges = query.data ?? [];
+  const challenges = asArray<Challenge>(query.data);
 
   return (
     <div className="space-y-4">

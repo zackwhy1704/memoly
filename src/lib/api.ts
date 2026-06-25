@@ -47,7 +47,10 @@ function statusToApiError(status: number, body: string): ApiError {
       // Only redirect if we had a token — avoid redirect loop on login form submits.
       if (typeof window !== 'undefined' && localStorage.getItem('memoly_token')) {
         clearAuth();
-        window.location.assign('/login');
+        // Use href assignment (not location.assign): assign() isn't always present
+        // (e.g. test/SSR shims), and throwing here would swallow this ApiError so
+        // callers lose the 401 status and the redirect never resolves.
+        window.location.href = '/login';
       }
       return new ApiError(401, code, 'Session expired — please sign in again.', false);
     }
@@ -108,6 +111,22 @@ export async function apiFetch<T>(
   }
 
   return res.json() as Promise<T>;
+}
+
+/**
+ * Safely extract an array from an apiFetch result. apiFetch returns the full
+ * response body `{ data: T, ... }`, so a list endpoint's `query.data` is the
+ * WRAPPER object, not the array. `?? []` is false safety — it only catches
+ * null/undefined, so `.map`/`.filter` on the `{data:[...]}` object throws
+ * "x is not a function". Route every list-rendering tab through this guard:
+ * it accepts `{data:[...]}`, a raw `[...]`, or null and always returns an array.
+ */
+export function asArray<T>(resp: unknown): T[] {
+  if (Array.isArray(resp)) return resp as T[];
+  if (resp && typeof resp === 'object' && Array.isArray((resp as { data?: unknown }).data)) {
+    return (resp as { data: T[] }).data;
+  }
+  return [];
 }
 
 // ── Types ──────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type ReviewItem, type ContentVerification } from '@/lib/api';
+import { api, asArray, type ReviewItem, type ContentVerification } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 
@@ -218,7 +218,7 @@ export function ReviewTab({ orgId, classId }: { orgId: string; classId: string }
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading content for review...</p>;
   if (query.error) return <ErrorView message="Could not load content review items." onRetry={() => query.refetch()} />;
 
-  const items = query.data?.data ?? [];
+  const items = asArray<ReviewItem>(query.data);
   const draftItems = items.filter((i) => i.status === 'DRAFT');
 
   // Group by module title; track pageSlug per group for regenerate

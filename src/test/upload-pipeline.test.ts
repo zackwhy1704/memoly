@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   validateFile,
   runUploadPipeline,
+  uploadSingleFile,
   MAX_FILE_BYTES,
   ALLOWED_EXT,
   MAX_FILES,
@@ -41,6 +42,67 @@ function createFile(name: string, size: number): File {
   const content = new Uint8Array(size);
   return new File([content], name, { type: 'application/octet-stream' });
 }
+
+// ── A2: "is this study material?" gate ───────────────────────────────
+// The relevance check returns two distinct signals: isRelevant (off-topic for
+// THIS class) and studyMaterial (a receipt/selfie/blank — not notes at all).
+// Either one must still upload (fail-open) but land the file in a "warning"
+// stage with the right copy, never silently drop it or hard-error.
+describe('uploadSingleFile — relevance / study-material gate (A2)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('studyMaterial:false → warning stage with the "not study material" message, still uploaded', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValueOnce({
+      data: { isRelevant: true, studyMaterial: false },
+    } as Awaited<ReturnType<typeof api.checkRelevance>>);
+    const file = createFile('receipt.png', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    expect(api.uploadFile).toHaveBeenCalledTimes(1); // fail-open: still uploaded
+    expect(api.uploadFile).toHaveBeenCalledWith('av1', file, { skipRelevance: true });
+    expect(result.stage).toBe('warning');
+    expect(result.notStudyMaterial).toBe(true);
+    expect(result.message).toContain("doesn't look like study material");
+  });
+
+  it('isRelevant:false (off-topic) → warning stage with the "off-topic" message', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValueOnce({
+      data: { isRelevant: false, studyMaterial: true },
+    } as Awaited<ReturnType<typeof api.checkRelevance>>);
+    const file = createFile('biology-notes.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    expect(result.stage).toBe('warning');
+    expect(result.lowRelevance).toBe(true);
+    expect(result.notStudyMaterial).toBeFalsy();
+    expect(result.message).toContain('off-topic');
+  });
+
+  it('relevant study material → done stage, no warning flags', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValueOnce({
+      data: { isRelevant: true, studyMaterial: true },
+    } as Awaited<ReturnType<typeof api.checkRelevance>>);
+    const file = createFile('chapter-3.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    expect(result.stage).toBe('done');
+    expect(result.lowRelevance).toBeFalsy();
+    expect(result.notStudyMaterial).toBeFalsy();
+  });
+
+  it('relevance check throwing → fails open (skipRelevance, file still uploads)', async () => {
+    vi.mocked(api.checkRelevance).mockRejectedValueOnce(new Error('relevance service down'));
+    const file = createFile('notes.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    expect(api.uploadFile).toHaveBeenCalledWith('av1', file, { skipRelevance: true });
+    expect(result.stage).toBe('done'); // no relevance signal ⇒ not flagged
+  });
+});
 
 // ── validateFile ─────────────────────────────────────────────────────
 describe('validateFile', () => {
