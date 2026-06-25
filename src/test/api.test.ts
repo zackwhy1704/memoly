@@ -717,6 +717,50 @@ describe('api.reviewFile', () => {
   });
 });
 
+// ── Wiki page edit / human correction (web↔mobile content parity) ────
+describe('api.getWikiPage', () => {
+  it('GETs a single wiki page by slug', async () => {
+    mockFetch(200, { data: { id: 'w-1', slug: 'photosynthesis', title: 'Photosynthesis', content: 'Plants…' } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const res = await api.getWikiPage('av-1', 'photosynthesis');
+    expect(res.data.slug).toBe('photosynthesis');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/avatars/av-1/wiki/pages/photosynthesis');
+    expect(opts?.method ?? 'GET').toBe('GET');
+  });
+
+  it('URL-encodes the slug', async () => {
+    mockFetch(200, { data: {} });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    await api.getWikiPage('av-1', 'cell biology/intro');
+
+    const url = vi.mocked(globalThis.fetch).mock.calls[0][0] as string;
+    expect(url).toContain('/wiki/pages/cell%20biology%2Fintro');
+  });
+});
+
+describe('api.applyCorrection', () => {
+  it('PATCHes the correction under the { correction } key the backend expects', async () => {
+    mockFetch(200, { data: { id: 'w-1', slug: 'photosynthesis', humanVerified: true } });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const res = await api.applyCorrection('av-1', 'photosynthesis', 'Corrected explanation.');
+    expect(res.data.humanVerified).toBe(true);
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    const opts = fetchFn.mock.calls[0][1];
+    expect(url).toContain('/avatars/av-1/wiki/pages/photosynthesis/correction');
+    expect(opts?.method).toBe('PATCH');
+    expect(JSON.parse(opts?.body as string)).toEqual({ correction: 'Corrected explanation.' });
+  });
+});
+
 // ── asArray: the systemic unwrap guard ───────────────────────────────
 // apiFetch returns the FULL body `{ data: T, ... }`, so for list endpoints
 // query.data is the WRAPPER, not the array. `?? []` only catches null/undefined,

@@ -171,6 +171,12 @@ export interface WikiPage {
   certainty: 'VERIFIED' | 'INFERRED' | 'CONFLICTED';
   hasConflict: boolean;
   updatedAt: string;
+  // Human-correction state (the backend's WikiPageResponse always carries these).
+  // A teacher edit lives in `humanCorrection`; `content` stays the AI draft, so the
+  // effective text shown to students is `humanCorrection ?? content`.
+  humanVerified?: boolean;
+  humanCorrection?: string | null;
+  qualityScore?: number;
 }
 
 export interface KnowledgeFile {
@@ -837,6 +843,21 @@ export const api = {
   // Knowledge / wiki
   wikiPages: (avatarId: string) =>
     apiFetch<WikiPagesResponse>(`/avatars/${avatarId}/wiki/pages`),
+
+  // Single wiki page (full content) — source for the teacher edit/correction editor.
+  getWikiPage: (avatarId: string, slug: string) =>
+    apiFetch<{ data: WikiPage }>(
+      `/avatars/${avatarId}/wiki/pages/${encodeURIComponent(slug)}`
+    ),
+
+  // Human correction: persists the teacher's edited text as the page's
+  // humanCorrection and marks it humanVerified (backend record HumanCorrectionRequest
+  // expects `{ correction }`). Returns the updated page.
+  applyCorrection: (avatarId: string, slug: string, correction: string) =>
+    apiFetch<{ data: WikiPage }>(
+      `/avatars/${avatarId}/wiki/pages/${encodeURIComponent(slug)}/correction`,
+      { method: 'PATCH', body: JSON.stringify({ correction }) }
+    ),
 
   files: (avatarId: string) =>
     apiFetch<FilesResponse>(`/avatars/${avatarId}/files`),

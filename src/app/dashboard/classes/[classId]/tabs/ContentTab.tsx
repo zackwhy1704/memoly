@@ -2,21 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, asArray, type KnowledgeFile } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
-import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { FilesPanel } from '../components/FilesPanel';
+import { BrainPagesSection } from '../components/BrainPagesSection';
 
 export function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string | null; classId: string }) {
   const qc = useQueryClient();
   const org = useOrg();
-
-  const query = useQuery({
-    queryKey: ['classFiles', corpusAvatarId],
-    queryFn: () => api.files(corpusAvatarId!),
-    enabled: !!corpusAvatarId,
-  });
 
   if (!corpusAvatarId) {
     return (
@@ -28,8 +23,6 @@ export function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string
     );
   }
 
-  const files = asArray<KnowledgeFile>(query.data);
-
   return (
     <div className="space-y-4">
       {org && <TeachingStyleCard orgId={org.orgId} classId={classId} avatarId={corpusAvatarId} />}
@@ -40,41 +33,15 @@ export function ContentTab({ corpusAvatarId, classId }: { corpusAvatarId: string
         <MochiUploader
           avatarId={corpusAvatarId}
           classId={classId}
-          onComplete={() => qc.invalidateQueries({ queryKey: ['classFiles', corpusAvatarId] })}
+          onComplete={() => {
+            qc.invalidateQueries({ queryKey: ['classFiles', corpusAvatarId] });
+            qc.invalidateQueries({ queryKey: ['wikiPages', corpusAvatarId] });
+          }}
         />
       </div>
 
-      <div className="bg-panel border border-line rounded-2xl overflow-hidden">
-        {query.isLoading ? (
-          <p className="text-ink3 text-sm p-5">Loading files...</p>
-        ) : query.error ? (
-          <div className="p-4">
-            <ErrorView message="Could not load uploaded files." onRetry={() => query.refetch()} />
-          </div>
-        ) : files.length === 0 ? (
-          <div className="p-8">
-            <EmptyState
-              icon="📭"
-              title="No content uploaded yet"
-              description="Upload teaching material to build this class's knowledge base."
-            />
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {files.map((f) => (
-                <tr key={f.id} className="border-b border-line last:border-0">
-                  <td className="px-5 py-3.5 font-medium text-ink">{f.fileName}</td>
-                  <td className="px-5 py-3.5 text-ink3 text-xs">{f.pageCount} pages</td>
-                  <td className="px-5 py-3.5 text-xs">
-                    <span className="px-2 py-1 rounded-full bg-panel2 text-ink2">{f.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <FilesPanel avatarId={corpusAvatarId} />
+      <BrainPagesSection avatarId={corpusAvatarId} />
     </div>
   );
 }

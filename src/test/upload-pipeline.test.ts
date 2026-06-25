@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   validateFile,
   runUploadPipeline,
   uploadSingleFile,
+  pollBrainReady,
   MAX_FILE_BYTES,
   ALLOWED_EXT,
   MAX_FILES,
@@ -232,5 +233,50 @@ describe('FileStage type', () => {
     expect(fp.name).toBe('test.pdf');
     expect(fp.stage).toBe('queued');
     expect(fp.message).toBeUndefined();
+  });
+});
+
+// ── pollBrainReady — post-delete brain refresh (does NOT re-recompile) ─
+describe('pollBrainReady', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('never fires its own recompile (the backend already did on delete)', async () => {
+    vi.mocked(api.avatar).mockResolvedValue({ data: { brainState: 'READY', wikiPageCount: 3 } } as Awaited<ReturnType<typeof api.avatar>>);
+    vi.useFakeTimers();
+
+    const p = pollBrainReady('av1');
+    await vi.advanceTimersByTimeAsync(5000);
+    const result = await p;
+
+    expect(api.recompile).not.toHaveBeenCalled();
+    expect(result.brainReady).toBe(true);
+  });
+
+  it('resolves ready on brainState READY even with 0 pages (last file deleted)', async () => {
+    // The crux: deleting the last file legitimately drops the brain to 0 pages.
+    // Readiness must NOT require pages > 0, or the chip would hang for ~90s.
+    vi.mocked(api.avatar).mockResolvedValue({ data: { brainState: 'READY', wikiPageCount: 0 } } as Awaited<ReturnType<typeof api.avatar>>);
+    vi.useFakeTimers();
+
+    const p = pollBrainReady('av1');
+    await vi.advanceTimersByTimeAsync(5000);
+    const result = await p;
+
+    expect(result.brainReady).toBe(true);
+    expect(result.wikiPageCount).toBe(0);
+  });
+
+  it('emits compiling → ready ticks for the UI chip', async () => {
+    vi.mocked(api.avatar).mockResolvedValue({ data: { brainState: 'READY', wikiPageCount: 1 } } as Awaited<ReturnType<typeof api.avatar>>);
+    vi.useFakeTimers();
+    const ticks: string[] = [];
+
+    const p = pollBrainReady('av1', (s) => ticks.push(s));
+    await vi.advanceTimersByTimeAsync(5000);
+    await p;
+
+    expect(ticks[0]).toBe('compiling');
+    expect(ticks.at(-1)).toBe('ready');
   });
 });

@@ -224,6 +224,39 @@ export async function recompileAndPollBrain(
   return { brainReady, wikiPageCount };
 }
 
+/**
+ * Poll-only variant for mutations the BACKEND already recompiles for — e.g. a
+ * file delete fires a debounced recompile server-side, so firing another here
+ * would be redundant. Two differences from recompileAndPollBrain:
+ *  1. it never calls api.recompile (the server already did);
+ *  2. readiness does NOT require wikiPageCount > 0 — deleting the last file
+ *     legitimately drops the brain to 0 pages and must still resolve, not hang
+ *     for the full ~90s cap.
+ */
+export async function pollBrainReady(
+  avatarId: string,
+  onTick?: (state: CompileState) => void
+): Promise<RecompileOutcome> {
+  onTick?.('compiling');
+  let brainReady = false;
+  let wikiPageCount = 0;
+  for (let attempt = 0; attempt < 18; attempt++) {
+    await sleep(5000);
+    try {
+      const a = await api.avatar(avatarId);
+      wikiPageCount = a.data.wikiPageCount ?? 0;
+      if ((a.data.brainState ?? 'READY') === 'READY') {
+        brainReady = true;
+        break;
+      }
+    } catch {
+      /* transient — keep polling until the cap */
+    }
+  }
+  onTick?.(brainReady ? 'ready' : 'timeout');
+  return { brainReady, wikiPageCount };
+}
+
 export async function runUploadPipeline(
   avatarId: string,
   files: File[],
