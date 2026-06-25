@@ -391,9 +391,9 @@ describe('api.createAssignment', () => {
     });
 
     const sent = JSON.parse(vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as string);
-    // No longer the bare date that 500'd; a parseable instant ending in Z.
+    // No longer the bare date that 500'd; end-of-day SGT (23:59:59+08:00 = 15:59:59Z).
     expect(sent.dueDate).not.toBe('2026-06-26');
-    expect(sent.dueDate).toMatch(/^2026-06-26T.*Z$/);
+    expect(sent.dueDate).toBe('2026-06-26T15:59:59.000Z');
     expect(Number.isNaN(Date.parse(sent.dueDate))).toBe(false);
   });
 
@@ -411,8 +411,9 @@ describe('api.createAssignment', () => {
 });
 
 describe('toDueInstant', () => {
-  it('expands a bare YYYY-MM-DD to an end-of-day UTC instant', () => {
-    expect(toDueInstant('2026-06-26')).toBe('2026-06-26T23:59:59.999Z');
+  it('expands a bare YYYY-MM-DD to end-of-day Asia/Singapore (not UTC)', () => {
+    // 23:59:59 +08:00 == 15:59:59 UTC the same calendar day.
+    expect(toDueInstant('2026-06-26')).toBe('2026-06-26T15:59:59.000Z');
   });
 
   it('passes a full instant through unchanged', () => {

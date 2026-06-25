@@ -133,12 +133,14 @@ export function asArray<T>(resp: unknown): T[] {
  * Normalise an assignment due date to a full ISO-8601 instant. An `<input
  * type="date">` yields a bare `YYYY-MM-DD`, but the backend parses dueDate with
  * `Instant.parse`, which throws `DateTimeParseException` on a date with no time
- * (this 500'd "create assignment"). Expand a bare date to end-of-day UTC; pass
- * through anything that already carries a time component.
+ * (this 500'd "create assignment"). Expand a bare date to **end-of-day
+ * Asia/Singapore** — NOT UTC: UTC midnight is 8am SGT, which would mark work
+ * overdue mid-morning on the due date. Anything already carrying a time passes
+ * through unchanged.
  */
 export function toDueInstant(dueDate: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
-    return new Date(`${dueDate}T23:59:59.999Z`).toISOString();
+    return new Date(`${dueDate}T23:59:59+08:00`).toISOString();
   }
   return dueDate;
 }
