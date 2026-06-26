@@ -4,6 +4,7 @@ import {
   apiFetch,
   api,
   asArray,
+  isParentalConsentPending,
   toDueInstant,
   type ClassModule,
   type ConceptMasteryData,
@@ -109,6 +110,85 @@ describe('statusToApiError (via apiFetch)', () => {
     expect(err.status).toBe(404);
     expect(err.retryable).toBe(false);
     expect(err.userMessage).toContain('Not found');
+  });
+
+  // ── Half-elevated (under-13 awaiting parent) — data.code boundary ──────
+  it('403 PARENTAL_CONSENT_PENDING → ApiError carries consentPending from data.code', async () => {
+    mockFetch(403, {
+      status: 403,
+      error: 'Account pending parental consent',
+      data: {
+        code: 'PARENTAL_CONSENT_PENDING',
+        reason: 'PARENTAL_CONSENT_PENDING',
+        parentEmailMasked: 'j***@gmail.com',
+        resendAvailable: true,
+        resendAvailableInSeconds: 0,
+        message: 'Your account is waiting for your parent to approve it.',
+      },
+    });
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
+    expect(err.status).toBe(403);
+    expect(err.code).toBe('PARENTAL_CONSENT_PENDING');
+    expect(err.consentPending).toBeDefined();
+    expect(err.consentPending?.parentEmailMasked).toBe('j***@gmail.com');
+    expect(err.consentPending?.resendAvailable).toBe(true);
+    expect(err.consentPending?.resendAvailableInSeconds).toBe(0);
+    expect(isParentalConsentPending(err)).toBe(true);
+  });
+
+  it('403 PARENTAL_CONSENT_PENDING with masked email "" and cooldown maps fields safely', async () => {
+    mockFetch(403, {
+      status: 403,
+      error: 'pending',
+      data: {
+        code: 'PARENTAL_CONSENT_PENDING',
+        parentEmailMasked: '',
+        resendAvailable: false,
+        resendAvailableInSeconds: 45,
+      },
+    });
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
+    expect(isParentalConsentPending(err)).toBe(true);
+    expect(err.consentPending?.parentEmailMasked).toBe('');
+    expect(err.consentPending?.resendAvailable).toBe(false);
+    expect(err.consentPending?.resendAvailableInSeconds).toBe(45);
+  });
+
+  it('plain 403 (no data.code) does NOT get consentPending', async () => {
+    mockFetch(403, '{}');
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
+    expect(err.status).toBe(403);
+    expect(err.consentPending).toBeUndefined();
+    expect(isParentalConsentPending(err)).toBe(false);
+  });
+
+  it('AI_CONSENT_REQUIRED 403 is distinct — no consentPending', async () => {
+    mockFetch(403, {
+      status: 403,
+      error: 'AI consent required',
+      data: { code: 'AI_CONSENT_REQUIRED' },
+    });
+    const err = await apiFetch('/test').catch((e: unknown) => e as ApiError) as ApiError;
+    expect(err.status).toBe(403);
+    expect(err.consentPending).toBeUndefined();
+    expect(isParentalConsentPending(err)).toBe(false);
+  });
+
+  it('api.resendParentConsent POSTs /consent/resend and returns masked email', async () => {
+    mockFetch(200, {
+      data: {
+        status: 'PENDING',
+        parentEmail: 'jane@gmail.com',
+        parentEmailMasked: 'j***@gmail.com',
+        resendAvailableInSeconds: 60,
+      },
+    });
+    const res = await api.resendParentConsent();
+    expect(res.parentEmailMasked).toBe('j***@gmail.com');
+    expect(res.resendAvailableInSeconds).toBe(60);
+    const call = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(String(call[0])).toContain('/consent/resend');
+    expect((call[1] as RequestInit).method).toBe('POST');
   });
 
   it('413 → file too large, not retryable', async () => {
