@@ -84,6 +84,96 @@ describe('UploadResult', () => {
     });
   });
 
+  // ── PARTIAL compile (failed PAGES, distinct from failed FILES) ──────────
+  // Phase 0/3/4: a partial compile reaches brainReady but is missing pages. The
+  // teacher MUST see a warning naming the failed topics — not silent success.
+  describe('partial compile state (failedPages > 0)', () => {
+    const failedPages = [
+      { slug: 'osmosis', reason: 'DataIntegrity: conflict_note' },
+      { slug: 'mitosis', reason: 'boom' },
+    ];
+
+    it('renders a warning naming the failed topics and an honest X-of-Y count', () => {
+      render(
+        <UploadResult
+          ok={2}
+          failed={0}
+          brainReady={true}
+          wikiPageCount={6}
+          failedPages={failedPages}
+          onUploadMore={vi.fn()}
+        />
+      );
+      expect(screen.getByText(/Brain incomplete/)).toBeInTheDocument();
+      expect(screen.getByText(/6 of 8 pages compiled/)).toBeInTheDocument();
+      expect(screen.getByText(/2 failed/)).toBeInTheDocument();
+      expect(screen.getByText(/osmosis, mitosis/)).toBeInTheDocument();
+    });
+
+    it('does NOT render the full-success copy when pages failed', () => {
+      render(
+        <UploadResult
+          ok={2}
+          failed={0}
+          brainReady={true}
+          wikiPageCount={6}
+          failedPages={failedPages}
+          onUploadMore={vi.fn()}
+        />
+      );
+      expect(screen.queryByText(/Compiled into the class wiki/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/students can now learn from it/)).not.toBeInTheDocument();
+    });
+
+    it('offers a Recompile retry that calls onRetryCompile', () => {
+      const onRetryCompile = vi.fn();
+      render(
+        <UploadResult
+          ok={2}
+          failed={0}
+          brainReady={true}
+          wikiPageCount={6}
+          failedPages={failedPages}
+          onUploadMore={vi.fn()}
+          onRetryCompile={onRetryCompile}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Recompile' }));
+      expect(onRetryCompile).toHaveBeenCalledTimes(1);
+    });
+
+    it('REGRESSION: failedPages=[] renders the unchanged full-success copy', () => {
+      render(
+        <UploadResult
+          ok={2}
+          failed={0}
+          brainReady={true}
+          wikiPageCount={6}
+          failedPages={[]}
+          onUploadMore={vi.fn()}
+        />
+      );
+      expect(screen.getByText(/Compiled into the class wiki/)).toBeInTheDocument();
+      expect(screen.queryByText(/Brain incomplete/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the file-upload `failed` axis SEPARATE from page failures', () => {
+      // 1 failed FILE upload + 2 failed compile PAGES — both surfaced, not conflated.
+      render(
+        <UploadResult
+          ok={2}
+          failed={1}
+          brainReady={true}
+          wikiPageCount={6}
+          failedPages={failedPages}
+          onUploadMore={vi.fn()}
+        />
+      );
+      expect(screen.getByText(/Brain incomplete/)).toBeInTheDocument();      // page failures
+      expect(screen.getByText(/1 file failed/)).toBeInTheDocument();          // file failures
+    });
+  });
+
   describe('error state (ok=0, failed > 0)', () => {
     it('renders the failed-upload error message', () => {
       render(

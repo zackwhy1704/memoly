@@ -10,7 +10,7 @@ import {
   type CompileState,
   type FileProgress,
 } from '@/lib/upload-pipeline';
-import { api } from '@/lib/api';
+import { api, type CompilePageFailure } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import InfoBanner from '../InfoBanner';
 import FileProgressList from './FileProgressList';
@@ -43,6 +43,7 @@ export default function MochiUploader({
   // usable. 'idle' = no compile in flight.
   const [compileState, setCompileState] = useState<CompileState | 'idle'>('idle');
   const [compilePages, setCompilePages] = useState(0);
+  const [compileFailures, setCompileFailures] = useState<CompilePageFailure[]>([]);
   const [result, setResult] = useState<{
     ok: number;
     failed: number;
@@ -67,8 +68,10 @@ export default function MochiUploader({
   const startCompileWatch = useCallback(() => {
     setCompileState('compiling');
     setCompilePages(0);
+    setCompileFailures([]);
     void recompileAndPollBrain(avatarId, setCompileState).then((o) => {
       setCompilePages(o.wikiPageCount);
+      setCompileFailures(o.failedPages);
       onComplete?.(o.wikiPageCount);
     });
   }, [avatarId, onComplete]);
@@ -81,6 +84,7 @@ export default function MochiUploader({
     setResult(null);
     setCompileState('idle');
     setCompilePages(0);
+    setCompileFailures([]);
     resetReviewState();
     // Uploads only — recompile/poll runs non-blocking below, so the uploader
     // returns to idle the moment uploads finish and more files can be queued.
@@ -134,6 +138,7 @@ export default function MochiUploader({
     setResult(null);
     setCompileState('idle');
     setCompilePages(0);
+    setCompileFailures([]);
     resetReviewState();
 
     try {
@@ -198,6 +203,7 @@ export default function MochiUploader({
     setProgress([]);
     setCompileState('idle');
     setCompilePages(0);
+    setCompileFailures([]);
     resetReviewState();
     if (mode === 'upload') {
       inputRef.current?.click();
@@ -324,8 +330,13 @@ export default function MochiUploader({
               <span className="text-ink2">Compiling your notes… you can add more files meanwhile.</span>
             </>
           )}
-          {compileState === 'ready' && (
+          {compileState === 'ready' && compileFailures.length === 0 && (
             <span className="text-ok">&#10003; Notes compiled — {compilePages} page{compilePages === 1 ? '' : 's'} ready.</span>
+          )}
+          {compileState === 'ready' && compileFailures.length > 0 && (
+            <span className="text-warn">
+              &#9888; {compilePages} of {compilePages + compileFailures.length} pages compiled — {compileFailures.length} failed. Recompile to complete the brain.
+            </span>
           )}
           {compileState === 'timeout' && (
             <span className="text-ink2">Still compiling — modules will appear here shortly.</span>
@@ -340,8 +351,10 @@ export default function MochiUploader({
           failed={result.failed}
           brainReady={compileState === 'ready'}
           wikiPageCount={compilePages}
+          failedPages={compileFailures}
           classId={classId}
           onUploadMore={uploadMore}
+          onRetryCompile={startCompileWatch}
         />
       )}
     </div>

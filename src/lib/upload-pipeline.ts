@@ -9,7 +9,7 @@
 //
 // Keep this in lockstep with lib/features/upload/presentation/upload_view_model.dart.
 
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, type CompilePageFailure } from '@/lib/api';
 
 export const MAX_FILES = 10;
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // matches backend cap
@@ -185,6 +185,24 @@ export type CompileState = 'compiling' | 'ready' | 'timeout';
 export interface RecompileOutcome {
   brainReady: boolean;
   wikiPageCount: number;
+  /** Pages the (re)compile could NOT persist. A partial compile still reaches
+   *  brainState READY, so this is the only honest signal that the brain is
+   *  incomplete. Empty on full success. */
+  failedPages: CompilePageFailure[];
+}
+
+/** Coerce the compile-status payload's failedPages into a clean, typed list —
+ *  the boundary guard so a malformed/absent field degrades to [] rather than
+ *  leaking `undefined`/junk into the UI (and never silently dropped by an `as`). */
+function parseFailedPages(value: unknown): CompilePageFailure[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((f): f is { slug: unknown; reason?: unknown } => !!f && typeof f === 'object')
+    .map((f) => ({
+      slug: typeof f.slug === 'string' ? f.slug : '',
+      reason: typeof f.reason === 'string' ? f.reason : '',
+    }))
+    .filter((f) => f.slug.length > 0);
 }
 
 /**
@@ -220,8 +238,22 @@ export async function recompileAndPollBrain(
       /* transient — keep polling until the cap */
     }
   }
+
+  // A partial compile still reaches READY, so readiness alone can't reveal it —
+  // read the per-page failures explicitly from compile-status. Best-effort: if the
+  // status call fails, we degrade to "no known failures" rather than block the UI.
+  let failedPages: CompilePageFailure[] = [];
+  if (brainReady) {
+    try {
+      const status = await api.compileStatus(avatarId);
+      failedPages = parseFailedPages(status.data.failedPages);
+    } catch {
+      /* status is advisory — absence must not turn success into an error */
+    }
+  }
+
   onTick?.(brainReady ? 'ready' : 'timeout');
-  return { brainReady, wikiPageCount };
+  return { brainReady, wikiPageCount, failedPages };
 }
 
 /**
@@ -254,7 +286,9 @@ export async function pollBrainReady(
     }
   }
   onTick?.(brainReady ? 'ready' : 'timeout');
-  return { brainReady, wikiPageCount };
+  // Delete-driven refresh: no compile this avatar initiated here, so no page
+  // failures to report.
+  return { brainReady, wikiPageCount, failedPages: [] };
 }
 
 export async function runUploadPipeline(

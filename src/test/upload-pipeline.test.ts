@@ -4,6 +4,7 @@ import {
   runUploadPipeline,
   uploadSingleFile,
   pollBrainReady,
+  recompileAndPollBrain,
   MAX_FILE_BYTES,
   ALLOWED_EXT,
   MAX_FILES,
@@ -18,6 +19,7 @@ vi.mock('@/lib/api', () => ({
     uploadFile: vi.fn().mockResolvedValue({ data: { id: 'f1', pageCount: 1 } }),
     recompile: vi.fn().mockResolvedValue({ data: {} }),
     avatar: vi.fn().mockResolvedValue({ data: { brainState: 'READY', wikiPageCount: 1 } }),
+    compileStatus: vi.fn().mockResolvedValue({ data: { state: 'DONE', failedPages: [] } }),
   },
 }));
 
@@ -233,6 +235,76 @@ describe('FileStage type', () => {
     expect(fp.name).toBe('test.pdf');
     expect(fp.stage).toBe('queued');
     expect(fp.message).toBeUndefined();
+  });
+});
+
+// ── recompileAndPollBrain — surfaces PARTIAL compile failures (Phase 1/2) ─
+// A partial compile still reaches brainState READY, so readiness can't reveal it.
+// recompileAndPollBrain must read GET /wiki/compile/status and return failedPages.
+describe('recompileAndPollBrain — partial-compile failures', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  async function run() {
+    vi.mocked(api.avatar).mockResolvedValue({
+      data: { brainState: 'READY', wikiPageCount: 6 },
+    } as Awaited<ReturnType<typeof api.avatar>>);
+    vi.useFakeTimers();
+    const p = recompileAndPollBrain('av1');
+    await vi.advanceTimersByTimeAsync(5000);
+    return p;
+  }
+
+  it('returns failedPages from compile-status when the brain is incomplete', async () => {
+    vi.mocked(api.compileStatus).mockResolvedValue({
+      data: {
+        state: 'DONE',
+        pagesCompiled: 6,
+        pagesTotal: 8,
+        pagesFailed: 2,
+        failedPages: [
+          { slug: 'osmosis', reason: 'DataIntegrity: conflict_note' },
+          { slug: 'mitosis', reason: 'boom' },
+        ],
+      },
+    } as Awaited<ReturnType<typeof api.compileStatus>>);
+
+    const result = await run();
+
+    expect(api.compileStatus).toHaveBeenCalledWith('av1');
+    expect(result.brainReady).toBe(true);
+    expect(result.failedPages).toHaveLength(2);
+    expect(result.failedPages.map((f) => f.slug)).toEqual(['osmosis', 'mitosis']);
+  });
+
+  it('returns empty failedPages on a clean compile', async () => {
+    vi.mocked(api.compileStatus).mockResolvedValue({
+      data: { state: 'DONE', pagesCompiled: 6, pagesTotal: 6, failedPages: [] },
+    } as Awaited<ReturnType<typeof api.compileStatus>>);
+
+    const result = await run();
+
+    expect(result.failedPages).toEqual([]);
+  });
+
+  it('degrades to empty failedPages (not an error) when compile-status is unavailable', async () => {
+    vi.mocked(api.compileStatus).mockRejectedValue(new Error('status 500'));
+
+    const result = await run();
+
+    expect(result.brainReady).toBe(true); // readiness must NOT be blocked by status
+    expect(result.failedPages).toEqual([]);
+  });
+
+  it('coerces malformed failedPages entries away at the boundary', async () => {
+    vi.mocked(api.compileStatus).mockResolvedValue({
+      // junk shapes: missing slug, non-object — must be filtered, not crash
+      data: { state: 'DONE', failedPages: [{ reason: 'no slug' }, null, { slug: 'real', reason: 'x' }] },
+    } as unknown as Awaited<ReturnType<typeof api.compileStatus>>);
+
+    const result = await run();
+
+    expect(result.failedPages).toEqual([{ slug: 'real', reason: 'x' }]);
   });
 });
 

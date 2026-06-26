@@ -288,6 +288,24 @@ export interface AdminInvite {
 
 export interface AvatarsResponse { data: { avatars: Avatar[] } }
 export interface AvatarResponse  { data: Avatar }
+
+/** A wiki page the compile/recompile could not persist (e.g. a DB constraint). */
+export interface CompilePageFailure { slug: string; reason: string }
+
+/** GET /wiki/compile/status — includes per-page failures so a PARTIAL compile
+ *  (some pages persisted, some failed) isn't shown to the teacher as full success.
+ *  Fields are optional: a fresh/absent job returns only `state`. */
+export interface CompileStatusResponse {
+  data: {
+    state?: string;
+    pagesCompiled?: number;
+    pagesTotal?: number;
+    pagesFailed?: number;
+    failedPages?: CompilePageFailure[];
+    compiledBy?: string;
+    error?: string;
+  };
+}
 export interface WikiPagesResponse { data: WikiPage[] }
 export interface FilesResponse { data: KnowledgeFile[] }
 export interface UsageResponse { data: UsageToday }
@@ -854,6 +872,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  // Per-page compile outcome for the most recent (re)compile of this avatar.
+  // Read after brainState READY to surface a PARTIAL compile (failedPages).
+  compileStatus: (avatarId: string) =>
+    apiFetch<CompileStatusResponse>(`/avatars/${avatarId}/wiki/compile/status`),
 
   // Manually trigger a wiki recompile (mobile fires this after every upload).
   recompile: (avatarId: string) =>

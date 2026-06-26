@@ -1,14 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import type { CompilePageFailure } from '@/lib/api';
 
 interface UploadResultProps {
   ok: number;
+  /** Failed FILE uploads — a DIFFERENT axis from failed compile pages below. */
   failed: number;
   brainReady: boolean;
   wikiPageCount: number;
+  /** Wiki pages the compile could not persist. Non-empty ⇒ the brain is
+   *  INCOMPLETE even though it reached READY — surfaced as a warning, never
+   *  conflated with the file-upload `failed` count. */
+  failedPages?: CompilePageFailure[];
   classId?: string;
   onUploadMore: () => void;
+  /** Optional retry that re-runs the recompile + poll (the partial-state path). */
+  onRetryCompile?: () => void;
 }
 
 export default function UploadResult({
@@ -16,22 +24,49 @@ export default function UploadResult({
   failed,
   brainReady,
   wikiPageCount,
+  failedPages = [],
   classId,
   onUploadMore,
+  onRetryCompile,
 }: UploadResultProps) {
+  const partial = brainReady && failedPages.length > 0;
+  const totalPages = wikiPageCount + failedPages.length;
+
   if (ok > 0) {
     return (
-      <div className="bg-ok/10 border border-ok/30 rounded-xl px-4 py-4 space-y-3">
+      <div
+        className={`rounded-xl px-4 py-4 space-y-3 border ${
+          partial ? 'bg-warn/10 border-warn/30' : 'bg-ok/10 border-ok/30'
+        }`}
+      >
         <div className="text-sm text-ink">
           {brainReady ? (
-            <p>
-              Compiled into the class wiki — students can now learn from it.
-              {wikiPageCount > 0 && (
-                <span className="text-ink3">
-                  {' '}{wikiPageCount} page{wikiPageCount === 1 ? '' : 's'} total.
-                </span>
-              )}
-            </p>
+            partial ? (
+              <div className="space-y-1">
+                <p className="text-ink font-semibold">
+                  ⚠️ Brain incomplete — {wikiPageCount} of {totalPages} page
+                  {totalPages === 1 ? '' : 's'} compiled, {failedPages.length} failed.
+                </p>
+                <p className="text-ink2 text-xs">
+                  Missing topic{failedPages.length === 1 ? '' : 's'}:{' '}
+                  <span className="text-ink">
+                    {failedPages.map((f) => f.slug).join(', ')}
+                  </span>
+                  . Re-upload those notes or recompile to complete the brain before
+                  building assignments — students won&apos;t see the missing topics.
+                </p>
+              </div>
+            ) : (
+              <p>
+                Compiled into the class wiki — students can now learn from it.
+                {wikiPageCount > 0 && (
+                  <span className="text-ink3">
+                    {' '}
+                    {wikiPageCount} page{wikiPageCount === 1 ? '' : 's'} total.
+                  </span>
+                )}
+              </p>
+            )
           ) : (
             <p className="text-ink2">
               Still compiling in the background — this can take a minute for large uploads.
@@ -52,6 +87,14 @@ export default function UploadResult({
             >
               View content
             </Link>
+          )}
+          {partial && onRetryCompile && (
+            <button
+              onClick={onRetryCompile}
+              className="px-3 py-1.5 rounded-lg bg-warn text-white text-xs font-semibold hover:bg-warn/80 transition-colors"
+            >
+              Recompile
+            </button>
           )}
           <button
             onClick={onUploadMore}
