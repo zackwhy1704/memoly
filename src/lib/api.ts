@@ -224,6 +224,18 @@ export interface UsageToday {
   mochiCap: number;
 }
 
+/** Body for self-serve email sign-up (`POST /auth/register`).
+ *  `birthYear` is the year only — the server re-derives age and enforces the
+ *  under-13 rule. `parentEmail` is required by the server only when under-13;
+ *  the UI computes that client-side purely to decide whether to collect it. */
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  displayName?: string;
+  birthYear?: number;
+  parentEmail?: string;
+}
+
 export interface LoginResponse {
   data: {
     token: string;
@@ -818,13 +830,21 @@ export const api = {
       body: JSON.stringify({ idToken }),
     }),
 
-  // Self-serve email sign-up. Only email + password are required; displayName
-  // is optional and can be set later in account settings.
-  register: (email: string, password: string, displayName?: string) =>
+  // Self-serve email sign-up. email + password are required; everything else is
+  // optional. `birthYear` (year only) is what the server uses to apply the age
+  // rule — for an under-13 the server requires `parentEmail` and creates a
+  // PENDING-parental-consent account. The UI captures both; the server enforces.
+  register: (req: RegisterRequest) =>
     apiFetch<LoginResponse>('/auth/register', {
       method: 'POST',
       skipAuth: true,
-      body: JSON.stringify({ email, password, ...(displayName ? { displayName } : {}) }),
+      body: JSON.stringify({
+        email: req.email,
+        password: req.password,
+        ...(req.displayName ? { displayName: req.displayName } : {}),
+        ...(req.birthYear !== undefined ? { birthYear: req.birthYear } : {}),
+        ...(req.parentEmail ? { parentEmail: req.parentEmail } : {}),
+      }),
     }),
 
   getMe: () => USE_MOCK

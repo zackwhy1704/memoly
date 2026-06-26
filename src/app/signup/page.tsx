@@ -13,9 +13,19 @@ export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+
+  const CURRENT_YEAR = new Date().getFullYear();
+  const MIN_BIRTH_YEAR = 1950;
+  const yearNum = Number(birthYear);
+  const yearValid = /^\d{4}$/.test(birthYear) && yearNum >= MIN_BIRTH_YEAR && yearNum <= CURRENT_YEAR;
+  // Under-13 is computed client-side ONLY to reveal the parent-email field — the
+  // server re-derives the age from birthYear and is the real enforcement point.
+  const isUnder13 = yearValid && CURRENT_YEAR - yearNum < 13;
 
   async function afterAuth(token: string, userId: string, eventName: string) {
     saveAuth(token, userId);
@@ -44,10 +54,24 @@ export default function SignupPage() {
       setError('Password must be at least 8 characters.');
       return;
     }
+    if (!yearValid) {
+      setError(`Please enter a valid birth year between ${MIN_BIRTH_YEAR} and ${CURRENT_YEAR}.`);
+      return;
+    }
+    // Under-13: a parent/guardian email is required. (The server re-checks this.)
+    if (isUnder13 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+      setError("Please enter a valid parent/guardian email so we can ask them to approve the account.");
+      return;
+    }
     setError('');
     setLoading(true);
     try {
-      const res = await api.register(email, password);
+      const res = await api.register({
+        email,
+        password,
+        birthYear: yearNum,
+        ...(isUnder13 ? { parentEmail } : {}),
+      });
       await afterAuth(res.data.token, res.data.userId, 'signup_email');
     } catch (err) {
       setError(
@@ -159,6 +183,40 @@ export default function SignupPage() {
                 style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
               />
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label htmlFor="su-year" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Your birth year</label>
+              <input
+                id="su-year"
+                type="number"
+                required
+                inputMode="numeric"
+                min={MIN_BIRTH_YEAR}
+                max={CURRENT_YEAR}
+                placeholder="e.g. 2012"
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value)}
+                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
+              />
+            </div>
+            {isUnder13 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label htmlFor="su-parent" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Parent/guardian email</label>
+                <input
+                  id="su-parent"
+                  type="email"
+                  aria-required="true"
+                  autoComplete="off"
+                  placeholder="parent@example.com"
+                  value={parentEmail}
+                  onChange={(e) => setParentEmail(e.target.value)}
+                  style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
+                />
+                <p style={{ fontSize: 12, color: '#6B618A', lineHeight: 1.5, marginTop: 2 }}>
+                  Because you&apos;re under 13, a parent/guardian must approve your account before you can
+                  upload your own notes. You can still log in and use your centre&apos;s lessons.
+                </p>
+              </div>
+            )}
             <button
               type="submit"
               disabled={loading}
