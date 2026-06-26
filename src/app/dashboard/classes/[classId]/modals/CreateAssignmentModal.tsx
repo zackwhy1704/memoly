@@ -2,8 +2,24 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { api, asArray, type AssignmentType, type CreateAssignmentBody, type ClassModule } from '@/lib/api';
+import { api, asArray, ApiError, type AssignmentType, type CreateAssignmentBody, type ClassModule } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
+
+const FALLBACK_CREATE_ERROR = 'Failed to create assignment. Please try again.';
+
+/**
+ * Surface the REAL backend message. apiFetch throws an ApiError whose
+ * `.message` is the backend envelope's `error` field (e.g. a BusinessException
+ * like "No modules below mastery threshold 60.0%"). Show that to the teacher;
+ * fall back to the generic copy only when there's no specific message.
+ */
+function createAssignmentErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    const msg = error.message.trim();
+    if (msg) return msg;
+  }
+  return FALLBACK_CREATE_ERROR;
+}
 
 export function CreateAssignmentModal({
   orgId,
@@ -247,7 +263,7 @@ export function CreateAssignmentModal({
         </div>
         {create.error && (
           <div className="px-5 pb-4">
-            <p className="text-xs text-bad">Failed to create assignment. Please try again.</p>
+            <p className="text-xs text-bad">{createAssignmentErrorMessage(create.error)}</p>
           </div>
         )}
       </div>
