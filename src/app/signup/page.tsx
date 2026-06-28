@@ -97,15 +97,13 @@ export default function SignupPage() {
       }}
     >
       <div style={{ width: '100%', maxWidth: 400 }}>
-        {/* Mochi — clicking returns to homepage */}
-        <Link href="/" aria-label="Back to Apalchi home" style={{ display: 'block', textAlign: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/mochi-base-transparent.png"
-            alt="Mochi"
-            style={{ width: 72, height: 72, objectFit: 'contain', display: 'inline-block', marginBottom: 20, cursor: 'pointer' }}
-          />
-        </Link>
+        {/* Mochi */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/mochi-base-transparent.png"
+          alt="Mochi"
+          style={{ width: 72, height: 72, objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
+        />
 
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', textAlign: 'center', marginBottom: 6 }}>
           Create your Apalchi account

@@ -50,15 +50,12 @@ export default function DemoPage() {
         fontFamily: 'Nunito, system-ui, sans-serif',
       }}
     >
-      {/* Mochi — clicking returns to homepage */}
-      <Link href="/" aria-label="Back to Apalchi home">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/mochi-base-transparent.png"
-          alt="Mochi"
-          style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 20, cursor: 'pointer' }}
-        />
-      </Link>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/mochi-base-transparent.png"
+        alt="Mochi"
+        style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 20 }}
+      />
 
       {submitted ? (
         <Confirmation name={contactName} />
