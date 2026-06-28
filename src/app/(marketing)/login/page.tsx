@@ -153,7 +153,20 @@ function LoginInner() {
   }
 
   return (
-    <div className="mkt-login-wrap" style={{ minHeight: '100vh' }}>
+    <div className="mkt-login-wrap" style={{ minHeight: '100vh', position: 'relative' }}>
+      {/* Top-left home link — standard SaaS nav pattern */}
+      <a
+        href="/"
+        style={{
+          position: 'absolute', top: 20, left: 24,
+          display: 'flex', alignItems: 'center', gap: 8,
+          textDecoration: 'none', zIndex: 10,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733', fontFamily: 'var(--font-nunito), Nunito, sans-serif' }}>Apalchi</span>
+      </a>
       <div className="mkt-login-card" style={{ paddingTop: 96 }}>
         {/* Mochi with paw eye-cover */}
         <div

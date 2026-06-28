@@ -94,8 +94,23 @@ export default function SignupPage() {
         padding: '40px 24px',
         background: 'linear-gradient(160deg, #f4f0ff 0%, #fff 60%)',
         fontFamily: 'Nunito, system-ui, sans-serif',
+        position: 'relative',
       }}
     >
+      {/* Top-left home link — standard SaaS nav pattern */}
+      <a
+        href="/"
+        style={{
+          position: 'absolute', top: 20, left: 24,
+          display: 'flex', alignItems: 'center', gap: 8,
+          textDecoration: 'none', zIndex: 10,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733' }}>Apalchi</span>
+      </a>
+
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Mochi */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
