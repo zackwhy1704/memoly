@@ -155,22 +155,24 @@ function LoginInner() {
   return (
     <div className="mkt-login-wrap" style={{ minHeight: '100vh' }}>
       <div className="mkt-login-card" style={{ paddingTop: 96 }}>
-        {/* Mochi with paw eye-cover */}
-        <div
-          className={`mkt-hero-mochi mkt-login-mochi ${pwFocused ? 'mkt-cover' : ''}`}
-          ref={stageRef}
-        >
-          <div className="mkt-float" ref={floatRef}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="mkt-mochi-img"
-              src="/mochi-base-transparent.png"
-              alt="Mochi"
-            />
+        {/* Mochi with paw eye-cover — clicking returns to homepage */}
+        <a href="/" aria-label="Back to Apalchi home" style={{ display: 'block', textDecoration: 'none' }}>
+          <div
+            className={`mkt-hero-mochi mkt-login-mochi ${pwFocused ? 'mkt-cover' : ''}`}
+            ref={stageRef}
+          >
+            <div className="mkt-float" ref={floatRef}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="mkt-mochi-img"
+                src="/mochi-base-transparent.png"
+                alt="Mochi"
+              />
+            </div>
+            <span className="mkt-paw l" />
+            <span className="mkt-paw r" />
           </div>
-          <span className="mkt-paw l" />
-          <span className="mkt-paw r" />
-        </div>
+        </a>
 
         <h2>Sign in</h2>
         <p className="mkt-login-sub">Welcome back to Apalchi.</p>
