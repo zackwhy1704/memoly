@@ -16,29 +16,7 @@ function getToken(): string | null {
 }
 
 // ── Typed API Error ───────────────────────────────────────────────────
-/**
- * Rich payload carried by an ApiError when an under-13 account is still
- * awaiting parental approval (backend code `PARENTAL_CONSENT_PENDING`). Lets
- * ANY gated request render the actionable "waiting for your parent — resend"
- * panel centrally, instead of a generic 403 "you don't have access" message.
- */
-export interface ConsentPendingInfo {
-  /** Masked parent email (e.g. "j***@gmail.com"); "" when the backend omits it. */
-  parentEmailMasked: string;
-  /** Whether the resend button should be enabled right now. */
-  resendAvailable: boolean;
-  /** Seconds until resend becomes available (0 when immediately resendable). */
-  resendAvailableInSeconds: number;
-}
-
 export class ApiError extends Error {
-  /**
-   * Populated ONLY for a 403 whose `data.code === 'PARENTAL_CONSENT_PENDING'`.
-   * Distinct from `AI_CONSENT_REQUIRED` and a plain 403, both of which leave
-   * this undefined. Branch on its presence (or `code`), never on a message.
-   */
-  consentPending?: ConsentPendingInfo;
-
   constructor(
     public status: number,
     public code: string | null,
@@ -50,37 +28,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Reads the half-elevated (under-13 awaiting parent) payload off a parsed
- * backend envelope. The machine-readable code lives at **data.code**, NOT
- * top-level, so this is the only place that branch is decided. Every field is
- * typeof-guarded — no `as`-cast — so a malformed envelope degrades to `null`
- * (plain 403 behaviour) rather than crashing or faking a consent panel.
- */
-function readConsentPending(parsed: unknown): ConsentPendingInfo | null {
-  if (!parsed || typeof parsed !== 'object') return null;
-  const data = (parsed as { data?: unknown }).data;
-  if (!data || typeof data !== 'object') return null;
-  const d = data as Record<string, unknown>;
-  if (d.code !== 'PARENTAL_CONSENT_PENDING') return null;
-  return {
-    parentEmailMasked: typeof d.parentEmailMasked === 'string' ? d.parentEmailMasked : '',
-    resendAvailable: typeof d.resendAvailable === 'boolean' ? d.resendAvailable : false,
-    resendAvailableInSeconds:
-      typeof d.resendAvailableInSeconds === 'number' ? d.resendAvailableInSeconds : 0,
-  };
-}
-
-/**
- * Type guard: a request was blocked because an under-13 account is still
- * waiting for parent approval. Use this — never a message substring — to
- * decide whether to render `ConsentPendingPanel`.
- */
-export function isParentalConsentPending(
-  err: unknown
-): err is ApiError & { consentPending: ConsentPendingInfo } {
-  return err instanceof ApiError && err.consentPending !== undefined;
-}
 
 function statusToApiError(status: number, body: string): ApiError {
   // Try to parse the backend envelope: { error, data, status }
@@ -96,25 +43,6 @@ function statusToApiError(status: number, body: string): ApiError {
       (typeof p.message === 'string' ? p.message : null);
   } catch {
     /* body wasn't JSON — use fallback messages */
-  }
-
-  // Central half-elevated boundary: a 403 carrying data.code ===
-  // 'PARENTAL_CONSENT_PENDING' becomes an ApiError with rich consentPending
-  // fields, so ANY gated surface can render the resend panel. AI_CONSENT_REQUIRED
-  // and a plain 403 fall through untouched (consentPending stays undefined).
-  if (status === 403) {
-    const consent = readConsentPending(parsed);
-    if (consent) {
-      const err = new ApiError(
-        403,
-        'PARENTAL_CONSENT_PENDING',
-        backendMsg ||
-          'Your account is waiting for your parent to approve it.',
-        false
-      );
-      err.consentPending = consent;
-      return err;
-    }
   }
 
   switch (status) {
@@ -301,16 +229,12 @@ export interface UsageToday {
   mochiCap: number;
 }
 
-/** Body for self-serve email sign-up (`POST /auth/register`).
- *  `birthYear` is the year only — the server re-derives age and enforces the
- *  under-13 rule. `parentEmail` is required by the server only when under-13;
- *  the UI computes that client-side purely to decide whether to collect it. */
+/** Body for web-only centre admin sign-up (`POST /auth/register`).
+ *  The web is adults-only — no birthYear or parentEmail on this path. */
 export interface RegisterRequest {
   email: string;
   password: string;
   displayName?: string;
-  birthYear?: number;
-  parentEmail?: string;
 }
 
 export interface LoginResponse {
@@ -907,10 +831,6 @@ export const api = {
       body: JSON.stringify({ idToken }),
     }),
 
-  // Self-serve email sign-up. email + password are required; everything else is
-  // optional. `birthYear` (year only) is what the server uses to apply the age
-  // rule — for an under-13 the server requires `parentEmail` and creates a
-  // PENDING-parental-consent account. The UI captures both; the server enforces.
   register: (req: RegisterRequest) =>
     apiFetch<LoginResponse>('/auth/register', {
       method: 'POST',
@@ -919,33 +839,8 @@ export const api = {
         email: req.email,
         password: req.password,
         ...(req.displayName ? { displayName: req.displayName } : {}),
-        ...(req.birthYear !== undefined ? { birthYear: req.birthYear } : {}),
-        ...(req.parentEmail ? { parentEmail: req.parentEmail } : {}),
       }),
     }),
-
-  // Re-send the parental-consent approval email for a half-elevated (under-13
-  // awaiting parent) account. No body — the backend resolves the child from the
-  // JWT and issues a FRESH approval token (handles expiry server-side). On
-  // cooldown it returns 429 "Please wait Ns before resending..." which surfaces
-  // as a retryable ApiError. Returns the freshly-masked email + cooldown.
-  resendParentConsent: async (): Promise<{
-    parentEmailMasked?: string;
-    resendAvailableInSeconds?: number;
-  }> => {
-    const res = await apiFetch<{
-      data?: {
-        status?: string;
-        parentEmail?: string;
-        parentEmailMasked?: string;
-        resendAvailableInSeconds?: number;
-      };
-    }>('/consent/resend', { method: 'POST' });
-    return {
-      parentEmailMasked: res.data?.parentEmailMasked,
-      resendAvailableInSeconds: res.data?.resendAvailableInSeconds,
-    };
-  },
 
   getMe: () => USE_MOCK
     ? Promise.resolve({ data: mockMe } as MeResponse)

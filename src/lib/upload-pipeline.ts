@@ -9,8 +9,7 @@
 //
 // Keep this in lockstep with lib/features/upload/presentation/upload_view_model.dart.
 
-import { api, ApiError, isParentalConsentPending, type CompilePageFailure } from '@/lib/api';
-import { reportConsentPending } from '@/components/ConsentPendingHost';
+import { api, ApiError, type CompilePageFailure } from '@/lib/api';
 
 export const MAX_FILES = 10;
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // matches backend cap
@@ -166,12 +165,6 @@ export async function uploadSingleFile(
     onProgress(result);
     return result;
   } catch (err) {
-    // Half-elevated (under-13 awaiting parent): route to the central resend
-    // panel instead of a generic "please try again". Branch on the consentPending
-    // payload (data.code === 'PARENTAL_CONSENT_PENDING'), never a message.
-    if (isParentalConsentPending(err)) {
-      reportConsentPending(err.consentPending);
-    }
     const result: FileProgress = {
       name: file.name,
       stage: 'error',
@@ -340,9 +333,6 @@ function sleep(ms: number) {
 }
 
 function friendlyError(err: unknown, fileName: string): string {
-  if (isParentalConsentPending(err)) {
-    return 'Your account is waiting for your parent to approve it — see the panel above to resend the approval email.';
-  }
   if (err instanceof ApiError) {
     if (err.status === 413) return `"${fileName}" is too large (max 25MB).`;
     if (err.status === 415) return `"${fileName}" isn't a supported file type.`;

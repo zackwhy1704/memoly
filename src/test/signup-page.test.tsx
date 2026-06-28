@@ -8,24 +8,26 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
 }));
 
-// Google sign-in is gated off (no client ID) in tests, but stub the component
-// + helper defensively so the static import tree resolves.
+// Google sign-in is gated off (no client ID) in tests.
 vi.mock('@react-oauth/google', () => ({
   GoogleLogin: () => null,
 }));
 vi.mock('@/lib/google', () => ({ isGoogleEnabled: false }));
 
-// Side-effect helpers fired in afterAuth — silence them.
+// Side-effect helpers fired in finishSetup — silence them.
 vi.mock('@/lib/auth', () => ({ saveAuth: vi.fn() }));
 vi.mock('@/lib/analytics', () => ({ identify: vi.fn(), trackEvent: vi.fn() }));
 
-// The register API call — the unit under capture. Keep ApiError real so the
-// page's `err instanceof ApiError` branch still type-checks against it.
+// Stub the API calls. Keep ApiError real so instanceof checks work.
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>();
   return {
     ...actual,
-    api: { ...actual.api, register: vi.fn() },
+    api: {
+      ...actual.api,
+      register: vi.fn(),
+      onboardCentre: vi.fn(),
+    },
   };
 });
 
@@ -33,82 +35,127 @@ import { api } from '@/lib/api';
 import SignupPage from '@/app/signup/page';
 
 const mockedRegister = vi.mocked(api.register);
-const CURRENT_YEAR = new Date().getFullYear();
-const UNDER_13_YEAR = String(CURRENT_YEAR - 8); // age 8 → under 13
-const ADULT_YEAR = String(CURRENT_YEAR - 30);   // age 30 → 13+
+const mockedOnboard  = vi.mocked(api.onboardCentre);
 
-async function openEmailForm(user: ReturnType<typeof userEvent.setup>) {
+function setup() {
+  const user = userEvent.setup();
   render(<SignupPage />);
-  await user.click(screen.getByRole('button', { name: /Continue with email/i }));
+  return user;
 }
 
-async function fillBase(user: ReturnType<typeof userEvent.setup>, year: string) {
-  await user.type(screen.getByLabelText(/Email address/i), 'kid@example.com');
-  await user.type(screen.getByLabelText(/^Password/i), 'supersecret');
-  await user.type(screen.getByLabelText(/Your birth year/i), year);
+async function fillProfile(user: ReturnType<typeof userEvent.setup>, opts: {
+  name?: string; org?: string; phone?: string;
+} = {}) {
+  await user.type(screen.getByLabelText(/Your name/i), opts.name ?? 'Jane Smith');
+  await user.type(screen.getByLabelText(/Centre \/ organisation name/i), opts.org ?? 'Bright Stars Tuition');
+  await user.type(screen.getByLabelText(/Contact number/i), opts.phone ?? '+65 9000 0000');
 }
 
-describe('SignupPage — under-13 branch', () => {
+async function fillEmailForm(user: ReturnType<typeof userEvent.setup>, opts: {
+  email?: string; password?: string;
+} = {}) {
+  // When Google is disabled (as in tests), the email form renders immediately.
+  // When Google is enabled, user must click "Continue with email" first.
+  const continueBtn = screen.queryByRole('button', { name: /Continue with email/i });
+  if (continueBtn) await user.click(continueBtn);
+  await user.type(screen.getByLabelText(/Work email/i), opts.email ?? 'admin@bright.edu');
+  await user.type(screen.getByLabelText(/Password/i), opts.password ?? 'securepassword');
+}
+
+describe('SignupPage — centre admin form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedRegister.mockResolvedValue({ data: { token: 't', userId: 'u' } });
+    mockedRegister.mockResolvedValue({ data: { token: 'tok', userId: 'uid' } });
+    mockedOnboard.mockResolvedValue({ data: { orgId: 'org-1', orgName: 'Bright Stars', alreadyOwned: false } } as never);
   });
 
-  it('(a) a young birth year reveals the parent-email field and blocks submit until it is filled', async () => {
-    const user = userEvent.setup();
-    await openEmailForm(user);
+  it('renders name, org name, phone, and "Continue with email" — no birth year, no parent email', () => {
+    setup();
+    expect(screen.getByLabelText(/Your name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Centre \/ organisation name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Contact number/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/birth year/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/parent/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/guardian/i)).not.toBeInTheDocument();
+  });
 
-    // No parent field before a birth year is entered.
-    expect(screen.queryByLabelText(/Parent\/guardian email/i)).not.toBeInTheDocument();
+  it('shows work email + password fields (rendered immediately when Google disabled)', () => {
+    setup();
+    // When Google OAuth is off, the email form renders directly (no toggle needed).
+    expect(screen.getByLabelText(/Work email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+  });
 
-    await fillBase(user, UNDER_13_YEAR);
-
-    // Under-13 birth year reveals the parent-email field + the explanatory note.
-    const parentField = await screen.findByLabelText(/Parent\/guardian email/i);
-    expect(parentField).toBeInTheDocument();
-    expect(screen.getByText(/Because you're under 13/i)).toBeInTheDocument();
-
-    // Submitting with the parent field empty is blocked (inline error, no call).
+  it('blocks submit and shows error when name is missing', async () => {
+    const user = setup();
+    await fillEmailForm(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
-    expect(await screen.findByText(/valid parent\/guardian email/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Please enter your name/i)).toBeInTheDocument();
     expect(mockedRegister).not.toHaveBeenCalled();
   });
 
-  it('(b) an under-13 sign-up sends birthYear AND parentEmail to register', async () => {
-    const user = userEvent.setup();
-    await openEmailForm(user);
-    await fillBase(user, UNDER_13_YEAR);
-
-    await user.type(
-      await screen.findByLabelText(/Parent\/guardian email/i),
-      'parent@example.com'
-    );
+  it('blocks submit and shows error when org name is missing', async () => {
+    const user = setup();
+    await user.type(screen.getByLabelText(/Your name/i), 'Jane');
+    await fillEmailForm(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
-
-    await waitFor(() => expect(mockedRegister).toHaveBeenCalledTimes(1));
-    expect(mockedRegister).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: 'kid@example.com',
-        password: 'supersecret',
-        birthYear: CURRENT_YEAR - 8,
-        parentEmail: 'parent@example.com',
-      })
-    );
+    expect(await screen.findByText(/centre or organisation name/i)).toBeInTheDocument();
+    expect(mockedRegister).not.toHaveBeenCalled();
   });
 
-  it('(c) a 13+ birth year submits with birthYear and WITHOUT parentEmail', async () => {
-    const user = userEvent.setup();
-    await openEmailForm(user);
-    await fillBase(user, ADULT_YEAR);
+  it('blocks submit and shows error when phone is missing', async () => {
+    const user = setup();
+    await user.type(screen.getByLabelText(/Your name/i), 'Jane');
+    await user.type(screen.getByLabelText(/Centre \/ organisation name/i), 'Bright Stars');
+    await fillEmailForm(user);
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+    expect(await screen.findByText(/Please enter a contact number/i)).toBeInTheDocument();
+    expect(mockedRegister).not.toHaveBeenCalled();
+  });
 
-    // No parent field for an adult.
-    expect(screen.queryByLabelText(/Parent\/guardian email/i)).not.toBeInTheDocument();
-
+  it('successful email submit calls register with email + password + displayName — no birthYear or parentEmail', async () => {
+    const user = setup();
+    await fillProfile(user, { name: 'Jane Smith', org: 'Bright Stars', phone: '+65 9000 0000' });
+    await fillEmailForm(user, { email: 'jane@bright.edu', password: 'securepassword' });
     await user.click(screen.getByRole('button', { name: /Create account/i }));
 
     await waitFor(() => expect(mockedRegister).toHaveBeenCalledTimes(1));
     const arg = mockedRegister.mock.calls[0][0];
-    expect(arg.birthYear).toBe(CURRENT_YEAR - 30);
-    expect(arg.parentEmail).toBeUndefined();
+    expect(arg.email).toBe('jane@bright.edu');
+    expect(arg.password).toBe('securepassword');
+    expect(arg.displayName).toBe('Jane Smith');
+    expect(arg).not.toHaveProperty('birthYear');
+    expect(arg).not.toHaveProperty('parentEmail');
+  });
+
+  it('after register succeeds, calls onboardCentre with the org name', async () => {
+    const user = setup();
+    await fillProfile(user, { org: 'Bright Stars Tuition' });
+    await fillEmailForm(user);
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    await waitFor(() => expect(mockedOnboard).toHaveBeenCalledTimes(1));
+    expect(mockedOnboard).toHaveBeenCalledWith('Bright Stars Tuition');
+  });
+
+  it('redirects to /dashboard after successful registration + onboarding', async () => {
+    const user = setup();
+    await fillProfile(user);
+    await fillEmailForm(user);
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/dashboard'));
+  });
+
+  it('shows inline error on duplicate email (409)', async () => {
+    const { ApiError } = await import('@/lib/api');
+    mockedRegister.mockRejectedValue(new ApiError(409, 'EMAIL_CONFLICT', 'already exists', false));
+    const user = setup();
+    await fillProfile(user);
+    await fillEmailForm(user);
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    expect(await screen.findByText(/already exists/i)).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 });
