@@ -11,25 +11,35 @@ import { isGoogleEnabled } from '@/lib/google';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [birthYear, setBirthYear] = useState('');
-  const [parentEmail, setParentEmail] = useState('');
-  const [error, setError]       = useState('');
+
+  // Centre profile — collected from everyone (Google and email paths alike)
+  const [contactName, setContactName] = useState('');
+  const [orgName, setOrgName]         = useState('');
+  const [phone, setPhone]             = useState('');
+
+  // Email-path only
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [showEmail, setShowEmail]     = useState(false);
+
   const [loading, setLoading]   = useState(false);
-  const [showEmail, setShowEmail] = useState(false);
+  const [error, setError]       = useState('');
 
-  const CURRENT_YEAR = new Date().getFullYear();
-  const MIN_BIRTH_YEAR = 1950;
-  const yearNum = Number(birthYear);
-  const yearValid = /^\d{4}$/.test(birthYear) && yearNum >= MIN_BIRTH_YEAR && yearNum <= CURRENT_YEAR;
-  // Under-13 is computed client-side ONLY to reveal the parent-email field — the
-  // server re-derives the age from birthYear and is the real enforcement point.
-  const isUnder13 = yearValid && CURRENT_YEAR - yearNum < 13;
+  function validateProfile(): boolean {
+    if (!contactName.trim()) { setError('Please enter your name.'); return false; }
+    if (!orgName.trim())     { setError('Please enter your centre or organisation name.'); return false; }
+    if (!phone.trim())       { setError('Please enter a contact number.'); return false; }
+    return true;
+  }
 
-  async function afterAuth(token: string, userId: string, eventName: string) {
+  async function finishSetup(token: string, userId: string, eventName: string) {
     saveAuth(token, userId);
     identify(userId, { email: email || undefined });
+    try {
+      await api.onboardCentre(orgName.trim());
+    } catch {
+      // onboard failure is non-fatal for the session — dashboard handles retry.
+    }
     trackEvent(eventName);
     router.replace('/dashboard');
   }
@@ -37,10 +47,11 @@ export default function SignupPage() {
   async function handleGoogle(response: CredentialResponse) {
     if (!response.credential) return;
     setError('');
+    if (!validateProfile()) return;
     setLoading(true);
     try {
       const res = await api.google(response.credential);
-      await afterAuth(res.data.token, res.data.userId, 'signup_google');
+      await finishSetup(res.data.token, res.data.userId, 'signup_google');
     } catch (err) {
       setError(err instanceof ApiError ? err.userMessage : 'Google sign-in failed. Please try again.');
       setLoading(false);
@@ -50,38 +61,37 @@ export default function SignupPage() {
   async function handleEmail(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    if (!yearValid) {
-      setError(`Please enter a valid birth year between ${MIN_BIRTH_YEAR} and ${CURRENT_YEAR}.`);
-      return;
-    }
-    // Under-13: a parent/guardian email is required. (The server re-checks this.)
-    if (isUnder13 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
-      setError("Please enter a valid parent/guardian email so we can ask them to approve the account.");
-      return;
-    }
     setError('');
+    if (!validateProfile()) return;
+    if (!email.trim())         { setError('Please enter your work email.'); return; }
+    if (password.length < 8)   { setError('Password must be at least 8 characters.'); return; }
     setLoading(true);
     try {
       const res = await api.register({
-        email,
+        email: email.trim(),
         password,
-        birthYear: yearNum,
-        ...(isUnder13 ? { parentEmail } : {}),
+        displayName: contactName.trim(),
       });
-      await afterAuth(res.data.token, res.data.userId, 'signup_email');
+      await finishSetup(res.data.token, res.data.userId, 'signup_email');
     } catch (err) {
       setError(
         err instanceof ApiError
-          ? (err.status === 409 ? 'An account with this email already exists. Try logging in.' : err.userMessage)
+          ? (err.status === 409
+              ? 'An account with this email already exists. Try logging in.'
+              : err.userMessage)
           : 'Could not create account. Please try again.'
       );
       setLoading(false);
     }
   }
+
+  const inputStyle: React.CSSProperties = {
+    padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0',
+    fontSize: 14, color: '#1F1733', fontFamily: 'inherit',
+    background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box',
+  };
+  const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: '#1F1733' };
+  const fieldStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4 };
 
   return (
     <div
@@ -97,7 +107,7 @@ export default function SignupPage() {
         position: 'relative',
       }}
     >
-      {/* Top-left home link — standard SaaS nav pattern */}
+      {/* Top-left home link */}
       <a
         href="/"
         style={{
@@ -107,12 +117,12 @@ export default function SignupPage() {
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true"
+          style={{ width: 28, height: 28, objectFit: 'contain' }} />
         <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733' }}>Apalchi</span>
       </a>
 
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        {/* Mochi */}
+      <div style={{ width: '100%', maxWidth: 420 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/mochi-base-transparent.png"
@@ -121,164 +131,141 @@ export default function SignupPage() {
         />
 
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', textAlign: 'center', marginBottom: 6 }}>
-          Create your Apalchi account
+          Set up your centre on Apalchi
         </h1>
         <p style={{ fontSize: 14, color: '#6B618A', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
-          Start a 30-day pilot — no card required.
+          30-day pilot, no card required. Takes two minutes.
         </p>
 
-        {/* Google button — only when a web client ID is configured. */}
-        {isGoogleEnabled && (
+        {/* ── Centre profile fields (mandatory for all auth paths) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+          <div style={fieldStyle}>
+            <label htmlFor="su-name" style={labelStyle}>Your name</label>
+            <input
+              id="su-name" type="text" required placeholder="Jane Smith"
+              value={contactName} onChange={(e) => setContactName(e.target.value)}
+              style={inputStyle} autoComplete="name"
+            />
+          </div>
+          <div style={fieldStyle}>
+            <label htmlFor="su-org" style={labelStyle}>Centre / organisation name</label>
+            <input
+              id="su-org" type="text" required placeholder="Bright Stars Tuition"
+              value={orgName} onChange={(e) => setOrgName(e.target.value)}
+              style={inputStyle} autoComplete="organization"
+            />
+          </div>
+          <div style={fieldStyle}>
+            <label htmlFor="su-phone" style={labelStyle}>Contact number</label>
+            <input
+              id="su-phone" type="tel" required placeholder="+65 9123 4567"
+              value={phone} onChange={(e) => setPhone(e.target.value)}
+              style={inputStyle} autoComplete="tel"
+            />
+          </div>
+        </div>
+
+        {/* ── Auth methods ── */}
+        {isGoogleEnabled && !showEmail && (
           <>
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
               <GoogleLogin
                 onSuccess={handleGoogle}
                 onError={() => setError('Google sign-in failed. Please try again.')}
                 text="continue_with"
                 shape="rectangular"
                 size="large"
-                width="400"
+                width="420"
                 logo_alignment="left"
                 auto_select={false}
               />
             </div>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
               <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or</span>
               <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
             </div>
+            <button
+              type="button"
+              onClick={() => setShowEmail(true)}
+              style={{
+                width: '100%', padding: '13px 0', background: '#fff',
+                color: '#1F1733', border: '1.5px solid #E0DAF0', borderRadius: 12,
+                fontSize: 15, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Continue with email
+            </button>
           </>
         )}
 
-        {/* Email section */}
-        {!showEmail ? (
-          <button
-            onClick={() => setShowEmail(true)}
-            style={{
-              width: '100%',
-              padding: '13px 0',
-              background: '#fff',
-              color: '#1F1733',
-              border: '1.5px solid #E0DAF0',
-              borderRadius: 12,
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Continue with email
-          </button>
-        ) : (
-          <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label htmlFor="su-email" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Email address</label>
+        {(!isGoogleEnabled || showEmail) && (
+          <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={fieldStyle}>
+              <label htmlFor="su-email" style={labelStyle}>Work email</label>
               <input
-                id="su-email"
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="you@centre.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
+                id="su-email" type="email" required placeholder="jane@brightstar.edu"
+                value={email} onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle} autoComplete="email"
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label htmlFor="su-pw" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Password <span style={{ fontWeight: 400, color: '#A8A0BD' }}>(min 8 characters)</span></label>
+            <div style={fieldStyle}>
+              <label htmlFor="su-pw" style={labelStyle}>
+                Password{' '}
+                <span style={{ fontWeight: 400, color: '#A8A0BD' }}>(min 8 characters)</span>
+              </label>
               <input
-                id="su-pw"
-                type="password"
-                required
-                autoComplete="new-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
+                id="su-pw" type="password" required placeholder="••••••••"
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                style={inputStyle} autoComplete="new-password"
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label htmlFor="su-year" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Your birth year</label>
-              <input
-                id="su-year"
-                type="number"
-                required
-                inputMode="numeric"
-                min={MIN_BIRTH_YEAR}
-                max={CURRENT_YEAR}
-                placeholder="e.g. 2012"
-                value={birthYear}
-                onChange={(e) => setBirthYear(e.target.value)}
-                style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
-              />
-            </div>
-            {isUnder13 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label htmlFor="su-parent" style={{ fontSize: 13, fontWeight: 700, color: '#1F1733' }}>Parent/guardian email</label>
-                <input
-                  id="su-parent"
-                  type="email"
-                  aria-required="true"
-                  autoComplete="off"
-                  placeholder="parent@example.com"
-                  value={parentEmail}
-                  onChange={(e) => setParentEmail(e.target.value)}
-                  style={{ padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E0DAF0', fontSize: 14, color: '#1F1733', fontFamily: 'inherit', background: '#fff', outline: 'none' }}
-                />
-                <p style={{ fontSize: 12, color: '#6B618A', lineHeight: 1.5, marginTop: 2 }}>
-                  Because you&apos;re under 13, a parent/guardian must approve your account before you can
-                  upload your own notes. You can still log in and use your centre&apos;s lessons.
-                </p>
-              </div>
-            )}
             <button
               type="submit"
               disabled={loading}
               style={{
-                marginTop: 4,
-                padding: '13px 0',
-                background: '#4C6FFF',
-                color: '#fff',
-                borderRadius: 12,
-                border: 'none',
-                fontSize: 15,
-                fontWeight: 800,
+                marginTop: 4, padding: '13px 0', background: '#4C6FFF',
+                color: '#fff', borderRadius: 12, border: 'none',
+                fontSize: 15, fontWeight: 800,
                 cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.65 : 1,
               }}
             >
-              {loading ? 'Creating account…' : 'Create account'}
+              {loading ? 'Creating account…' : 'Create account →'}
             </button>
+            {isGoogleEnabled && (
+              <button
+                type="button"
+                onClick={() => setShowEmail(false)}
+                style={{
+                  background: 'none', border: 'none', color: '#A8A0BD',
+                  fontSize: 13, cursor: 'pointer', textAlign: 'center',
+                }}
+              >
+                ← Back to sign-in options
+              </button>
+            )}
           </form>
         )}
 
-        {/* Error */}
         {error && (
           <div
             style={{
-              marginTop: 12,
+              marginTop: 14,
               padding: '10px 14px',
               borderRadius: 10,
               background: 'color-mix(in srgb, #FF6660 12%, transparent)',
               border: '1.5px solid color-mix(in srgb, #FF6660 30%, transparent)',
-              color: '#C0392B',
-              fontWeight: 700,
-              fontSize: 13,
+              color: '#C0392B', fontWeight: 700, fontSize: 13,
             }}
           >
             {error}
           </div>
         )}
 
-        {/* Footer links */}
         <p style={{ textAlign: 'center', fontSize: 13, color: '#A8A0BD', marginTop: 24 }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: '#4C6FFF', fontWeight: 700 }}>Log in</Link>
-        </p>
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#A8A0BD', marginTop: 8 }}>
-          Running a school or large centre?{' '}
-          <Link href="/demo" style={{ color: '#4C6FFF', fontWeight: 700 }}>Book a demo instead</Link>
+          <Link href="/login" style={{ color: '#4C6FFF', fontWeight: 700 }}>Sign in</Link>
         </p>
       </div>
     </div>
