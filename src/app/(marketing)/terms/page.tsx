@@ -26,9 +26,10 @@ export default function TermsPage() {
 
         <Section title="1. Who We Are">
           <p>
-            Apalchi is an AI-powered study platform registered in Singapore. We provide personalised AI
-            tutoring tools for students and tuition centres. If you have questions about these terms,
-            contact us at <a href="mailto:hello@apalchi.com" style={linkStyle}>hello@apalchi.com</a>.
+            Apalchi is an AI-powered study platform operated by CATALYX SYSTEM PTE. LTD, registered
+            in Singapore. We provide personalised AI tutoring tools for students and tuition centres.
+            If you have questions about these terms, contact us at{' '}
+            <a href="mailto:hello@apalchi.com" style={linkStyle}>hello@apalchi.com</a>.
           </p>
         </Section>
 

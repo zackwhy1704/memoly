@@ -26,9 +26,10 @@ export default function PrivacyPage() {
 
         <Section title="1. Who We Are">
           <p>
-            Apalchi is operated by Apalchi Pte. Ltd., registered in Singapore. We build AI-powered
-            study tools for students and tuition centres. For privacy enquiries, contact us at{' '}
-            <a href="mailto:privacy@apalchi.com" style={linkStyle}>privacy@apalchi.com</a>.
+            Apalchi is an AI-powered study platform operated by CATALYX SYSTEM PTE. LTD, registered
+            in Singapore. We build AI-powered study tools for students and tuition centres. For
+            privacy enquiries, contact us at{' '}
+            <a href="mailto:hello@apalchi.com" style={linkStyle}>hello@apalchi.com</a>.
           </p>
         </Section>
 
