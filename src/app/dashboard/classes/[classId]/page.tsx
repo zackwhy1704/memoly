@@ -13,7 +13,7 @@ import { RosterTab } from './tabs/RosterTab';
 import { ModulesTab } from './tabs/ModulesTab';
 import { HeatmapTab } from './tabs/HeatmapTab';
 import { ConceptMasteryTab } from './tabs/ConceptMasteryTab';
-import { ContentTab } from './tabs/ContentTab';
+import { ClassBrainTab } from './tabs/ClassBrainTab';
 import { AssignmentsTab } from './tabs/AssignmentsTab';
 import { ChallengesTab } from './tabs/ChallengesTab';
 import { ReviewTab } from './tabs/ReviewTab';
@@ -47,6 +47,14 @@ export default function ClassDetailPage() {
     enabled: !!cls?.corpusAvatarId,
   });
   const appearance = avatarData?.data.appearance;
+
+  // Brain empty-state: detect zero wiki pages so we can show an action banner.
+  const { data: wikiPagesData, isLoading: wikiPagesLoading } = useQuery({
+    queryKey: ['wikiPages', cls?.corpusAvatarId],
+    queryFn: () => api.wikiPages(cls!.corpusAvatarId!),
+    enabled: !!cls?.corpusAvatarId,
+  });
+  const brainIsEmpty = !wikiPagesLoading && wikiPagesData !== undefined && (wikiPagesData.data?.length ?? 0) === 0;
 
   if (isLoading) {
     return (
@@ -119,7 +127,7 @@ export default function ClassDetailPage() {
             modules: 'Modules',
             heatmap: 'Heatmap',
             concepts: 'Concept Mastery',
-            content: 'Content',
+            content: 'Brain',
             assignments: 'Assignments',
             challenges: 'Challenges',
             review: 'Review',
@@ -142,12 +150,23 @@ export default function ClassDetailPage() {
         })}
       </div>
 
+      {/* Empty brain banner — only after loading settles, never while loading */}
+      {cls.corpusAvatarId && brainIsEmpty && tab !== 'content' && (
+        <button
+          onClick={() => setTab('content')}
+          className="w-full text-left px-4 py-3 rounded-xl bg-warn/10 border border-warn/30 text-sm text-warn font-medium hover:bg-warn/15 transition"
+        >
+          This class has no content yet — upload notes so the Mochi can teach.{' '}
+          <span className="underline">Open Brain →</span>
+        </button>
+      )}
+
       <TabErrorBoundary resetKey={tab}>
         {tab === 'roster' && <RosterTab orgId={org.orgId} classId={classId} />}
         {tab === 'modules' && <ModulesTab orgId={org.orgId} classId={classId} />}
         {tab === 'heatmap' && <HeatmapTab orgId={org.orgId} classId={classId} />}
         {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
-        {tab === 'content' && <ContentTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
+        {tab === 'content' && <ClassBrainTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
         {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
         {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
         {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}

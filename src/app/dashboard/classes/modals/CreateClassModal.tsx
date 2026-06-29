@@ -1,12 +1,11 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api, type CreateClassBody, type OrgClass } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
-import { CENTRE_MOCHIS, CENTRE_SUBJECTS } from '@/lib/centre-mochis';
+import { CENTRE_SUBJECTS } from '@/lib/centre-mochis';
 import MochiUploader from '@/components/MochiUploader';
-import MochiBadge from '../components/MochiBadge';
 import CreatedClassAvatar from '../components/CreatedClassAvatar';
 
 export default function CreateClassModal({
@@ -18,13 +17,13 @@ export default function CreateClassModal({
   onClose: () => void;
   onCreated: (cls: OrgClass) => void;
 }) {
+  const qc = useQueryClient();
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('MATHS');
   const [level, setLevel] = useState('');
-  const [characterType, setCharacterType] = useState('MOCHI');
   const [brandName, setBrandName] = useState('');
   const [accentColor, setAccentColor] = useState('#4C6FFF');
-  // Two-step journey, mirroring the mobile app: create the Mochi, then upload.
+  // Two-step: create the class, then upload to its brain.
   const [created, setCreated] = useState<OrgClass | null>(null);
 
   const mutation = useMutation({
@@ -41,14 +40,15 @@ export default function CreateClassModal({
       name: name.trim(),
       subject,
       level: level.trim() || undefined,
-      characterType,
+      characterType: 'MOCHI',
       brandName: brandName.trim() || undefined,
       accentColor,
     });
   }
 
-  // ── Step 2 — upload up to 10 files to the new class corpus (mobile pipeline) ──
+  // ── Step 2 — upload to the new class brain ────────────────────────────────
   if (created) {
+    const displayName = created.brandName || created.name;
     return (
       <div
         className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
@@ -61,16 +61,27 @@ export default function CreateClassModal({
           <div className="flex items-center gap-3">
             {created.corpusAvatarId && <CreatedClassAvatar avatarId={created.corpusAvatarId} />}
             <div>
-              <h2 className="text-lg font-bold text-ink">Add content to {created.brandName || created.name}</h2>
+              <h2 className="text-lg font-bold text-ink">Add to {displayName}&apos;s brain</h2>
               <p className="text-ink3 text-xs mt-1">
                 Join code <span className="font-mono text-accent">{created.joinCode}</span> ·
-                upload now or skip and do it later.
+                upload notes now, or skip and add them anytime from the Brain tab.
               </p>
             </div>
           </div>
 
           {created.corpusAvatarId && (
-            <MochiUploader avatarId={created.corpusAvatarId} />
+            <div className="bg-panel border border-line rounded-2xl p-4">
+              <p className="text-ink3 text-xs mb-3">
+                Upload notes, worksheets or PDFs — every student&apos;s Mochi in this class reads this shared brain.
+              </p>
+              <MochiUploader
+                avatarId={created.corpusAvatarId}
+                onComplete={() => {
+                  qc.invalidateQueries({ queryKey: ['classFiles', created.corpusAvatarId] });
+                  qc.invalidateQueries({ queryKey: ['wikiPages', created.corpusAvatarId] });
+                }}
+              />
+            </div>
           )}
 
           <div className="flex justify-end pt-1">
@@ -86,13 +97,14 @@ export default function CreateClassModal({
     );
   }
 
+  // ── Step 1 — class identity ───────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-panel border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5"
+        className="bg-panel border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -100,7 +112,8 @@ export default function CreateClassModal({
           <p className="text-ink3 text-xs mt-1">Step 1 of 2 — a join code is generated automatically.</p>
         </div>
 
-        <div className="space-y-3">
+        {/* Class name */}
+        <div className="bg-panel border border-line rounded-2xl p-4 space-y-3">
           <label className="block">
             <span className="text-xs text-ink2 font-medium">Class name *</span>
             <input
@@ -136,74 +149,32 @@ export default function CreateClassModal({
               />
             </label>
           </div>
-
-          <div>
-            <span className="text-xs text-ink2 font-medium">Base Mochi</span>
-            <div className="mt-2 grid grid-cols-4 gap-2">
-              {CENTRE_MOCHIS.map((m) => {
-                const selected = m.characterType === characterType;
-                return (
-                  <button
-                    key={m.characterType}
-                    type="button"
-                    onClick={() => setCharacterType(m.characterType)}
-                    title={`${m.name} — ${m.tagline}`}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition ${
-                      selected
-                        ? 'border-accent bg-accent/10'
-                        : 'border-line bg-panel2 hover:border-accent/40'
-                    }`}
-                  >
-                    <MochiBadge characterType={m.characterType} size={40} />
-                    <span className="text-[10px] text-ink2 truncate w-full text-center">
-                      {m.name.replace(' Mochi', '')}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs text-ink2 font-medium">Brand name (optional)</span>
-              <input
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                placeholder="ABC P4 Math"
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs text-ink2 font-medium">Accent color</span>
-              <input
-                type="color"
-                value={accentColor}
-                onChange={(e) => setAccentColor(e.target.value)}
-                className="mt-1 w-full h-10 rounded-lg border border-line bg-panel2 cursor-pointer"
-              />
-            </label>
-          </div>
         </div>
 
-        {/* Accessories — layered-art scaffold, inert until art is commissioned */}
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-ink2 font-medium">Accessories</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-panel2 text-ink3">Coming soon</span>
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {(['Eyewear', 'Clothes', 'Shoes'] as const).map((slot) => (
-              <select
-                key={slot}
-                disabled
-                title="Layered accessory art is on the way"
-                className="px-2 py-2 rounded-lg border border-line bg-panel2 text-ink3 text-xs opacity-60 cursor-not-allowed"
-              >
-                <option>{slot} — none</option>
-              </select>
-            ))}
-          </div>
+        {/* Branding */}
+        <div className="bg-panel border border-line rounded-2xl p-4 space-y-3">
+          <label className="block">
+            <span className="text-xs text-ink2 font-medium">Brand name</span>
+            <span className="text-ink3 text-xs ml-1">(optional)</span>
+            <p className="text-ink3 text-[11px] mt-0.5 mb-1">
+              Shown to students as their tutor&apos;s name — e.g. &ldquo;Bright Minds P4 Math&rdquo;.
+            </p>
+            <input
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              placeholder="Bright Minds P4 Math"
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-ink2 font-medium">Accent colour</span>
+            <input
+              type="color"
+              value={accentColor}
+              onChange={(e) => setAccentColor(e.target.value)}
+              className="mt-1 w-full h-10 rounded-lg border border-line bg-panel2 cursor-pointer"
+            />
+          </label>
         </div>
 
         {mutation.isError && (
