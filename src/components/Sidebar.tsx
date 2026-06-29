@@ -12,7 +12,6 @@ const navItems = [
   { href: '/dashboard/students', label: 'Students', icon: '👥', exact: false },
   { href: '/dashboard/classes', label: 'Classes', icon: '🏫', exact: false },
   { href: '/dashboard/teachers', label: 'Teachers', icon: '🎓', exact: false },
-  { href: '/dashboard/content/upload', label: 'Content', icon: '↑', exact: false },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙', exact: false },
 ];
 
@@ -26,10 +25,6 @@ export default function Sidebar() {
 
   function isActive(item: { href: string; exact: boolean }) {
     if (item.exact) return pathname === item.href;
-    // Special case: /dashboard/content matches both upload and analysis
-    if (item.href === '/dashboard/content/upload') {
-      return pathname.startsWith('/dashboard/content');
-    }
     return pathname.startsWith(item.href);
   }
 

@@ -73,10 +73,10 @@ export default function DashboardPage() {
           <p className="text-ink3 text-sm mt-1">Centre performance at a glance</p>
         </div>
         <Link
-          href="/dashboard/content/upload"
+          href="/dashboard/classes"
           className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent/80 transition-colors shrink-0"
         >
-          + Upload Content
+          + New class
         </Link>
       </div>
 

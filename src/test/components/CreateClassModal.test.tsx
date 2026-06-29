@@ -1,22 +1,31 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateClassModal from '@/app/dashboard/classes/modals/CreateClassModal';
+import { api } from '@/lib/api';
 
-// MochiUploader and child components that hit the network / use router are
-// only rendered in step-2 (after class creation). Step-2 requires the
-// mutation to succeed, which we don't trigger here, so these mocks are
-// defensive guards for the static import tree only.
+// Silence analytics.
+vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
+
+// MochiUploader is step-2 only (needs a successful create first).
 vi.mock('@/components/MochiUploader', () => ({
   default: () => <div data-testid="mochi-uploader" />,
 }));
-vi.mock('@/app/dashboard/classes/components/CreatedClassAvatar', () => ({
-  default: () => <div data-testid="created-class-avatar" />,
+
+// AvatarPickerModal — stub so the full canvas doesn't render in jsdom.
+vi.mock('@/components/AvatarPickerModal', () => ({
+  default: ({ onDismiss }: { onDismiss: () => void }) => (
+    <div data-testid="avatar-picker-modal">
+      <button onClick={onDismiss}>Close picker</button>
+    </div>
+  ),
 }));
-// Silence analytics calls.
-vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
-// api.createClass is called by the mutation; stub it so mutations resolve in
-// tests that drive form submission.
+
+// MochiAvatar — stub the canvas-based avatar so jsdom doesn't explode.
+vi.mock('@/components/MochiAvatar', () => ({
+  default: () => <div data-testid="mochi-avatar" />,
+}));
+
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>();
   return {
@@ -24,6 +33,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
     api: {
       ...actual.api,
       createClass: vi.fn(),
+      setMochiConfig: vi.fn(),
     },
   };
 });
@@ -45,55 +55,107 @@ function renderModal(props?: Partial<Parameters<typeof CreateClassModal>[0]>) {
   );
 }
 
-describe('CreateClassModal', () => {
-  it('renders the modal with a class name input field', () => {
+describe('CreateClassModal — step 1 (class identity)', () => {
+  it('renders the step 1 heading and subtitle', () => {
     renderModal();
     expect(screen.getByText('New class')).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 2/)).toBeInTheDocument();
+  });
+
+  it('renders the Mochi studio: preview + customise button', () => {
+    renderModal();
+    expect(screen.getByTestId('mochi-avatar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Choose a style or customise/i })).toBeInTheDocument();
+  });
+
+  it('opens AvatarPickerModal when the customise button is clicked', () => {
+    renderModal();
+    expect(screen.queryByTestId('avatar-picker-modal')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Choose a style or customise/i }));
+    expect(screen.getByTestId('avatar-picker-modal')).toBeInTheDocument();
+  });
+
+  it('closes the picker when onDismiss is triggered', () => {
+    renderModal();
+    fireEvent.click(screen.getByRole('button', { name: /Choose a style or customise/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close picker' }));
+    expect(screen.queryByTestId('avatar-picker-modal')).not.toBeInTheDocument();
+  });
+
+  it('renders the class name, subject, and level inputs', () => {
+    renderModal();
     expect(screen.getByPlaceholderText('P4 Math')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('P4')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
-  it('submit button is disabled when the class name input is empty', () => {
+  it('renders the brand name and accent colour inputs', () => {
     renderModal();
-    const submitBtn = screen.getByRole('button', { name: /Create & add content/ });
-    expect(submitBtn).toBeDisabled();
+    expect(screen.getByPlaceholderText('Bright Minds P4 Math')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Accent colour/i)).toBeInTheDocument();
   });
 
-  it('submit button is enabled once the class name has text', () => {
+  it('submit button is disabled when class name is empty', () => {
     renderModal();
-    const input = screen.getByPlaceholderText('P4 Math');
-    fireEvent.change(input, { target: { value: 'P4 Science' } });
-    expect(screen.getByRole('button', { name: /Create & add content/ })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Create & add content/i })).toBeDisabled();
   });
 
-  it('submit button returns to disabled after clearing the input', () => {
+  it('submit button enables once class name has text', () => {
+    renderModal();
+    fireEvent.change(screen.getByPlaceholderText('P4 Math'), { target: { value: 'P4 Science' } });
+    expect(screen.getByRole('button', { name: /Create & add content/i })).not.toBeDisabled();
+  });
+
+  it('submit button goes back to disabled when class name is cleared', () => {
     renderModal();
     const input = screen.getByPlaceholderText('P4 Math');
     fireEvent.change(input, { target: { value: 'P4 Science' } });
     fireEvent.change(input, { target: { value: '' } });
-    expect(screen.getByRole('button', { name: /Create & add content/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Create & add content/i })).toBeDisabled();
   });
 
-  it('calls onClose when the Cancel button is clicked', () => {
+  it('calls onClose when Cancel is clicked', () => {
     const onClose = vi.fn();
     renderModal({ onClose });
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('shows subject selector and level input', () => {
-    renderModal();
-    expect(screen.getByPlaceholderText('P4')).toBeInTheDocument();
-    // Subject select — should exist in the form.
-    const selects = screen.getAllByRole('combobox');
-    // At least the subject combobox is enabled (others are disabled accessories).
-    const enabledSelects = selects.filter((s) => !(s as HTMLSelectElement).disabled);
-    expect(enabledSelects.length).toBeGreaterThanOrEqual(1);
-  });
+  it('calls api.createClass with correct body on submit and then calls setMochiConfig', async () => {
+    const createdClass = {
+      id: 'class-1',
+      name: 'P4 Science',
+      subject: 'SCIENCE',
+      level: null,
+      joinCode: 'ABC123',
+      corpusAvatarId: 'avatar-1',
+      characterType: 'MOCHI',
+      brandName: null,
+      accentColor: null,
+      examDate: null,
+      cosmeticEyewear: null,
+      cosmeticClothes: null,
+      cosmeticShoes: null,
+      studentCount: 0,
+    };
+    vi.mocked(api.createClass).mockResolvedValue({ data: createdClass } as ReturnType<typeof api.createClass> extends Promise<infer R> ? R : never);
+    vi.mocked(api.setMochiConfig).mockResolvedValue({} as ReturnType<typeof api.setMochiConfig> extends Promise<infer R> ? R : never);
 
-  it('shows the Step 1 of 2 label', () => {
     renderModal();
-    expect(
-      screen.getByText(/Step 1 of 2/)
-    ).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('P4 Math'), { target: { value: 'P4 Science' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create & add content/i }));
+
+    await waitFor(() => {
+      expect(api.createClass).toHaveBeenCalledWith('org-1', expect.objectContaining({
+        name: 'P4 Science',
+        characterType: 'MOCHI',
+      }));
+    });
+
+    await waitFor(() => {
+      expect(api.setMochiConfig).toHaveBeenCalledWith('org-1', 'class-1', expect.objectContaining({
+        body: expect.any(Number),
+      }));
+    });
   });
 });
