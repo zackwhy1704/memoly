@@ -96,17 +96,14 @@ export default function ClassesPage() {
                       return appearance ? (
                         <ClassAvatar appearance={appearance} size={48} />
                       ) : (
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: (cls.accentColor ?? '#4C6FFF') + '22' }}
-                        >
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-accent/10">
                           <MochiBadge characterType={cls.characterType} size={36} />
                         </div>
                       );
                     })()}
                     <div className="min-w-0">
                       <h2 className="text-base font-bold text-ink truncate">
-                        {cls.brandName || cls.name}
+                        {cls.name}
                       </h2>
                       <p className="text-ink3 text-xs truncate">
                         {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'}

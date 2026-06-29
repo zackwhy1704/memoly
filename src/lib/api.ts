@@ -598,8 +598,6 @@ export interface CreateClassBody {
   subject?: string;
   level?: string;
   characterType?: string;
-  brandName?: string;
-  accentColor?: string;
   examDate?: string;
 }
 

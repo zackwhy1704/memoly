@@ -92,16 +92,13 @@ export default function ClassDetailPage() {
         ) : appearance ? (
           <ClassAvatar appearance={appearance} size={64} />
         ) : (
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0"
-            style={{ background: (cls.accentColor ?? '#4C6FFF') + '22' }}
-          >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 bg-accent/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.image} alt={m.name} width={52} height={52} className="object-contain" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold text-ink truncate">{cls.brandName || cls.name}</h1>
+          <h1 className="text-xl font-bold text-ink truncate">{cls.name}</h1>
           <p className="text-ink3 text-sm">
             {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'} · {cls.studentCount} students
           </p>
