@@ -1077,6 +1077,12 @@ export const api = {
       { method: 'DELETE' }
     ),
 
+  removeStudentFromOrg: (orgId: string, studentId: string) =>
+    apiFetch<{ data: { studentId: string; classesRemoved: number } }>(
+      `/centre/organizations/${orgId}/students/${studentId}`,
+      { method: 'DELETE' }
+    ),
+
   classRoster: (orgId: string, classId: string) =>
     apiFetch<{ data: ClassRosterStudent[] }>(
       `/centre/organizations/${orgId}/classes/${classId}/members`

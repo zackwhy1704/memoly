@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, type OrgClass } from '@/lib/api';
@@ -9,6 +9,7 @@ import { useOrg } from '@/lib/org-context';
 import ClassAvatar from '@/components/ClassAvatar';
 import MochiAvatar from '@/components/MochiAvatar';
 import { ClassCodeBox } from './components/ClassCodeBox';
+import EditClassModal from '../modals/EditClassModal';
 import { RosterTab } from './tabs/RosterTab';
 import { ModulesTab } from './tabs/ModulesTab';
 import { HeatmapTab } from './tabs/HeatmapTab';
@@ -29,8 +30,19 @@ export default function ClassDetailPage() {
   const params = useParams();
   const router = useRouter();
   const org = useOrg();
+  const qc = useQueryClient();
   const classId = params.classId as string;
   const [tab, setTab] = useState<Tab>('roster');
+  const [editingClass, setEditingClass] = useState(false);
+  const [deletingClass, setDeletingClass] = useState(false);
+
+  const deleteMut = useMutation({
+    mutationFn: () => api.deleteClass(org!.orgId, classId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['classes', org!.orgId] });
+      router.replace('/dashboard/classes');
+    },
+  });
 
   const { data: classesData, isLoading } = useQuery({
     queryKey: ['classes', org?.orgId],
@@ -98,7 +110,23 @@ export default function ClassDetailPage() {
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold text-ink truncate">{cls.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-ink truncate">{cls.name}</h1>
+            <button
+              onClick={() => setEditingClass(true)}
+              className="text-ink3 hover:text-ink transition shrink-0 text-sm leading-none"
+              title="Edit class"
+            >
+              ✏️
+            </button>
+            <button
+              onClick={() => setDeletingClass(true)}
+              className="text-ink3 hover:text-bad transition shrink-0 text-sm leading-none"
+              title="Delete class"
+            >
+              🗑
+            </button>
+          </div>
           <p className="text-ink3 text-sm">
             {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'} · {cls.studentCount} students
           </p>
@@ -172,6 +200,56 @@ export default function ClassDetailPage() {
         {tab === 'report' && <ReportTab orgId={org.orgId} classId={classId} />}
         {tab === 'add' && <AddStudentsTab orgId={org.orgId} classId={classId} />}
       </TabErrorBoundary>
+
+      {editingClass && (
+        <EditClassModal
+          orgId={org.orgId}
+          cls={cls}
+          onClose={() => setEditingClass(false)}
+          onSaved={() => {
+            qc.invalidateQueries({ queryKey: ['classes', org.orgId] });
+            setEditingClass(false);
+          }}
+        />
+      )}
+
+      {deletingClass && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => !deleteMut.isPending && setDeletingClass(false)}
+        >
+          <div
+            className="bg-panel border border-line rounded-2xl w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-ink">Delete &ldquo;{cls.name}&rdquo;?</h2>
+            <p className="text-sm text-ink2">
+              This permanently deletes the class, its brain, all modules, and all student memberships.
+              Students lose access immediately.{' '}
+              <strong className="text-bad">This cannot be undone.</strong>
+            </p>
+            {deleteMut.isError && (
+              <p className="text-xs text-bad">Could not delete. Please try again.</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeletingClass(false)}
+                disabled={deleteMut.isPending}
+                className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMut.mutate()}
+                disabled={deleteMut.isPending}
+                className="px-4 py-2 rounded-lg bg-bad text-white text-sm font-semibold hover:bg-bad/90 transition disabled:opacity-40"
+              >
+                {deleteMut.isPending ? 'Deleting…' : 'Delete class'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useState, Suspense } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
@@ -13,12 +13,21 @@ function StudentsContent() {
   const searchParams = useSearchParams();
   const cohortFilter = searchParams.get('cohort') ?? '';
   const [search, setSearch] = useState('');
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const org = useOrg();
+  const qc = useQueryClient();
 
   const query = useQuery({
     queryKey: ['roster', org?.orgId, cohortFilter],
     queryFn: () => api.roster(org!.orgId, cohortFilter || undefined),
     enabled: !!org,
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (studentId: string) => api.removeStudentFromOrg(org!.orgId, studentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['roster', org?.orgId] });
+    },
   });
 
   return (
@@ -53,6 +62,9 @@ function StudentsContent() {
             const matchesCohort = !cohortFilter || s.cohortLabel === cohortFilter;
             return matchesSearch && matchesCohort;
           });
+
+          const confirmStudent = filtered.find((s) => s.userId === confirmRemoveId)
+            ?? students.find((s) => s.userId === confirmRemoveId);
 
           function setCohort(c: string) {
             const params = new URLSearchParams(searchParams.toString());
@@ -98,6 +110,7 @@ function StudentsContent() {
                         <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">XP</th>
                         <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Streak</th>
                         <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Status</th>
+                        <th className="px-5 py-3.5" />
                       </tr>
                     </thead>
                     <tbody>
@@ -125,12 +138,23 @@ function StudentsContent() {
                                 {active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
+                            <td
+                              className="px-5 py-4 text-right"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => setConfirmRemoveId(s.userId)}
+                                className="text-xs text-bad hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
                       {filtered.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="px-5 py-16 text-center text-ink3">
+                          <td colSpan={7} className="px-5 py-16 text-center text-ink3">
                             No students found
                           </td>
                         </tr>
@@ -144,6 +168,50 @@ function StudentsContent() {
                   </div>
                 )}
               </div>
+
+              {/* Remove from centre confirmation */}
+              {confirmStudent && (
+                <div
+                  className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                  onClick={() => !removeMut.isPending && setConfirmRemoveId(null)}
+                >
+                  <div
+                    className="bg-panel border border-line rounded-2xl w-full max-w-sm p-6 space-y-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h2 className="text-lg font-bold text-ink">
+                      Remove {confirmStudent.displayName}?
+                    </h2>
+                    <p className="text-sm text-ink2">
+                      This removes them from <strong>all classes</strong> in this centre.
+                      Their progress data is preserved — they can rejoin with a class code.
+                    </p>
+                    {removeMut.isError && (
+                      <p className="text-xs text-bad">Could not remove student. Please try again.</p>
+                    )}
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => setConfirmRemoveId(null)}
+                        disabled={removeMut.isPending}
+                        className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition disabled:opacity-40"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          removeMut.mutate(confirmStudent.userId, {
+                            onSuccess: () => setConfirmRemoveId(null),
+                          });
+                        }}
+                        disabled={removeMut.isPending}
+                        className="px-4 py-2 rounded-lg bg-bad text-white text-sm font-semibold hover:bg-bad/90 transition disabled:opacity-40"
+                      >
+                        {removeMut.isPending ? 'Removing…' : 'Remove from centre'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           );
         }}
