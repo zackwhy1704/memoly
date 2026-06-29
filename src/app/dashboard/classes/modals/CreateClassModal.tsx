@@ -304,7 +304,7 @@ export default function CreateClassModal({
                 <MochiUploader
                   avatarId={created.corpusAvatarId}
                   onComplete={(pageCount) => {
-                    if (pageCount >= 0) setUploadCompleted(true);
+                    if (pageCount > 0) setUploadCompleted(true);
                     qc.invalidateQueries({ queryKey: ['classFiles', created.corpusAvatarId] });
                     qc.invalidateQueries({ queryKey: ['wikiPages', created.corpusAvatarId] });
                   }}

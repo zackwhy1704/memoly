@@ -1039,6 +1039,11 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  deleteClass: (orgId: string, classId: string) =>
+    apiFetch<void>(`/centre/organizations/${orgId}/classes/${classId}`, {
+      method: 'DELETE',
+    }),
+
   // Save the class Mochi look. Body is the full MochiConfig.
   setMochiConfig: (orgId: string, classId: string, cfg: MochiConfig) =>
     apiFetch<{ data: OrgClass }>(
@@ -1173,6 +1178,12 @@ export const api = {
 
   listChallenges: (classId: string) =>
     apiFetch<Challenge[]>(`/classes/${classId}/challenges`),
+
+  deleteChallenge: (orgId: string, classId: string, challengeId: string) =>
+    apiFetch<void>(
+      `/centre/organizations/${orgId}/classes/${classId}/challenges/${challengeId}`,
+      { method: 'DELETE' }
+    ),
 
   // ── Content Review ─────────────────────────────────────────────────
   contentReview: (orgId: string, classId: string) =>

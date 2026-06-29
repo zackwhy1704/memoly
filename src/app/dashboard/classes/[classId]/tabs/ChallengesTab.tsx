@@ -145,7 +145,15 @@ function ChallengePoster({
   );
 }
 
-function ChallengeCard({ challenge }: { challenge: Challenge }) {
+function ChallengeCard({
+  challenge,
+  onDelete,
+  isDeleting,
+}: {
+  challenge: Challenge;
+  onDelete: () => void;
+  isDeleting: boolean;
+}) {
   const revealDate = new Date(challenge.revealAt);
   const revealed = challenge.answer != null && challenge.answer !== '';
   const dist = challenge.distribution ?? null;
@@ -162,6 +170,14 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
         >
           {revealed ? 'Revealed' : 'Scheduled'}
         </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          disabled={isDeleting}
+          className="text-ink3 hover:text-bad transition text-xl leading-none px-1 shrink-0 disabled:opacity-40"
+          title="Delete challenge"
+        >
+          &times;
+        </button>
       </div>
 
       <p className="text-xs text-ink3">
@@ -230,6 +246,11 @@ export function ChallengesTab({ orgId, classId }: { orgId: string; classId: stri
     queryFn: () => api.listChallenges(classId),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (challengeId: string) => api.deleteChallenge(orgId, classId, challengeId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['challenges', classId] }),
+  });
+
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading challenges...</p>;
   if (query.error) return <ErrorView message="Could not load challenges." onRetry={() => query.refetch()} />;
 
@@ -252,7 +273,12 @@ export function ChallengesTab({ orgId, classId }: { orgId: string; classId: stri
       ) : (
         <div className="space-y-3">
           {challenges.map((c) => (
-            <ChallengeCard key={c.id} challenge={c} />
+            <ChallengeCard
+              key={c.id}
+              challenge={c}
+              onDelete={() => deleteMut.mutate(c.id)}
+              isDeleting={deleteMut.isPending && deleteMut.variables === c.id}
+            />
           ))}
         </div>
       )}
