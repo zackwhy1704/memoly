@@ -16,6 +16,7 @@ import { HeatmapTab } from './tabs/HeatmapTab';
 import { ConceptMasteryTab } from './tabs/ConceptMasteryTab';
 import { ClassBrainTab } from './tabs/ClassBrainTab';
 import { AssignmentsTab } from './tabs/AssignmentsTab';
+import { SubmissionsTab } from './tabs/SubmissionsTab';
 import { ChallengesTab } from './tabs/ChallengesTab';
 import { ReviewTab } from './tabs/ReviewTab';
 import { ExamReadinessTab } from './tabs/ExamReadinessTab';
@@ -24,7 +25,7 @@ import { ClassBriefTab } from './tabs/ClassBriefTab';
 import { ReportTab } from './tabs/ReportTab';
 import TabErrorBoundary from '@/components/TabErrorBoundary';
 
-type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'challenges' | 'review' | 'readiness' | 'brief' | 'report' | 'add';
+type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'submissions' | 'challenges' | 'review' | 'readiness' | 'brief' | 'report' | 'add';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -146,7 +147,7 @@ export default function ClassDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-line overflow-x-auto">
-        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'challenges', 'review', 'readiness', 'brief', 'report', 'add'] as Tab[]).map((t) => {
+        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'submissions', 'challenges', 'review', 'readiness', 'brief', 'report', 'add'] as Tab[]).map((t) => {
           const label: Record<Tab, string> = {
             roster: 'Roster',
             modules: 'Modules',
@@ -154,6 +155,7 @@ export default function ClassDetailPage() {
             concepts: 'Concept Mastery',
             content: 'Brain',
             assignments: 'Assignments',
+            submissions: 'Submissions',
             challenges: 'Challenges',
             review: 'Review',
             readiness: 'Exam Readiness',
@@ -193,6 +195,7 @@ export default function ClassDetailPage() {
         {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
         {tab === 'content' && <ClassBrainTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
         {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
+        {tab === 'submissions' && <SubmissionsTab orgId={org.orgId} classId={classId} />}
         {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
         {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
         {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}

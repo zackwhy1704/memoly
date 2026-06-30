@@ -801,6 +801,77 @@ export interface ExamReadiness {
   concepts: ExamReadinessConcept[];
 }
 
+// ── Homework submissions (teacher-in-the-loop) ───────────────────────
+export type SubmissionStatus =
+  | 'SUBMITTED'
+  | 'AI_DRAFTED'
+  | 'TEACHER_REVIEWING'
+  | 'RELEASED'
+  | 'RETURNED';
+
+export interface SubmissionFileMeta {
+  index: number;
+  name: string;
+  contentType: string;
+  size: number;
+}
+
+export interface Submission {
+  id: string;
+  classId: string;
+  studentId: string | null;
+  title: string;
+  subject: string | null;
+  status: SubmissionStatus;
+  files: SubmissionFileMeta[];
+  extractedText: string | null;
+  /** AI first-pass draft as a JSON string ({suggestedGrade, criteria[], feedback}); teacher-only. */
+  aiDraftFeedbackJson: string | null;
+  aiDraftedAt: string | null;
+  teacherFeedback: string | null;
+  teacherGrade: string | null;
+  releasedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Parsed shape of Submission.aiDraftFeedbackJson. */
+export interface AiDraftFeedback {
+  suggestedGrade?: string;
+  criteria?: Array<{ criterion: string; comment: string }>;
+  feedback?: string;
+}
+
+/** Best-effort parse of the AI draft JSON; tolerant of malformed model output. */
+export function parseAiDraft(json: string | null | undefined): AiDraftFeedback | null {
+  if (!json || !json.trim()) return null;
+  try {
+    const p = JSON.parse(json) as AiDraftFeedback;
+    return p && typeof p === 'object' ? p : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch a bearer-protected binary endpoint and return an object URL for it.
+ * `<img src>`/`<iframe src>` can't carry the Authorization header, so the
+ * artifact-stream routes must be fetched as a blob first. Callers must
+ * `URL.revokeObjectURL` when done.
+ */
+export async function authedObjectUrl(path: string): Promise<string> {
+  const token = getToken();
+  const res = await fetch(BASE + path, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw statusToApiError(res.status, text);
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 // ── API methods ────────────────────────────────────────────────────────
 export const api = {
   // Demo / lead capture
@@ -1341,6 +1412,90 @@ export const api = {
     apiFetch<{ data: null }>(`/admin/orgs/${orgId}/expire`, {
       method: 'POST',
     }),
+
+  // ── Homework submissions (teacher-in-the-loop) ─────────────────────────
+  submissions: (orgId: string, classId: string, status?: SubmissionStatus) =>
+    apiFetch<{ data: Submission[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions${status ? `?status=${status}` : ''}`
+    ),
+
+  submission: (orgId: string, classId: string, id: string) =>
+    apiFetch<{ data: Submission }>(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions/${id}`
+    ),
+
+  /** Object URL for a stored artifact (bearer-fetched; revoke when done). */
+  submissionFileUrl: (orgId: string, classId: string, id: string, index: number) =>
+    authedObjectUrl(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions/${id}/files/${index}`
+    ),
+
+  // Generate the AI first-pass draft. Never releases — teacher edits then releases.
+  generateSubmissionDraft: (orgId: string, classId: string, id: string) =>
+    apiFetch<{ data: Submission }>(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions/${id}/ai-draft`,
+      { method: 'POST', timeoutMs: 90_000 }
+    ),
+
+  saveSubmissionReview: (orgId: string, classId: string, id: string, feedback: string, grade?: string) =>
+    apiFetch<{ data: Submission }>(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions/${id}/review`,
+      { method: 'PATCH', body: JSON.stringify({ feedback, grade: grade ?? '' }) }
+    ),
+
+  // Release to the student. Accepts an optional final inline edit (feedback/grade).
+  releaseSubmission: (orgId: string, classId: string, id: string, body?: { feedback?: string; grade?: string }) =>
+    apiFetch<{ data: Submission }>(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions/${id}/release`,
+      { method: 'POST', body: JSON.stringify(body ?? {}) }
+    ),
+
+  returnSubmission: (orgId: string, classId: string, id: string, note?: string) =>
+    apiFetch<{ data: Submission }>(
+      `/centre/organizations/${orgId}/classes/${classId}/submissions/${id}/return`,
+      { method: 'POST', body: JSON.stringify(note ? { note } : {}) }
+    ),
+
+  // Teacher uploads a student's work on their behalf (multipart). studentId is
+  // optional — omit to file it unassigned and attribute later.
+  uploadSubmission: async (
+    orgId: string,
+    classId: string,
+    opts: { title: string; subject?: string; studentId?: string; files: File[] }
+  ): Promise<{ data: Submission }> => {
+    const form = new FormData();
+    opts.files.forEach((f) => form.append('files', f));
+    form.append('title', opts.title);
+    if (opts.subject) form.append('subject', opts.subject);
+    if (opts.studentId) form.append('studentId', opts.studentId);
+    const token = getToken();
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3 * 60_000);
+
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/centre/organizations/${orgId}/classes/${classId}/submissions`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new ApiError(0, 'TIMEOUT', 'Upload timed out — please try a smaller file or check your connection.', true);
+      }
+      throw new ApiError(0, 'NETWORK', 'You appear to be offline. Check your connection.', true);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw statusToApiError(res.status, text);
+    }
+    return res.json() as Promise<{ data: Submission }>;
+  },
 };
 
 // ── Character helpers ──────────────────────────────────────────────────
