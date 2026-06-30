@@ -6,9 +6,14 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { getToken, logout } from '@/lib/auth';
 
+// `id` is the local tier key used for the "current plan" highlight; `checkoutId`
+// is the EXACT plan key the backend's POST /subscription/checkout accepts. The
+// backend rejects bare 'pro'/'max'/'family' with a 400 BusinessException, so we
+// send the NEW MONTHLY keys (pro_monthly / max_monthly / family_monthly_new).
 const PLANS = [
   {
     id: 'pro',
+    checkoutId: 'pro_monthly',
     name: 'Pro',
     price: 'S$8.90 / month',
     annual: 'S$89 / year',
@@ -16,6 +21,7 @@ const PLANS = [
   },
   {
     id: 'max',
+    checkoutId: 'max_monthly',
     name: 'Max',
     price: 'S$14.90 / month',
     annual: 'S$149 / year',
@@ -23,6 +29,7 @@ const PLANS = [
   },
   {
     id: 'family',
+    checkoutId: 'family_monthly_new',
     name: 'Family',
     price: 'S$24.90 / month',
     annual: 'S$249 / year',
@@ -161,7 +168,7 @@ export default function BillingPage() {
                     <button
                       onClick={() => {
                         setCheckoutError('');
-                        checkoutMut.mutate(plan.id);
+                        checkoutMut.mutate(plan.checkoutId);
                       }}
                       disabled={checkoutMut.isPending}
                       className="shrink-0 px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent/80 transition-colors disabled:opacity-50"

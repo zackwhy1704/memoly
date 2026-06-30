@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
+import { resolvePostLoginDest, SAFE_PREFIXES } from '@/lib/post-login';
 import { saveAuth, saveLastEmail, getLastEmail } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
 import { isGoogleEnabled } from '@/lib/google';
@@ -62,6 +63,22 @@ function LoginInner() {
     if (cached) setEmail(cached);
   }, []);
 
+  // Resolve the post-login destination. A safe ?redirect= short-circuits the
+  // /me lookup; otherwise we fetch /me and route by identity (a failed lookup
+  // routes to /dashboard via the helper's null fallback).
+  async function resolveDest(): Promise<string> {
+    const returnTo = searchParams.get('redirect');
+    const isSafeReturn =
+      !!returnTo && SAFE_PREFIXES.some((p) => returnTo.startsWith(p));
+    if (isSafeReturn) return resolvePostLoginDest(undefined, returnTo);
+    try {
+      const me = await api.getMe();
+      return resolvePostLoginDest(me, returnTo);
+    } catch {
+      return resolvePostLoginDest(null, returnTo);
+    }
+  }
+
   async function handleGoogle(response: CredentialResponse) {
     if (!response.credential) return;
     setError('');
@@ -75,18 +92,7 @@ function LoginInner() {
       } catch { /* non-critical */ }
       identify(res.data.userId, {});
       trackEvent('login_google');
-      const redirectParam = searchParams.get('redirect');
-      const SAFE_PREFIXES = ['/account/', '/accept-invite/'];
-      const safeRedirect = redirectParam && SAFE_PREFIXES.some(p => redirectParam.startsWith(p))
-        ? redirectParam : null;
-      let dest = safeRedirect ?? '/get-the-app';
-      if (!safeRedirect) {
-        try {
-          const me = await api.getMe();
-          if (me.data.role === 'ADMIN') dest = '/admin';
-          else if (me.data.isCentreStaff) dest = '/dashboard';
-        } catch { dest = '/dashboard'; }
-      }
+      const dest = await resolveDest();
       if (!reducedMotion.current && floatRef.current && stageRef.current) {
         triggerReact(floatRef.current, stageRef.current, 'ok');
         setTimeout(() => router.replace(dest), 750);
@@ -114,22 +120,7 @@ function LoginInner() {
 
       // Three-door routing: ADMIN → /admin, centre staff → /dashboard, student → /get-the-app.
       // ?redirect= is honoured for known internal prefixes only — never external URLs.
-      const redirectParam = searchParams.get('redirect');
-      const SAFE_PREFIXES = ['/account/', '/accept-invite/'];
-      const safeRedirect = redirectParam && SAFE_PREFIXES.some(p => redirectParam.startsWith(p))
-        ? redirectParam : null;
-
-      let dest = safeRedirect ?? '/get-the-app';
-      if (!safeRedirect) {
-        try {
-          const me = await api.getMe();
-          if (me.data.role === 'ADMIN') dest = '/admin';
-          else if (me.data.isCentreStaff) dest = '/dashboard';
-        } catch {
-          // If /me fails, fall back to /dashboard (centre staff most likely caller)
-          dest = '/dashboard';
-        }
-      }
+      const dest = await resolveDest();
 
       if (!reducedMotion.current && floatRef.current && stageRef.current) {
         triggerReact(floatRef.current, stageRef.current, 'ok');
