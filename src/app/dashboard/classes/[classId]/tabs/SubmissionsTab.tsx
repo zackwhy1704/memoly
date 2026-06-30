@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { MarkingAssistantPanel } from './MarkingAssistantPanel';
 
 // ── Status presentation ─────────────────────────────────────────────────
 const STATUS_LABEL: Record<SubmissionStatus, string> = {
@@ -459,6 +460,16 @@ export function SubmissionsTab({ orgId, classId }: { orgId: string; classId: str
           + Upload homework
         </button>
       </div>
+
+      <details className="bg-panel2/50 border border-line rounded-2xl group">
+        <summary className="px-5 py-3 cursor-pointer text-sm font-semibold text-ink2 hover:text-ink list-none flex items-center gap-2">
+          <span className="text-ink3 text-xs transition-transform group-open:rotate-90">▶</span>
+          🎯 Marking assistant — train AI feedback on YOUR standard
+        </summary>
+        <div className="px-5 pb-5 pt-1">
+          <MarkingAssistantPanel orgId={orgId} classId={classId} />
+        </div>
+      </details>
 
       {showUpload && (
         <UploadForm

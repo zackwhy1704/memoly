@@ -853,6 +853,29 @@ export function parseAiDraft(json: string | null | undefined): AiDraftFeedback |
   }
 }
 
+// ── Marking references (teacher marking-assistant grounding) ─────────
+export type MarkingReferenceKind = 'MARKED_PAPER' | 'RUBRIC' | 'GUIDELINE';
+
+export interface MarkingReferenceFileMeta {
+  index: number;
+  name: string;
+  contentType: string;
+  size: number;
+}
+
+export interface MarkingReference {
+  id: string;
+  classId: string;
+  kind: MarkingReferenceKind;
+  title: string;
+  note: string | null;
+  files: MarkingReferenceFileMeta[];
+  /** How much text we indexed/grounded from this item. */
+  extractedChars: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * Fetch a bearer-protected binary endpoint and return an object URL for it.
  * `<img src>`/`<iframe src>` can't carry the Authorization header, so the
@@ -1495,6 +1518,65 @@ export const api = {
       throw statusToApiError(res.status, text);
     }
     return res.json() as Promise<{ data: Submission }>;
+  },
+
+  // ── Marking references (teacher marking-assistant grounding) ──────────
+  markingReferences: (orgId: string, classId: string) =>
+    apiFetch<{ data: MarkingReference[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/marking-references`
+    ),
+
+  /** Object URL for a stored marking-reference artifact (bearer-fetched; revoke when done). */
+  markingReferenceFileUrl: (orgId: string, classId: string, id: string, index: number) =>
+    authedObjectUrl(
+      `/centre/organizations/${orgId}/classes/${classId}/marking-references/${id}/files/${index}`
+    ),
+
+  deleteMarkingReference: (orgId: string, classId: string, id: string) =>
+    apiFetch<{ data: { deleted: boolean } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/marking-references/${id}`,
+      { method: 'DELETE' }
+    ),
+
+  // Teacher uploads marked papers / rubrics / guidelines that ground the AI
+  // feedback drafts in THIS teacher's marking standard (multipart).
+  uploadMarkingReference: async (
+    orgId: string,
+    classId: string,
+    opts: { kind: MarkingReferenceKind; title: string; note?: string; files: File[] }
+  ): Promise<{ data: MarkingReference }> => {
+    const form = new FormData();
+    opts.files.forEach((f) => form.append('files', f));
+    form.append('kind', opts.kind);
+    form.append('title', opts.title);
+    if (opts.note) form.append('note', opts.note);
+    const token = getToken();
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3 * 60_000);
+
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/centre/organizations/${orgId}/classes/${classId}/marking-references`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new ApiError(0, 'TIMEOUT', 'Upload timed out — please try a smaller file or check your connection.', true);
+      }
+      throw new ApiError(0, 'NETWORK', 'You appear to be offline. Check your connection.', true);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw statusToApiError(res.status, text);
+    }
+    return res.json() as Promise<{ data: MarkingReference }>;
   },
 };
 
