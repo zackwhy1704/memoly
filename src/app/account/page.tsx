@@ -78,6 +78,15 @@ export default function AccountPage() {
     (entitlement?.trialEndsAt ?? undefined);
   const renewalDate = formatDate(renewalRaw);
 
+  // A real, billable Stripe subscription exists only when the status row is
+  // non-'free' (see getStatus on the backend). `isPremium` alone is true during
+  // the 7-day auto-trial, which has NO Stripe customer — so the CTA must say
+  // "Manage billing" only for a real subscriber, and "Subscribe" otherwise, to
+  // match what the billing page can actually do.
+  const subStatus = typeof status?.status === 'string' ? (status.status as string) : 'free';
+  const hasStripeBilling = subStatus !== 'free';
+  const onTrial = isPremium && !hasStripeBilling;
+
   return (
     <div className="min-h-screen bg-bg py-10 px-4">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -122,10 +131,17 @@ export default function AccountPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-bold text-ink capitalize">
-                  {isPremium ? planName || 'Premium' : 'Free'}
+                  {onTrial ? 'Free trial' : isPremium ? planName || 'Premium' : 'Free'}
                 </p>
-                {isPremium && renewalDate && (
+                {hasStripeBilling && renewalDate && (
                   <p className="text-sm text-ink3 mt-0.5">Renews {renewalDate}</p>
+                )}
+                {onTrial && (
+                  <p className="text-sm text-ink3 mt-0.5">
+                    {renewalDate
+                      ? `Free trial — subscribe to keep premium after ${renewalDate}.`
+                      : 'Free trial — subscribe to keep premium when it ends.'}
+                  </p>
                 )}
                 {!isPremium && (
                   <p className="text-sm text-ink3 mt-0.5">
@@ -136,12 +152,12 @@ export default function AccountPage() {
               <Link
                 href="/account/billing"
                 className={`shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  isPremium
+                  hasStripeBilling
                     ? 'border border-line text-ink hover:bg-panel2'
                     : 'bg-accent text-white hover:bg-accent/80'
                 }`}
               >
-                {isPremium ? 'Manage billing' : 'Upgrade'}
+                {hasStripeBilling ? 'Manage billing' : onTrial ? 'Subscribe' : 'Upgrade'}
               </Link>
             </div>
           )}

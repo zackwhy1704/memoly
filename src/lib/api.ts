@@ -1399,8 +1399,11 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ plan }) }
     ),
 
+  // NOTE: the backend returns the portal URL under `url` (the Subscription
+  // management service responds `{ mode, url }`). `portalUrl` is kept as a
+  // tolerant fallback in case an older/newer backend shape ships it that way.
   billingPortal: () =>
-    apiFetch<{ data: { portalUrl: string } }>(
+    apiFetch<{ data: { url?: string; portalUrl?: string } }>(
       '/subscription/portal',
       { method: 'POST' }
     ),

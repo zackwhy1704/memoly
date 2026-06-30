@@ -90,8 +90,14 @@ export default function BillingPage() {
   const portalMut = useMutation({
     mutationFn: () => api.billingPortal(),
     onSuccess: (res) => {
-      const url = (res.data as { portalUrl?: string }).portalUrl;
-      if (url) window.location.href = url;
+      // Backend returns the portal URL under `url`; tolerate `portalUrl` too.
+      const data = res.data as { url?: string; portalUrl?: string };
+      const url = data.url ?? data.portalUrl;
+      if (url) {
+        window.location.href = url;
+      } else {
+        setPortalError('Could not open billing portal.');
+      }
     },
     onError: (err) => {
       setPortalError(err instanceof ApiError ? err.userMessage : 'Could not open billing portal.');
@@ -100,11 +106,26 @@ export default function BillingPage() {
 
   const status     = statusQuery.data?.data as Record<string, unknown> | undefined;
   const entitlement = entitlementQuery.data?.data as { isPremium?: boolean; plan?: string } | undefined;
-  // Fail-closed: if the entitlement load errored, treat the user as FREE so they
-  // see the upgrade plans (with working checkout) — never a premium/portal-only
-  // state we can't substantiate.
+  // `isPremium` is TRUE during the 7-day auto-trial — every new user is granted
+  // premium server-side with NO Stripe customer. So it is the WRONG signal for
+  // "can open the billing portal": a trial user has no Stripe customer and the
+  // portal call 409s ("Subscribe first"). Gating the portal on isPremium is what
+  // trapped trial users in a dead loop (portal-only, no way to subscribe).
   const isPremium  = !entitlementQuery.isError && (entitlement?.isPremium ?? false);
-  const currentPlan = (status?.plan as string | undefined) ?? 'free';
+
+  // The ONLY trustworthy signal for a real, billable Stripe subscription is the
+  // status row: getStatus() returns status:'free' (and plan:null) when there is
+  // no subscription, and the actual Stripe status otherwise. A non-'free' status
+  // means a subscription row exists → there is a Stripe customer → the portal
+  // works. This is exactly what should gate "Manage billing".
+  const subStatus  = typeof status?.status === 'string' ? (status.status as string) : 'free';
+  const hasStripeBilling = subStatus !== 'free';
+  // Premium-but-no-Stripe-billing == on the free trial (or any server-granted
+  // premium). These users must always see the subscribe plans, never a
+  // portal-only dead end.
+  const onTrial = isPremium && !hasStripeBilling;
+  const currentPlan = (status?.plan as string | undefined)
+    ?? (onTrial ? 'Free trial' : 'free');
 
   // Logged-out users must not see a blank page. Redirect to sign in and come
   // straight back here afterwards (resolvePostLoginDest allows the /account/
@@ -156,8 +177,16 @@ export default function BillingPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <p className="text-lg font-bold text-ink capitalize">{currentPlan}</p>
-                    </div>
-              {isPremium && (
+                {onTrial && (
+                  <p className="text-sm text-ink3 mt-0.5">
+                    You&apos;re on a free trial — subscribe below to keep premium when it ends.
+                  </p>
+                )}
+              </div>
+              {/* Portal is ONLY for users with a real Stripe subscription. A trial
+                  user has no Stripe customer, so showing it here would 409 and
+                  trap them. */}
+              {hasStripeBilling && (
                 <button
                   onClick={() => { setPortalError(''); portalMut.mutate(); }}
                   disabled={portalMut.isPending}
@@ -171,11 +200,13 @@ export default function BillingPage() {
           {portalError && <p className="mt-2 text-sm text-bad">{portalError}</p>}
         </div>
 
-        {/* Upgrade plans — shown to all non-premium users */}
-        {!isPremium && (
+        {/* Subscribe / upgrade plans — shown whenever there is no real Stripe
+            subscription (free OR trial), so a non-subscribed user always has a
+            way forward and can never be stuck on a portal-only page. */}
+        {!hasStripeBilling && (
           <div className="space-y-4">
             <p className="text-sm font-semibold text-ink">
-              {isPremium ? 'Change plan' : 'Upgrade to unlock more'}
+              {onTrial ? 'Subscribe to keep premium' : 'Upgrade to unlock more'}
             </p>
             {PLANS.map((plan) => {
               const isActive = currentPlan.toLowerCase() === plan.id;
