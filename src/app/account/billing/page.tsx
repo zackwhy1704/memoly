@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
@@ -81,7 +81,23 @@ export default function BillingPage() {
   const isPremium  = entitlement?.isPremium ?? false;
   const currentPlan = (status?.plan as string | undefined) ?? 'free';
 
-  if (!getToken()) return null;
+  // Logged-out users must not see a blank page. Redirect to sign in and come
+  // straight back here afterwards (resolvePostLoginDest allows the /account/
+  // prefix). Done in an effect so it runs after hydration, not during render.
+  const isAuthed = !!getToken();
+  useEffect(() => {
+    if (!isAuthed) {
+      router.replace('/login?redirect=/account/billing');
+    }
+  }, [isAuthed, router]);
+
+  if (!isAuthed) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+        <p className="text-ink3 text-sm">Redirecting to sign in…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg py-10 px-4">
