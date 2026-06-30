@@ -35,8 +35,12 @@ export default function TermsPage() {
 
         <Section title="2. Acceptance of Terms">
           <p>
-            By creating an account or using Apalchi, you agree to these terms. If you are under 13, a
-            parent or guardian must consent on your behalf before you use the service.
+            By creating an account or using Apalchi, you agree to these terms. If you are under 13,
+            Apalchi&apos;s parental consent process must be completed before you can access AI features —
+            your account will be restricted until a parent or guardian approves via the consent email
+            we send them. See our{' '}
+            <Link href="/privacy" style={linkStyle}>Privacy Policy</Link> for details on how parental
+            consent is obtained and recorded.
           </p>
         </Section>
 
@@ -72,16 +76,18 @@ export default function TermsPage() {
           <p>
             Apalchi uses third-party AI services (including Anthropic Claude and Google Gemini) to
             generate educational content. Uploaded notes and questions are sent to these services for
-            processing. We do not use your content to train AI models. Data is processed under our data
-            processing agreements with each provider.
+            processing. We do not use your content to train AI models. Data is processed under each
+            provider&apos;s standard API terms of service, which include commitments not to use submitted
+            data for model training.
           </p>
         </Section>
 
         <Section title="7. Subscriptions and Billing">
           <p>
-            Free accounts include limited daily chats and one AI tutor. Paid plans are billed monthly
-            via the App Store (iOS), Google Play (Android), or Stripe (web). Refunds are governed by
-            the respective platform&apos;s refund policy. You may cancel anytime from your account settings.
+            Free accounts include 20 AI messages per day and one AI tutor (Mochi) to start, with an
+            additional tutor unlocked as you level up. Paid plans are billed monthly via the App Store
+            (iOS), Google Play (Android), or Stripe (web). Refunds are governed by the respective
+            platform&apos;s refund policy. You may cancel anytime from your account settings.
           </p>
         </Section>
 

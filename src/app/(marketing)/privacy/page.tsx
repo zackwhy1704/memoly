@@ -55,6 +55,12 @@ export default function PrivacyPage() {
               <strong>Payment data</strong> — billing is handled by Stripe (web) or the App Store /
               Google Play. We do not store card numbers.
             </li>
+            <li>
+              <strong>Biometric authentication</strong> — if you enable Face ID, Touch ID, or
+              fingerprint login, the biometric check is performed entirely on your device by the
+              operating system. Apalchi does not receive or store your biometric data. We record only
+              a device identifier and session state to manage login security.
+            </li>
           </ul>
         </Section>
 
@@ -75,9 +81,9 @@ export default function PrivacyPage() {
         <Section title="4. AI Processing">
           <p>
             Uploaded notes and typed questions are sent to third-party AI providers (Anthropic Claude,
-            Google Gemini) to generate educational content. These providers process data under their own
-            data processing agreements and are bound by contractual obligations to keep your data
-            confidential and not use it for training.
+            Google Gemini) to generate educational content. These providers process data under their
+            standard API terms of service, which include commitments not to use submitted data to train
+            their models.
           </p>
         </Section>
 
@@ -121,10 +127,33 @@ export default function PrivacyPage() {
 
         <Section title="8. Children's Privacy">
           <p>
-            Children under 13 must have a parent or guardian consent before using Apalchi. Centre
-            teachers are responsible for obtaining consent from the parents of students they enrol. We
-            do not knowingly collect personal data from children under 13 without verifiable parental
-            consent.
+            Children under 13 are subject to additional protections under the Singapore Personal Data
+            Protection Act (PDPA) and applicable law.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <strong>How consent works:</strong> When a user indicates they are under 13 (via their
+            declared birth year), their account is immediately restricted from AI features. To activate
+            full access, the child provides a parent or guardian&apos;s email address and Apalchi sends a
+            consent request email directly to that address. The parent clicks a secure link in the
+            email to approve the account. Until that approval is received, the account remains
+            restricted. Consent links expire after 7 days. Parents may request a new link be resent
+            at any time.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <strong>What is blocked before consent:</strong> Prior to parental approval, under-13
+            users cannot upload notes or content, use AI chat, submit photo questions, or trigger any
+            AI content generation. Reading pre-generated class content from their tuition centre is
+            not restricted.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <strong>Who is responsible:</strong> Apalchi — not the teacher — operates and controls
+            the consent mechanism. Centre teachers may facilitate enrolment, but Apalchi is the data
+            controller responsible for sending the consent request and recording parental approval
+            before processing any under-13 user&apos;s personal data for AI purposes.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            We do not knowingly process personal data from children under 13 for AI purposes prior to
+            verifiable parental consent.
           </p>
         </Section>
 
@@ -132,7 +161,8 @@ export default function PrivacyPage() {
           <p>
             All data in transit is encrypted using TLS 1.2 or higher. Passwords are hashed using
             bcrypt. We conduct periodic security reviews. In the event of a data breach affecting your
-            personal data, we will notify you within 72 hours as required by applicable law.
+            personal data, we will notify affected users without undue delay and in accordance with
+            applicable law.
           </p>
         </Section>
 
@@ -141,13 +171,13 @@ export default function PrivacyPage() {
           <ul style={listStyle}>
             <li>Access the personal data we hold about you</li>
             <li>Correct inaccurate data</li>
-            <li>Request deletion of your data ("right to be forgotten")</li>
+            <li>Request deletion of your data (&ldquo;right to be forgotten&rdquo;)</li>
             <li>Object to or restrict certain processing</li>
             <li>Data portability (receive your data in a machine-readable format)</li>
           </ul>
           <p style={{ marginTop: 12 }}>
             To exercise any right, email{' '}
-            <a href="mailto:privacy@apalchi.com" style={linkStyle}>privacy@apalchi.com</a>. We will
+            <a href="mailto:hello@apalchi.com" style={linkStyle}>hello@apalchi.com</a>. We will
             respond within 30 days.
           </p>
         </Section>
