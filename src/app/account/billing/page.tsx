@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { getToken, logout } from '@/lib/auth';
+
+const PAYMENTS_UNAVAILABLE =
+  "Payments aren't available right now. Please try again later or contact support.";
 
 // `id` is the local tier key used for the "current plan" highlight; `checkoutId`
 // is the EXACT plan key the backend's POST /subscription/checkout accepts. The
@@ -57,8 +61,26 @@ export default function BillingPage() {
   const checkoutMut = useMutation({
     mutationFn: (plan: string) => api.checkout(plan),
     onSuccess: (res) => {
-      const url = (res.data as { checkoutUrl?: string }).checkoutUrl;
-      if (url) window.location.href = url;
+      // The backend may flag a non-live checkout via `mode`/`live`, and/or hand
+      // back a placeholder `/mock-checkout` URL. Treat ANY of these as
+      // "payments not available" rather than silently sending the user to a
+      // dead/mock page. Keep all three checks: the field may not be deployed yet.
+      const data = res.data as {
+        checkoutUrl?: string;
+        mode?: string;
+        live?: boolean;
+      };
+      const url = data.checkoutUrl;
+      const notLive =
+        (data.mode !== undefined && data.mode !== 'live') ||
+        data.live === false ||
+        !url ||
+        url.includes('/mock-checkout');
+      if (notLive) {
+        setCheckoutError(PAYMENTS_UNAVAILABLE);
+        return;
+      }
+      window.location.href = url;
     },
     onError: (err) => {
       setCheckoutError(err instanceof ApiError ? err.userMessage : 'Could not start checkout.');
@@ -78,7 +100,10 @@ export default function BillingPage() {
 
   const status     = statusQuery.data?.data as Record<string, unknown> | undefined;
   const entitlement = entitlementQuery.data?.data as { isPremium?: boolean; plan?: string } | undefined;
-  const isPremium  = entitlement?.isPremium ?? false;
+  // Fail-closed: if the entitlement load errored, treat the user as FREE so they
+  // see the upgrade plans (with working checkout) — never a premium/portal-only
+  // state we can't substantiate.
+  const isPremium  = !entitlementQuery.isError && (entitlement?.isPremium ?? false);
   const currentPlan = (status?.plan as string | undefined) ?? 'free';
 
   // Logged-out users must not see a blank page. Redirect to sign in and come
@@ -104,12 +129,12 @@ export default function BillingPage() {
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
+          <Link
+            href="/account"
             className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"
           >
-            ← Back
-          </button>
+            ← Account
+          </Link>
           <button
             onClick={logout}
             className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"

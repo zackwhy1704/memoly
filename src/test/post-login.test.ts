@@ -28,8 +28,8 @@ describe('resolvePostLoginDest', () => {
     expect(resolvePostLoginDest(me({ role: 'ADMIN', isCentreStaff: true }))).toBe('/admin');
   });
 
-  it('routes a plain consumer to /get-the-app by default', () => {
-    expect(resolvePostLoginDest(me({ role: 'USER', isCentreStaff: false }))).toBe('/get-the-app');
+  it('routes a plain consumer to /account by default (account hub, never a download/upgrade wall)', () => {
+    expect(resolvePostLoginDest(me({ role: 'USER', isCentreStaff: false }))).toBe('/account');
   });
 
   it('honours a safe returnTo under /account/', () => {
@@ -57,6 +57,6 @@ describe('resolvePostLoginDest', () => {
   });
 
   it('treats a missing returnTo (null) as no redirect', () => {
-    expect(resolvePostLoginDest(me({ isCentreStaff: false }), null)).toBe('/get-the-app');
+    expect(resolvePostLoginDest(me({ isCentreStaff: false }), null)).toBe('/account');
   });
 });

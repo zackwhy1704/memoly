@@ -8,15 +8,19 @@ import type { MeResponse } from './api';
 export const SAFE_PREFIXES = ['/account/', '/accept-invite/'] as const;
 
 /**
- * Centralised three-door post-login routing.
+ * Centralised four-door post-login routing.
  *
- * Behaviour (must match the historical inline login logic exactly):
+ * Behaviour:
  *  - A `returnTo` is honoured ONLY when it starts with a SAFE_PREFIX; otherwise
  *    it is ignored.
  *  - When no safe returnTo is present, route by identity:
- *      • role === 'ADMIN'      → '/admin'
- *      • isCentreStaff === true → '/dashboard'
- *      • otherwise (consumer)   → '/get-the-app'
+ *      • role === 'ADMIN'      → '/admin'   (platform admin console)
+ *      • isCentreStaff === true → '/dashboard' (centre owner/staff analytics)
+ *      • otherwise (consumer)   → '/account'  (the consumer account + billing hub)
+ *  - The consumer default is '/account' — a real account hub — NEVER a
+ *    download/upgrade wall. The native app stays the product; the web is the
+ *    account/billing control plane. A free consumer always lands somewhere with
+ *    a working path to checkout (/account → /account/billing).
  *  - When `me` is null/undefined (the /me lookup failed or was skipped), fall
  *    back to '/dashboard' (centre staff are the most likely caller of a login
  *    form that loses /me).
@@ -41,5 +45,5 @@ export function resolvePostLoginDest(
 
   if (me.data.role === 'ADMIN') return '/admin';
   if (me.data.isCentreStaff) return '/dashboard';
-  return '/get-the-app';
+  return '/account';
 }
