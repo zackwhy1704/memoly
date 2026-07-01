@@ -884,6 +884,7 @@ export interface MarkingBrainPage {
   slug: string;
   preview: string;
   certainty: string | null;
+  certaintyScore?: number;
   hasConflict: boolean;
 }
 

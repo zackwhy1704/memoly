@@ -9,7 +9,7 @@ import {
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { useOrg } from '@/lib/org-context';
-import { extractionState, extractionBadgeClasses } from '@/lib/extraction';
+import { QualityBadge, extractionBadge, confidenceBadge, NOTES_TIPS_HREF } from '@/components/QualityBadge';
 
 // ── Kind presentation ───────────────────────────────────────────────────
 const KIND_LABEL: Record<MarkingReferenceKind, string> = {
@@ -217,14 +217,7 @@ function ReferenceCard({ orgId, classId, reference }: {
           {reference.note && <p className="text-xs text-ink2">{reference.note}</p>}
           <div className="flex items-center gap-3 text-xs text-ink3 mt-1 flex-wrap">
             <span>{reference.files.length} file{reference.files.length !== 1 ? 's' : ''}</span>
-            {(() => {
-              const s = extractionState(reference.extractedChars);
-              return (
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${extractionBadgeClasses(s.tone)}`}>
-                  {s.label}
-                </span>
-              );
-            })()}
+            <QualityBadge {...extractionBadge(reference.extractedChars)} tipsHref={NOTES_TIPS_HREF} />
             <span>{new Date(reference.createdAt).toLocaleDateString()}</span>
           </div>
           {reference.files.length > 0 && (
@@ -318,6 +311,7 @@ function MarkingBrainSection({ orgId, classId, centreName, subject }: {
             <li key={p.slug} className="rounded-lg bg-panel2 border border-line px-3 py-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-ink">{p.title}</span>
+                <QualityBadge {...confidenceBadge(p.certaintyScore, p.certainty)} />
                 {p.hasConflict && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-900/40 text-amber-300">
                     conflict

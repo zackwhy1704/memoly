@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, ApiError, type WikiPage } from '@/lib/api';
+import { QualityBadge, confidenceBadge } from '@/components/QualityBadge';
 import ErrorView from '@/components/ErrorView';
 
 /**
@@ -82,6 +83,7 @@ export function BrainPagesSection({
                 )}
               </div>
               {p.hasConflict && <ConflictMarker />}
+              <QualityBadge {...confidenceBadge(p.certaintyScore, p.certainty)} />
               <ReviewStateBadge page={p} />
               <button
                 onClick={() => setEditingSlug(p.slug)}
