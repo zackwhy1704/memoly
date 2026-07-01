@@ -97,7 +97,6 @@ function PricingInner() {
           <div className="mkt-nav-links">
             <Link href="/#how">How it works</Link>
             <Link href="/pricing">Pricing</Link>
-            <Link href="/pricing?for=centres">For institutes</Link>
           </div>
           <div className="mkt-nav-cta">
             <Link className="mkt-ghost" href="/login">Log in</Link>
@@ -126,7 +125,7 @@ function PricingInner() {
       <section className="mkt-band" style={{ paddingTop: 8 }}>
         <div className="mkt-wrap">
           <p className="mkt-kicker" style={{ textAlign: 'center' }}>
-            {audience === 'consumer' ? 'For parents & students' : 'For tuition centres'}
+            {audience === 'consumer' ? 'For parents & students' : 'For education institutes'}
           </p>
           <h2 className="mkt-band-h" style={{ textAlign: 'center', marginBottom: 24 }}>
             {audience === 'consumer'
@@ -158,8 +157,8 @@ function PricingInner() {
           {/* Cross-audience helper */}
           <p style={{ textAlign: 'center', color: 'var(--t3)', fontSize: 13, fontWeight: 700, marginTop: 12 }}>
             {audience === 'consumer' ? (
-              <>Running a tuition centre?{' '}
-                <button onClick={() => select('centres')} style={linkBtn}>See centre pricing →</button>
+              <>Running an education institute?{' '}
+                <button onClick={() => select('centres')} style={linkBtn}>See institute pricing →</button>
               </>
             ) : (
               <>Just for your own child?{' '}
@@ -226,7 +225,7 @@ const linkBtn: React.CSSProperties = {
 function AudienceToggle({ audience, onSelect }: { audience: Audience; onSelect: (a: Audience) => void }) {
   const opts: { key: Audience; label: string }[] = [
     { key: 'consumer', label: 'For parents & students' },
-    { key: 'centres', label: 'For tuition centres' },
+    { key: 'centres', label: 'For education institutes' },
   ];
   return (
     <div
