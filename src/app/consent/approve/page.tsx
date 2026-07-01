@@ -67,10 +67,11 @@ function ConsentApproveBody() {
       {view.state === 'success' && (
         <div className="mt-6 bg-white border border-[#E0DAF0] rounded-2xl p-8 shadow-sm">
           <div className="text-4xl mb-4">✅</div>
-          <h2 className="text-lg font-bold text-[#1F1733] mb-2">Consent granted!</h2>
+          <h2 className="text-lg font-bold text-[#1F1733] mb-2">All done!</h2>
           <p className="text-[#6B618A] text-sm">
-            Your child&apos;s account is now active. They can open Apalchi and start
-            studying right away.
+            Your child&apos;s account is now active. Their app unlocks
+            automatically — they&apos;ll get a notification, or it&apos;ll be
+            ready the next time they open Apalchi.
           </p>
         </div>
       )}
