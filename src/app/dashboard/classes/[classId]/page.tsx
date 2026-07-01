@@ -195,7 +195,7 @@ export default function ClassDetailPage() {
         {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
         {tab === 'content' && <ClassBrainTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
         {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
-        {tab === 'submissions' && <SubmissionsTab orgId={org.orgId} classId={classId} />}
+        {tab === 'submissions' && <SubmissionsTab orgId={org.orgId} classId={classId} subject={cls.subject} />}
         {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
         {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
         {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}

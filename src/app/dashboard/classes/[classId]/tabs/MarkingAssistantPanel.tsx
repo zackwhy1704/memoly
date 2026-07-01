@@ -8,6 +8,7 @@ import {
 } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useOrg } from '@/lib/org-context';
 
 // ── Kind presentation ───────────────────────────────────────────────────
 const KIND_LABEL: Record<MarkingReferenceKind, string> = {
@@ -48,9 +49,39 @@ function GuidanceList() {
   );
 }
 
+// ── Shared-scope copy ─────────────────────────────────────────────────────
+// The marking standard is one brain per (org, subject) — shared across ALL of
+// the org's classes of that subject. The panel is mounted per-class, so make
+// that sharing explicit (removes a surprise; no behavioural change).
+function scopeCopy(centreName: string, subject: string | null) {
+  const subj = subject?.trim() || null;
+  return {
+    subjName: subj ?? 'this subject',
+    // "all your Maths classes" vs "all your classes of this subject"
+    sharedScope: subj ? `all your ${subj} classes` : 'all your classes of this subject',
+    everyClass: subj ? `every ${subj} class` : 'every class of this subject',
+    centre: centreName?.trim() || 'your centre',
+  };
+}
+
+function ScopeBanner({ centreName, subject }: { centreName: string; subject: string | null }) {
+  const c = scopeCopy(centreName, subject);
+  return (
+    <div className="rounded-2xl bg-accent/5 border border-accent/20 px-4 py-3 flex items-start gap-3">
+      <span className="text-lg leading-none">🏫</span>
+      <p className="text-xs text-ink2 leading-relaxed">
+        You&apos;re training <span className="font-semibold text-ink">{c.centre}&apos;s {c.subjName} marking
+        standard</span>. It&apos;s shared across {c.sharedScope} — uploading here improves marking for{' '}
+        {c.everyClass} in your centre.
+      </p>
+    </div>
+  );
+}
+
 // ── Upload form ──────────────────────────────────────────────────────────
-function UploadForm({ orgId, classId, onDone, onCancel }: {
-  orgId: string; classId: string; onDone: () => void; onCancel: () => void;
+function UploadForm({ orgId, classId, centreName, subject, onDone, onCancel }: {
+  orgId: string; classId: string; centreName: string; subject: string | null;
+  onDone: () => void; onCancel: () => void;
 }) {
   const [kind, setKind] = useState<MarkingReferenceKind>('MARKED_PAPER');
   const [title, setTitle] = useState('');
@@ -76,6 +107,11 @@ function UploadForm({ orgId, classId, onDone, onCancel }: {
         <h3 className="text-sm font-semibold text-ink">Add reference material</h3>
         <button onClick={onCancel} className="text-ink3 hover:text-ink text-sm">✕</button>
       </div>
+
+      <p className="text-xs text-ink3 -mt-1">
+        Trains {scopeCopy(centreName, subject).centre}&apos;s shared{' '}
+        {scopeCopy(centreName, subject).subjName} marking standard ({scopeCopy(centreName, subject).sharedScope}).
+      </p>
 
       <div className="space-y-1">
         <label className="text-xs font-medium text-ink2">Type <span className="text-bad">*</span></label>
@@ -226,7 +262,9 @@ const BRAIN_STATE_STYLE: Record<MarkingBrain['state'], string> = {
  * the student brain shows its wiki pages — so uploads visibly turn into a
  * structured standard, not vanish into a blob. Polls while compiling.
  */
-function MarkingBrainSection({ orgId, classId }: { orgId: string; classId: string }) {
+function MarkingBrainSection({ orgId, classId, centreName, subject }: {
+  orgId: string; classId: string; centreName: string; subject: string | null;
+}) {
   const query = useQuery({
     queryKey: ['markingBrain', orgId, classId],
     queryFn: () => api.markingBrain(orgId, classId),
@@ -240,6 +278,9 @@ function MarkingBrainSection({ orgId, classId }: { orgId: string; classId: strin
   // Nothing compiled yet → the references empty-state already guides the teacher.
   if (!brain || (brain.state === 'NOT_BUILT' && brain.pageCount === 0)) return null;
 
+  // Prefer the class's subject; fall back to the compiled brain's subject.
+  const c = scopeCopy(centreName, subject ?? brain.subject ?? null);
+
   return (
     <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -248,6 +289,7 @@ function MarkingBrainSection({ orgId, classId }: { orgId: string; classId: strin
           {BRAIN_STATE_LABEL[brain.state]}
         </span>
       </div>
+      <p className="text-[11px] text-ink3 -mt-1">Shared {c.subjName} marking standard for {c.centre}.</p>
       <p className="text-xs text-ink2">
         AI feedback drafts are graded against these {brain.pageCount} marking rule
         {brain.pageCount !== 1 ? 's' : ''}, learned from your uploads.
@@ -283,10 +325,14 @@ function MarkingBrainSection({ orgId, classId }: { orgId: string; classId: strin
 }
 
 // ── Panel root ────────────────────────────────────────────────────────────
-export function MarkingAssistantPanel({ orgId, classId }: { orgId: string; classId: string }) {
+export function MarkingAssistantPanel({ orgId, classId, subject }: {
+  orgId: string; classId: string; subject?: string | null;
+}) {
   const [showUpload, setShowUpload] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const qc = useQueryClient();
+  const centreName = useOrg()?.orgName?.trim() || 'your centre';
+  const subj = subject ?? null;
 
   const query = useQuery({
     queryKey: ['markingReferences', orgId, classId],
@@ -316,10 +362,14 @@ export function MarkingAssistantPanel({ orgId, classId }: { orgId: string; class
         </button>
       </div>
 
+      <ScopeBanner centreName={centreName} subject={subj} />
+
       {showUpload && (
         <UploadForm
           orgId={orgId}
           classId={classId}
+          centreName={centreName}
+          subject={subj}
           onCancel={() => setShowUpload(false)}
           onDone={() => {
             setShowUpload(false);
@@ -330,7 +380,7 @@ export function MarkingAssistantPanel({ orgId, classId }: { orgId: string; class
         />
       )}
 
-      <MarkingBrainSection orgId={orgId} classId={classId} />
+      <MarkingBrainSection orgId={orgId} classId={classId} centreName={centreName} subject={subj} />
 
       {query.isLoading ? (
         <p className="text-ink3 text-xs py-6">Loading reference material…</p>

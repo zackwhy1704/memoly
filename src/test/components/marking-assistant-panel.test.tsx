@@ -58,6 +58,21 @@ describe('MarkingAssistantPanel — learned standard', () => {
     expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
+  it('makes the shared (org, subject) scope explicit in the copy', async () => {
+    vi.mocked(api.markingBrain).mockResolvedValue(brain());
+
+    const { container } = renderWithClient(
+      <MarkingAssistantPanel orgId="org-1" classId="cls-1" subject="Maths" />);
+
+    // Wait for the compiled brain (async) so the caption is rendered too.
+    await screen.findByText('🧠 What your assistant has learned');
+    // Scope banner tells the teacher the standard is shared across all their
+    // Maths classes — not just this one class.
+    expect(container.textContent).toContain('shared across all your Maths classes');
+    // The compiled-standard caption reinforces the shared scope.
+    expect(container.textContent).toContain('Shared Maths marking standard');
+  });
+
   it('surfaces a conflict banner when marking materials contradict each other', async () => {
     vi.mocked(api.markingBrain).mockResolvedValue(brain({
       hasConflicts: true,

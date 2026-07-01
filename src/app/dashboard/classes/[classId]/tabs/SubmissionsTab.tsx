@@ -427,7 +427,9 @@ function DetailPanel({ orgId, classId, submissionId }: {
 }
 
 // ── Tab root ──────────────────────────────────────────────────────────────
-export function SubmissionsTab({ orgId, classId }: { orgId: string; classId: string }) {
+export function SubmissionsTab({ orgId, classId, subject }: {
+  orgId: string; classId: string; subject?: string | null;
+}) {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -467,7 +469,7 @@ export function SubmissionsTab({ orgId, classId }: { orgId: string; classId: str
           🎯 Marking assistant — train AI feedback on YOUR standard
         </summary>
         <div className="px-5 pb-5 pt-1">
-          <MarkingAssistantPanel orgId={orgId} classId={classId} />
+          <MarkingAssistantPanel orgId={orgId} classId={classId} subject={subject} />
         </div>
       </details>
 
