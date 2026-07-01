@@ -26,6 +26,14 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
 
   return (
     <div className="space-y-4">
+      {/* Ingestion-quality tips — input quality is the #1 driver of brain quality. */}
+      <div className="rounded-2xl bg-accent/5 border border-accent/20 px-4 py-3 text-xs text-ink2 leading-relaxed">
+        <span className="font-semibold text-ink">Tips for a sharper brain:</span> digital or typed copies
+        work best · one topic per upload compiles cleaner than a mixed dump · photographing handwriting?
+        write clearly, fill the frame, flat page, no glare · Mochi reads math as text — for equations a
+        typed copy or a very clear photo helps.
+      </div>
+
       {/* 1 — Read: compiled brain pages */}
       <BrainPagesSection avatarId={corpusAvatarId} orgId={org?.orgId} classId={classId} />
 

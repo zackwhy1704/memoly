@@ -219,6 +219,8 @@ export interface KnowledgeFile {
   pageCount: number;
   status: 'PROCESSING' | 'READY' | 'FAILED';
   createdAt: string;
+  /** Characters of text extracted — 0/low means it read as ~empty and won't train well. */
+  extractedChars?: number;
 }
 
 export interface UsageToday {

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, ApiError, type KnowledgeFile } from '@/lib/api';
+import { extractionState, extractionBadgeClasses } from '@/lib/extraction';
 import { pollBrainReady } from '@/lib/upload-pipeline';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
@@ -115,6 +116,14 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
                   <td className="px-5 py-3.5 text-ink3 text-xs">{f.pageCount} pages</td>
                   <td className="px-5 py-3.5 text-xs">
                     <span className="px-2 py-1 rounded-full bg-panel2 text-ink2">{f.status}</span>
+                    {f.status === 'READY' && (() => {
+                      const s = extractionState(f.extractedChars);
+                      return (
+                        <span className={`ml-2 px-2 py-1 rounded-full ${extractionBadgeClasses(s.tone)}`}>
+                          {s.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-5 py-3.5 text-right w-px">
                     <button

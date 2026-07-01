@@ -9,6 +9,7 @@ import {
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { useOrg } from '@/lib/org-context';
+import { extractionState, extractionBadgeClasses } from '@/lib/extraction';
 
 // ── Kind presentation ───────────────────────────────────────────────────
 const KIND_LABEL: Record<MarkingReferenceKind, string> = {
@@ -33,9 +34,10 @@ function KindBadge({ kind }: { kind: MarkingReferenceKind }) {
 
 // ── What-good-looks-like checklist (Phase C guidance) ────────────────────
 const CHECKLIST = [
-  '✓ Upload 2–3 fully marked exemplars across grade bands (A, C, fail)',
-  '✓ Include your rubric / mark scheme',
-  '✓ Add a note on what made each one that grade',
+  '✓ Marked exemplars teach the most — include your ticks, marks per line, and the final grade',
+  '✓ State the grade you gave each exemplar (the AI anchors to it)',
+  '✓ Upload 2–3 marked exemplars across grade bands (A, C, fail)',
+  '✓ Include your rubric / mark scheme — a typed rubric beats a photo of one',
   '✓ The more you add, the closer AI drafts match your marking',
 ];
 
@@ -215,7 +217,14 @@ function ReferenceCard({ orgId, classId, reference }: {
           {reference.note && <p className="text-xs text-ink2">{reference.note}</p>}
           <div className="flex items-center gap-3 text-xs text-ink3 mt-1 flex-wrap">
             <span>{reference.files.length} file{reference.files.length !== 1 ? 's' : ''}</span>
-            <span>indexed: {reference.extractedChars.toLocaleString()} chars</span>
+            {(() => {
+              const s = extractionState(reference.extractedChars);
+              return (
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${extractionBadgeClasses(s.tone)}`}>
+                  {s.label}
+                </span>
+              );
+            })()}
             <span>{new Date(reference.createdAt).toLocaleDateString()}</span>
           </div>
           {reference.files.length > 0 && (
