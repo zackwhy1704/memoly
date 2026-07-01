@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   api, asArray, ApiError,
-  type MarkingReference, type MarkingReferenceKind,
+  type MarkingReference, type MarkingReferenceKind, type MarkingBrain,
 } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
@@ -155,7 +155,10 @@ function ReferenceCard({ orgId, classId, reference }: {
 
   const delMut = useMutation({
     mutationFn: () => api.deleteMarkingReference(orgId, classId, reference.id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['markingReferences', orgId, classId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['markingReferences', orgId, classId] });
+      qc.invalidateQueries({ queryKey: ['markingBrain', orgId, classId] });
+    },
   });
 
   function confirmDelete() {
@@ -204,6 +207,81 @@ function ReferenceCard({ orgId, classId, reference }: {
   );
 }
 
+// ── Learned marking standard (compiled brain) ────────────────────────────
+const BRAIN_STATE_LABEL: Record<MarkingBrain['state'], string> = {
+  NOT_BUILT: 'Not built yet',
+  COMPILING: 'Learning…',
+  PENDING_RECOMPILE: 'Updating…',
+  READY: 'Ready',
+};
+const BRAIN_STATE_STYLE: Record<MarkingBrain['state'], string> = {
+  NOT_BUILT: 'bg-panel2 text-ink3',
+  COMPILING: 'bg-amber-900/40 text-amber-300',
+  PENDING_RECOMPILE: 'bg-amber-900/40 text-amber-300',
+  READY: 'bg-teal-900/40 text-teal-300',
+};
+
+/**
+ * Shows the COMPILED marking standard the assistant has learned — mirroring how
+ * the student brain shows its wiki pages — so uploads visibly turn into a
+ * structured standard, not vanish into a blob. Polls while compiling.
+ */
+function MarkingBrainSection({ orgId, classId }: { orgId: string; classId: string }) {
+  const query = useQuery({
+    queryKey: ['markingBrain', orgId, classId],
+    queryFn: () => api.markingBrain(orgId, classId),
+    refetchInterval: (q) => {
+      const s = (q.state.data as { data?: MarkingBrain } | undefined)?.data?.state;
+      return s === 'COMPILING' || s === 'PENDING_RECOMPILE' ? 4000 : false;
+    },
+  });
+
+  const brain = query.data?.data;
+  // Nothing compiled yet → the references empty-state already guides the teacher.
+  if (!brain || (brain.state === 'NOT_BUILT' && brain.pageCount === 0)) return null;
+
+  return (
+    <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h3 className="text-sm font-semibold text-ink">🧠 What your assistant has learned</h3>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${BRAIN_STATE_STYLE[brain.state]}`}>
+          {BRAIN_STATE_LABEL[brain.state]}
+        </span>
+      </div>
+      <p className="text-xs text-ink2">
+        AI feedback drafts are graded against these {brain.pageCount} marking rule
+        {brain.pageCount !== 1 ? 's' : ''}, learned from your uploads.
+      </p>
+
+      {brain.hasConflicts && (
+        <div className="rounded-lg bg-amber-900/30 border border-amber-700/50 px-3 py-2 text-xs text-amber-200">
+          ⚠️ Some of your marking materials contradict each other — review the flagged rules below.
+        </div>
+      )}
+
+      {brain.state === 'COMPILING' && brain.pageCount === 0 ? (
+        <p className="text-xs text-ink3 py-2">Reading your marking materials…</p>
+      ) : (
+        <ul className="space-y-2">
+          {brain.pages.map((p) => (
+            <li key={p.slug} className="rounded-lg bg-panel2 border border-line px-3 py-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-ink">{p.title}</span>
+                {p.hasConflict && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-900/40 text-amber-300">
+                    conflict
+                  </span>
+                )}
+              </div>
+              {p.preview && <p className="text-xs text-ink3 mt-1 line-clamp-2">{p.preview}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ── Panel root ────────────────────────────────────────────────────────────
 export function MarkingAssistantPanel({ orgId, classId }: { orgId: string; classId: string }) {
   const [showUpload, setShowUpload] = useState(false);
@@ -246,9 +324,13 @@ export function MarkingAssistantPanel({ orgId, classId }: { orgId: string; class
           onDone={() => {
             setShowUpload(false);
             qc.invalidateQueries({ queryKey: ['markingReferences', orgId, classId] });
+            // New material was just compiled into the marking brain — refresh it.
+            qc.invalidateQueries({ queryKey: ['markingBrain', orgId, classId] });
           }}
         />
       )}
+
+      <MarkingBrainSection orgId={orgId} classId={classId} />
 
       {query.isLoading ? (
         <p className="text-ink3 text-xs py-6">Loading reference material…</p>

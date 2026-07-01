@@ -876,6 +876,24 @@ export interface MarkingReference {
   updatedAt: string;
 }
 
+/** One page of the COMPILED marking standard (what the assistant has learned). */
+export interface MarkingBrainPage {
+  title: string;
+  slug: string;
+  preview: string;
+  certainty: string | null;
+  hasConflict: boolean;
+}
+
+/** The compiled marking-standard brain for a class's (org, subject). */
+export interface MarkingBrain {
+  state: 'NOT_BUILT' | 'READY' | 'COMPILING' | 'PENDING_RECOMPILE';
+  subject?: string | null;
+  pageCount: number;
+  pages: MarkingBrainPage[];
+  hasConflicts: boolean;
+}
+
 /**
  * Fetch a bearer-protected binary endpoint and return an object URL for it.
  * `<img src>`/`<iframe src>` can't carry the Authorization header, so the
@@ -1527,6 +1545,12 @@ export const api = {
   markingReferences: (orgId: string, classId: string) =>
     apiFetch<{ data: MarkingReference[] }>(
       `/centre/organizations/${orgId}/classes/${classId}/marking-references`
+    ),
+
+  /** The COMPILED marking standard (marking-wiki pages + brain state + conflicts). */
+  markingBrain: (orgId: string, classId: string) =>
+    apiFetch<{ data: MarkingBrain }>(
+      `/centre/organizations/${orgId}/classes/${classId}/marking-references/brain`
     ),
 
   /** Object URL for a stored marking-reference artifact (bearer-fetched; revoke when done). */
