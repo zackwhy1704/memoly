@@ -879,6 +879,19 @@ export interface MarkingReference {
 }
 
 /** One page of the COMPILED marking standard (what the assistant has learned). */
+/** A student's weak areas for a class subject (teacher view). */
+export interface StudentWeakness {
+  studentId: string;
+  displayName: string;
+  weakAreas: string[];
+}
+
+export interface ClassWeakness {
+  enabled: boolean;
+  subject: string | null;
+  students: StudentWeakness[];
+}
+
 export interface MarkingBrainPage {
   title: string;
   slug: string;
@@ -1555,6 +1568,10 @@ export const api = {
     apiFetch<{ data: MarkingBrain }>(
       `/centre/organizations/${orgId}/classes/${classId}/marking-references/brain`
     ),
+
+  /** Teacher (owner) view of per-student weak areas for a class subject. */
+  classWeakness: (classId: string) =>
+    apiFetch<{ data: ClassWeakness }>(`/weakness/class/${classId}`),
 
   /** Object URL for a stored marking-reference artifact (bearer-fetched; revoke when done). */
   markingReferenceFileUrl: (orgId: string, classId: string, id: string, index: number) =>

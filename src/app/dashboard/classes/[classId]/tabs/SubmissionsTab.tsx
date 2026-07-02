@@ -10,6 +10,7 @@ import {
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { MarkingAssistantPanel } from './MarkingAssistantPanel';
+import { StudentWeaknessPanel } from './StudentWeaknessPanel';
 
 // ── Status presentation ─────────────────────────────────────────────────
 const STATUS_LABEL: Record<SubmissionStatus, string> = {
@@ -479,6 +480,10 @@ export function SubmissionsTab({ orgId, classId, subject }: {
           <MarkingAssistantPanel orgId={orgId} classId={classId} subject={subject} />
         </div>
       </details>
+
+      {/* Closes the teacher loop: where each student struggles (weakness pilot,
+          self-hides until enabled). */}
+      <StudentWeaknessPanel classId={classId} />
 
       {showUpload && (
         <UploadForm
