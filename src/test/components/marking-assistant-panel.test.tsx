@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('@/lib/api', async () => {
@@ -85,6 +86,34 @@ describe('MarkingAssistantPanel — learned standard', () => {
 
     expect(await screen.findByText(/contradict each other/i)).toBeInTheDocument();
     expect(screen.getByText('conflict')).toBeInTheDocument();
+  });
+
+  it('teaches the mental model in the empty state: worked example + one-upload CTA', async () => {
+    vi.mocked(api.markingBrain).mockResolvedValue(
+      { data: { state: 'NOT_BUILT', pageCount: 0, pages: [], hasConflicts: false } });
+
+    renderWithClient(<MarkingAssistantPanel orgId="org-1" classId="cls-1" />);
+
+    // Worked example leads, using the REAL draft shapes (honest — not a prettier mock).
+    expect(await screen.findByText(/See how training works/)).toBeInTheDocument();
+    expect(screen.getByText('AI first-pass (draft)')).toBeInTheDocument();
+    expect(screen.getByText(/Suggested grade:/)).toBeInTheDocument();
+    expect(screen.getByText('Got it — add my own')).toBeInTheDocument();
+    // Progressive disclosure: a single clear first action, not a wall of tips.
+    expect(screen.getByText('Upload one marked paper to start')).toBeInTheDocument();
+  });
+
+  it('demotes the tips to a secondary expander (not a wall of tips up front)', async () => {
+    vi.mocked(api.markingBrain).mockResolvedValue(
+      { data: { state: 'NOT_BUILT', pageCount: 0, pages: [], hasConflicts: false } });
+
+    renderWithClient(<MarkingAssistantPanel orgId="org-1" classId="cls-1" />);
+    await screen.findByText(/See how training works/);
+
+    // The checklist is hidden until the teacher opens "What makes a great exemplar".
+    expect(screen.queryByText(/Marked exemplars teach the most/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText(/What makes a great exemplar/));
+    expect(screen.getByText(/Marked exemplars teach the most/)).toBeInTheDocument();
   });
 
   it('hides the learned-standard section before anything is compiled', async () => {

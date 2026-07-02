@@ -10,6 +10,7 @@ import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { useOrg } from '@/lib/org-context';
 import { QualityBadge, extractionBadge, confidenceBadge, NOTES_TIPS_HREF } from '@/components/QualityBadge';
+import { MarkingWorkedExample } from './MarkingWorkedExample';
 
 // ── Kind presentation ───────────────────────────────────────────────────
 const KIND_LABEL: Record<MarkingReferenceKind, string> = {
@@ -408,17 +409,31 @@ export function MarkingAssistantPanel({ orgId, classId, subject }: {
       ) : query.error ? (
         <ErrorView message="Could not load your marking references." onRetry={() => query.refetch()} />
       ) : refs.length === 0 ? (
-        <div className="bg-panel border border-line rounded-2xl">
-          <EmptyState
-            icon="🎯"
-            title="No reference material yet"
-            description="Upload your marked papers and rubrics so AI feedback drafts match your marking standard."
-            actionLabel="Add reference"
-            onAction={() => setShowUpload(true)}
-          />
-          <div className="border-t border-line px-5 py-4 bg-panel2 rounded-b-2xl">
-            <p className="text-xs font-semibold text-ink2 mb-2">What good reference material looks like</p>
-            <GuidanceList />
+        // Progressive disclosure: teach the mental model FIRST (worked example),
+        // then ask for ONE upload, then demote the tips to a secondary expander.
+        <div className="space-y-4">
+          <MarkingWorkedExample onStart={() => setShowUpload(true)} />
+          <div className="bg-panel border border-line rounded-2xl">
+            <EmptyState
+              icon="🎯"
+              title="Upload one marked paper to start"
+              description="Add a marked paper or rubric so AI feedback drafts match your marking standard. Start with just one — you can add more anytime."
+              actionLabel="Upload a marked paper"
+              onAction={() => setShowUpload(true)}
+            />
+            <div className="border-t border-line px-5 py-4 bg-panel2 rounded-b-2xl">
+              <button
+                onClick={() => setShowTips((v) => !v)}
+                className="text-xs font-semibold text-ink2 hover:text-ink"
+              >
+                {showTips ? '▼' : '▶'} What makes a great exemplar
+              </button>
+              {showTips && (
+                <div className="mt-2">
+                  <GuidanceList />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : (
