@@ -82,3 +82,13 @@ npm run dev        # local dev (against NEXT_PUBLIC_API_URL)
 npm run build      # production build (must pass before done)
 npm run lint
 ```
+
+## Hard-won lessons (enforce these)
+- **Keep the zero-`any` discipline.** No `any` / `as any` / `<any>`. Type at the boundary.
+- **One module = one domain.** Don't let `api.ts` (or any file) become the whole API surface — split by
+  domain under `src/lib/api/*` re-exported from an index that preserves the public import surface.
+- **State-changing links need a HUMAN click.** Never auto-fire a mutating POST on page load — email
+  pre-fetchers / link scanners consume one-time tokens (the parental-approve token bug). Require an explicit
+  Approve button; fire the POST on click.
+- **CONSISTENCY over cleverness.** The recurring root cause across these repos is a good pattern applied in
+  one place but not its siblings. Fix a pattern → grep all siblings → add a guard.
