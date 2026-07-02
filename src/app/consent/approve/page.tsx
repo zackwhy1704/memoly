@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 
@@ -78,7 +79,6 @@ function ConsentApproveBody() {
 
       {view.state === 'success' && (
         <div className="mt-6 bg-white border border-[#E0DAF0] rounded-2xl p-8 shadow-sm">
-          <div className="text-4xl mb-4">✅</div>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">All done!</h2>
           <p className="text-[#6B618A] text-sm">
             Your child&apos;s account is now active. Their app unlocks
@@ -142,7 +142,14 @@ export default function ConsentApprovePage() {
   return (
     <main className="min-h-screen bg-[#FAFAFF] flex items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
-        <div className="text-5xl mb-6">📚</div>
+        <Image
+          src="/mochi-base.png"
+          alt="Mochi, the Apalchi mascot"
+          width={128}
+          height={128}
+          priority
+          className="mx-auto mb-4 h-28 w-28 object-contain"
+        />
         <h1 className="text-2xl font-extrabold text-[#1F1733] mb-2">Apalchi</h1>
         <Suspense
           fallback={
