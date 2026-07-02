@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 
 type View =
+  | { state: 'confirm' }
   | { state: 'loading' }
   | { state: 'success' }
   | { state: 'already_used' }
@@ -15,14 +16,19 @@ type View =
 function ConsentApproveBody() {
   const params = useSearchParams();
   const token = params.get('token');
-  const [view, setView] = useState<View>({ state: 'loading' });
+  // Start at a human-confirm step — NEVER auto-fire the state-changing POST on
+  // load. Email link-scanners / preview bots fetch the URL but don't click, so
+  // the one-time token survives for the real parent, and consent is genuinely
+  // human-attested (a person clicked Approve, not an antivirus proxy).
+  const [view, setView] = useState<View>({ state: token ? 'confirm' : 'invalid' });
 
   useEffect(() => {
-    if (!token) {
-      setView({ state: 'invalid' });
-      return;
-    }
+    if (!token) setView({ state: 'invalid' });
+  }, [token]);
 
+  function approve() {
+    if (!token) return;
+    setView({ state: 'loading' });
     apiFetch<{ data: { status: string } }>(
       `/consent/approve?token=${encodeURIComponent(token)}`,
       { method: 'POST', skipAuth: true }
@@ -40,23 +46,29 @@ function ConsentApproveBody() {
           setView({ state: 'error', message: msg || 'An unexpected error occurred.' });
         }
       });
-  }, [token]);
-
-  function retry() {
-    if (!token) return;
-    setView({ state: 'loading' });
-    apiFetch<unknown>(
-      `/consent/approve?token=${encodeURIComponent(token)}`,
-      { method: 'POST', skipAuth: true }
-    )
-      .then(() => setView({ state: 'success' }))
-      .catch((err) =>
-        setView({ state: 'error', message: err?.message ?? 'Please try again.' })
-      );
   }
+
+  const retry = approve;
 
   return (
     <>
+      {view.state === 'confirm' && (
+        <div className="mt-6 bg-white border border-[#E0DAF0] rounded-2xl p-8 shadow-sm">
+          <div className="text-4xl mb-4">🧒</div>
+          <h2 className="text-lg font-bold text-[#1F1733] mb-2">Approve your child&apos;s account?</h2>
+          <p className="text-[#6B618A] text-sm mb-5">
+            Your child wants to use Apalchi to study. Approving activates their account
+            and starts a 7-day free trial. You can manage or cancel anytime.
+          </p>
+          <button
+            onClick={approve}
+            className="w-full bg-[#4C6FFF] hover:bg-[#3d5ae6] text-white font-semibold rounded-xl py-3 transition"
+          >
+            Approve
+          </button>
+        </div>
+      )}
+
       {view.state === 'loading' && (
         <div className="mt-8 flex flex-col items-center gap-4">
           <span className="w-8 h-8 border-4 border-[#4C6FFF] border-t-transparent rounded-full animate-spin" />
