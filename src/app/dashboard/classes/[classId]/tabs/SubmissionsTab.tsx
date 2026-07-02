@@ -433,6 +433,9 @@ export function SubmissionsTab({ orgId, classId, subject }: {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  // Default-open so the marking trainer is discoverable (it drives the whole
+  // feedback loop); still user-collapsible once they've trained it.
+  const [markingOpen, setMarkingOpen] = useState(true);
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -463,7 +466,11 @@ export function SubmissionsTab({ orgId, classId, subject }: {
         </button>
       </div>
 
-      <details className="bg-panel2/50 border border-line rounded-2xl group">
+      <details
+        open={markingOpen}
+        onToggle={(e) => setMarkingOpen(e.currentTarget.open)}
+        className="bg-panel2/50 border border-line rounded-2xl group"
+      >
         <summary className="px-5 py-3 cursor-pointer text-sm font-semibold text-ink2 hover:text-ink list-none flex items-center gap-2">
           <span className="text-ink3 text-xs transition-transform group-open:rotate-90">▶</span>
           🎯 Marking assistant — train AI feedback on YOUR standard

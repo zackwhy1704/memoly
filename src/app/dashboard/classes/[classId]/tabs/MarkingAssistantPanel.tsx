@@ -333,6 +333,7 @@ export function MarkingAssistantPanel({ orgId, classId, subject }: {
 }) {
   const [showUpload, setShowUpload] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const qc = useQueryClient();
   const centreName = useOrg()?.orgName?.trim() || 'your centre';
   const subj = subject ?? null;
@@ -376,11 +377,28 @@ export function MarkingAssistantPanel({ orgId, classId, subject }: {
           onCancel={() => setShowUpload(false)}
           onDone={() => {
             setShowUpload(false);
+            setJustAdded(true);
             qc.invalidateQueries({ queryKey: ['markingReferences', orgId, classId] });
             // New material was just compiled into the marking brain — refresh it.
             qc.invalidateQueries({ queryKey: ['markingBrain', orgId, classId] });
           }}
         />
+      )}
+
+      {/* Success + progress cue right after an upload — the marking flow's
+          equivalent of the student's "Brain updated!" screen. */}
+      {justAdded && (
+        <div className="rounded-2xl bg-teal-900/25 border border-teal-700/50 px-4 py-3 flex items-start gap-3">
+          <span className="text-lg leading-none">✓</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-teal-200">Reference added — your assistant is learning your standard</p>
+            <p className="text-xs text-teal-200/80 mt-0.5">
+              This takes a moment. Once it&apos;s ready, open a submission below and tap
+              <span className="font-semibold"> Generate AI draft</span> — it&apos;ll draft feedback in your marking style.
+            </p>
+          </div>
+          <button onClick={() => setJustAdded(false)} className="text-teal-200/60 hover:text-teal-200 text-sm shrink-0">✕</button>
+        </div>
       )}
 
       <MarkingBrainSection orgId={orgId} classId={classId} centreName={centreName} subject={subj} />
@@ -405,6 +423,17 @@ export function MarkingAssistantPanel({ orgId, classId, subject }: {
         </div>
       ) : (
         <>
+          {/* Next step — close the feedback loop: point the teacher from
+              "trained" to actually grading with it. */}
+          <div className="rounded-xl bg-accent/5 border border-accent/20 px-4 py-3">
+            <p className="text-xs text-ink2 leading-relaxed">
+              <span className="font-semibold text-ink">Next step:</span> your assistant is trained on{' '}
+              {refs.length} reference{refs.length !== 1 ? 's' : ''}. Open a student submission in the list
+              below and tap <span className="font-semibold">Generate AI draft</span> — it drafts feedback in
+              your marking style. Add more marked exemplars across grade bands anytime to sharpen it.
+            </p>
+          </div>
+
           <div className="rounded-xl bg-panel2 border border-line px-4 py-3">
             <button
               onClick={() => setShowTips((v) => !v)}
