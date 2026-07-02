@@ -55,7 +55,6 @@ function ConsentApproveBody() {
     <>
       {view.state === 'confirm' && (
         <div className="mt-6 bg-white border border-[#E0DAF0] rounded-2xl p-8 shadow-sm">
-          <div className="text-4xl mb-4">🧒</div>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">Approve your child&apos;s account?</h2>
           <p className="text-[#6B618A] text-sm mb-5">
             Your child wants to use Apalchi to study. Approving activates their account
