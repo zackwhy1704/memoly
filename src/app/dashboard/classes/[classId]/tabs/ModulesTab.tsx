@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, asArray, type MuddiestPoint, type ClassModule } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
 import { NarrationAction } from '../components/NarrationAction';
+import { ModulePreviewModal } from '../components/ModulePreviewModal';
 
 /**
  * Mastery as a 0–100 integer, or null when there's no finite data yet.
@@ -117,6 +119,7 @@ function MuddiestBar({ classId, moduleId }: { classId: string; moduleId: string 
 }
 
 export function ModulesTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const [preview, setPreview] = useState<ClassModule | null>(null);
   const query = useQuery({
     queryKey: ['classModules', orgId, classId],
     queryFn: () => api.classModules(orgId, classId),
@@ -155,12 +158,29 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
             <div className="min-w-[140px] flex-1 max-w-[220px]">
               <MasteryBar value={m.avgMastery} />
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex items-center gap-2">
+              <button
+                onClick={() => setPreview(m)}
+                className="px-3 py-1.5 rounded-lg border border-line text-sm font-medium text-ink2 hover:bg-panel2 transition"
+              >
+                Preview
+              </button>
               <NarrationAction orgId={orgId} classId={classId} moduleId={m.moduleId} />
             </div>
           </div>
         </div>
       ))}
+
+      {preview && (
+        <ModulePreviewModal
+          orgId={orgId}
+          classId={classId}
+          moduleId={preview.moduleId}
+          moduleTitle={preview.title}
+          wikiSlug={preview.wikiSlug}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   );
 }

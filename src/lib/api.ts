@@ -561,6 +561,16 @@ export interface ClassRosterAnalyticsRow {
   lastActive: string | null;
 }
 
+/** One content item in a teacher module preview. contentJson is a JSON string;
+ *  answerJson is intentionally never included (no gradeable answer keys). */
+export interface ModulePreviewItem {
+  id: string;
+  stage: string; // LEARN | TEST | PROVE
+  type: string; // MICRO_CARD | HOT_TAKE | SPOT_MISTAKE | CHALLENGE | PROVE_QUESTION | …
+  contentJson: string;
+  sortOrder: number;
+}
+
 export interface ClassModule {
   moduleId: string;
   title: string;
@@ -1243,6 +1253,13 @@ export const api = {
   classModules: (orgId: string, classId: string) =>
     apiFetch<{ data: ClassModule[] }>(
       `/centre/organizations/${orgId}/classes/${classId}/modules`
+    ),
+
+  // Read-only teacher preview of a module's items (LEARN/TEST/PROVE) as a student
+  // sees them — no answer keys (the backend omits answerJson).
+  moduleContentPreview: (orgId: string, classId: string, moduleId: string) =>
+    apiFetch<{ data: ModulePreviewItem[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/modules/${moduleId}/preview`
     ),
 
   classConceptMastery: (orgId: string, classId: string) =>
