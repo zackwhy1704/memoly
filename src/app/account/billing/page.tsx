@@ -6,40 +6,22 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { getToken, logout } from '@/lib/auth';
+import { CONSUMER_PLANS } from '@/lib/plans';
 
 const PAYMENTS_UNAVAILABLE =
   "Payments aren't available right now. Please try again later or contact support.";
 
-// `id` is the local tier key used for the "current plan" highlight; `checkoutId`
-// is the EXACT plan key the backend's POST /subscription/checkout accepts. The
-// backend rejects bare 'pro'/'max'/'family' with a 400 BusinessException, so we
-// send the NEW MONTHLY keys (pro_monthly / max_monthly / family_monthly_new).
-const PLANS = [
-  {
-    id: 'pro',
-    checkoutId: 'pro_monthly',
-    name: 'Pro',
-    price: 'S$8.90 / month',
-    annual: 'S$89 / year',
-    features: ['Unlimited chat', 'Full LEARN→TEST→PROVE loop', 'Basic analytics'],
-  },
-  {
-    id: 'max',
-    checkoutId: 'max_monthly',
-    name: 'Max',
-    price: 'S$14.90 / month',
-    annual: 'S$149 / year',
-    features: ['Everything in Pro', 'Group study', 'Priority AI speed'],
-  },
-  {
-    id: 'family',
-    checkoutId: 'family_monthly_new',
-    name: 'Family',
-    price: 'S$24.90 / month',
-    annual: 'S$249 / year',
-    features: ['Up to 4 learners', 'Parent dashboard', 'Everything in Max'],
-  },
-];
+// Prices come from the canonical USD source of truth (src/lib/plans.ts) — the
+// same list the marketing page + Stripe use. checkoutId is the EXACT plan key the
+// backend's POST /subscription/checkout accepts (it rejects bare 'pro'/'max'/'family').
+const PLANS = CONSUMER_PLANS.map((p) => ({
+  id: p.id,
+  checkoutId: p.checkoutId,
+  name: p.name,
+  price: `${p.priceMonthly} / month`,
+  annual: `${p.priceAnnual} / year`,
+  features: p.features,
+}));
 
 export default function BillingPage() {
   const router = useRouter();

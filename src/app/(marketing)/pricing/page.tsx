@@ -4,37 +4,21 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { isAuthenticated } from '@/lib/auth';
+import { CONSUMER_PLANS } from '@/lib/plans';
 
 type Audience = 'consumer' | 'centres';
 
-// Consumer (B2C) — USD, one product (prod_UdpRpXbhmTnDHa). Display-only; the
-// actual checkout key lives in /account/billing.
-const CONSUMER_TIERS = [
-  {
-    name: 'Pro',
-    price: 'US$9.99',
-    per: '/month',
-    annual: 'or US$79/year (save ~17%)',
-    features: ['Unlimited chat with Mochi', 'Full LEARN → TEST → PROVE loop', 'Progress analytics'],
-    featured: false,
-  },
-  {
-    name: 'Max',
-    price: 'US$19.99',
-    per: '/month',
-    annual: 'or US$159/year (save ~17%)',
-    features: ['Everything in Pro', 'Group study', 'Priority AI speed'],
-    featured: true,
-  },
-  {
-    name: 'Family',
-    price: 'US$34.99',
-    per: '/month',
-    annual: 'or US$279/year (save ~17%)',
-    features: ['Up to 4 learners', 'Parent dashboard', 'Everything in Max'],
-    featured: false,
-  },
-];
+// Consumer (B2C) — from the canonical USD source of truth (src/lib/plans.ts),
+// one product (prod_UdpRpXbhmTnDHa). Display-only; the checkout key lives in
+// /account/billing (which reads the same list).
+const CONSUMER_TIERS = CONSUMER_PLANS.map((p) => ({
+  name: p.name,
+  price: p.priceMonthly,
+  per: p.perMonth,
+  annual: `or ${p.priceAnnual}/year (${p.annualSave})`,
+  features: p.features,
+  featured: p.featured,
+}));
 
 // Centre (B2B) — USD, per-class where noted. Human-close (pilot/demo CTAs).
 const CENTRE_TIERS = [
