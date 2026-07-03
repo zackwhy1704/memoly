@@ -33,9 +33,15 @@ export default function DashboardLayout({
           setReady(true);
         }
       })
-      .catch(() => {
-        // Network failure — allow through rather than kicking the user out.
-        // 401s are handled globally in api.ts and never reach here.
+      .catch((err) => {
+        // An auth failure that reaches here (401/403) must NOT open the shell —
+        // bounce to login. Only a network/5xx error allows through (the backend
+        // still gates every data call by JWT, so no data renders unauthorized).
+        const status = (err as { status?: number })?.status;
+        if (status === 401 || status === 403) {
+          router.replace('/login');
+          return;
+        }
         setReady(true);
       });
   }, [router]);

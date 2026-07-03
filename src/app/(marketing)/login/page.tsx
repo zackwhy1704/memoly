@@ -115,7 +115,8 @@ function LoginInner() {
       const res = await api.login(email, password);
       saveAuth(res.data.token, res.data.userId);
       saveLastEmail(email);
-      identify(res.data.userId, { email });
+      // No email to PostHog (US-hosted) — PDPA overseas-transfer of PII; userId suffices.
+      identify(res.data.userId);
       trackEvent('login');
 
       // Three-door routing: ADMIN → /admin, centre staff → /dashboard, student → /get-the-app.

@@ -8,12 +8,10 @@ import AsyncBoundary from '@/components/AsyncBoundary';
 export default function AdminSafetyPage() {
   const [userId, setUserId] = useState('');
   const [sinceHours, setSinceHours] = useState(24);
-  const [secret, setSecret] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('adminSecret') ?? '';
-    }
-    return '';
-  });
+  // In-memory only (React state) — NOT sessionStorage, which is readable by any
+  // JS/XSS. The secret is re-entered each page load rather than persisted.
+  // TODO: replace this shared secret with an ADMIN JWT-claim check server-side.
+  const [secret, setSecret] = useState('');
   const [secretInput, setSecretInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -28,8 +26,7 @@ export default function AdminSafetyPage() {
     e.preventDefault();
     const s = secretInput.trim();
     if (s) {
-      sessionStorage.setItem('adminSecret', s);
-      setSecret(s);
+      setSecret(s); // in-memory only — not persisted to storage
     }
     setSubmitted(true);
   }

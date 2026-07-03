@@ -34,7 +34,9 @@ export default function SignupPage() {
 
   async function finishSetup(token: string, userId: string, eventName: string) {
     saveAuth(token, userId);
-    identify(userId, { email: email || undefined });
+    // Do NOT send email to PostHog (US-hosted) — PDPA overseas-transfer of PII.
+    // The userId UUID is sufficient for identity stitching.
+    identify(userId);
     try {
       await api.onboardCentre(orgName.trim());
     } catch {

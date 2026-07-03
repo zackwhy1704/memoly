@@ -23,8 +23,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setReady(true);
         }
       })
-      .catch(() => {
-        // Network failure — allow through. 401s are handled globally in api.ts.
+      .catch((err) => {
+        // An auth failure (401/403) reaching here must bounce to login, not open
+        // the admin shell. Only network/5xx allows through (backend gates data).
+        const status = (err as { status?: number })?.status;
+        if (status === 401 || status === 403) {
+          router.replace('/login');
+          return;
+        }
         setReady(true);
       });
   }, [router]);
