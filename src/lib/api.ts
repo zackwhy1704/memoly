@@ -848,8 +848,22 @@ export interface AiDraftFeedback {
 export function parseAiDraft(json: string | null | undefined): AiDraftFeedback | null {
   if (!json || !json.trim()) return null;
   try {
-    const p = JSON.parse(json) as AiDraftFeedback;
-    return p && typeof p === 'object' ? p : null;
+    const p = JSON.parse(json) as unknown;
+    if (!p || typeof p !== 'object') return null;
+    const obj = p as Record<string, unknown>;
+    // Coerce to the declared shape — the model can emit `criteria` as a string or
+    // object, which would throw `.map is not a function` in the render. Drop any
+    // non-array criteria rather than trust the type contract at runtime.
+    return {
+      suggestedGrade:
+        typeof obj.suggestedGrade === 'string' ? obj.suggestedGrade : undefined,
+      feedback: typeof obj.feedback === 'string' ? obj.feedback : undefined,
+      criteria: Array.isArray(obj.criteria)
+        ? (obj.criteria.filter(
+            (c) => c && typeof c === 'object',
+          ) as AiDraftFeedback['criteria'])
+        : undefined,
+    };
   } catch {
     return null;
   }
