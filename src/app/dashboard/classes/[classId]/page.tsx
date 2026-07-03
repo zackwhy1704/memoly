@@ -19,19 +19,16 @@ import MochiAvatar from '@/components/MochiAvatar';
 import { ClassCodeBox } from './components/ClassCodeBox';
 import EditClassModal from '../modals/EditClassModal';
 import { RosterTab } from './tabs/RosterTab';
-import { ModulesTab } from './tabs/ModulesTab';
 import { HeatmapTab } from './tabs/HeatmapTab';
 import { ConceptMasteryTab } from './tabs/ConceptMasteryTab';
-import { ClassBrainTab } from './tabs/ClassBrainTab';
-import { AssignmentsTab } from './tabs/AssignmentsTab';
 import { SubmissionsTab } from './tabs/SubmissionsTab';
 import { ChallengesTab } from './tabs/ChallengesTab';
-import { ReviewTab } from './tabs/ReviewTab';
 import { ExamReadinessTab } from './tabs/ExamReadinessTab';
 import { AddStudentsTab } from './tabs/AddStudentsTab';
 import { ClassBriefTab } from './tabs/ClassBriefTab';
 import { ReportTab } from './tabs/ReportTab';
 import TabErrorBoundary from '@/components/TabErrorBoundary';
+import { TeachFlow } from './teach/TeachFlow';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -191,7 +188,8 @@ export default function ClassDetailPage() {
       {/* Sub-nav — the views within the active section (hidden when only one) */}
       {(() => {
         const section = SECTIONS.find((s) => s.key === sectionOf(tab));
-        if (!section || section.subtabs.length <= 1) return null;
+        // TEACH is a guided flow (its own stepper), not a sub-nav of pills.
+        if (!section || section.subtabs.length <= 1 || section.key === 'teach') return null;
         return (
           <div className="flex gap-1.5 flex-wrap">
             {section.subtabs.map((t) => (
@@ -222,16 +220,16 @@ export default function ClassDetailPage() {
         </button>
       )}
 
-      <TabErrorBoundary resetKey={tab}>
+      <TabErrorBoundary resetKey={sectionOf(tab) === 'teach' ? 'teach' : tab}>
+        {/* TEACH: the guided flow unifies Brain + Modules + Assignments + Review. */}
+        {sectionOf(tab) === 'teach' && (
+          <TeachFlow corpusAvatarId={cls.corpusAvatarId} classId={classId} orgId={org.orgId} />
+        )}
         {tab === 'roster' && <RosterTab orgId={org.orgId} classId={classId} />}
-        {tab === 'modules' && <ModulesTab orgId={org.orgId} classId={classId} />}
         {tab === 'heatmap' && <HeatmapTab orgId={org.orgId} classId={classId} />}
         {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
-        {tab === 'content' && <ClassBrainTab corpusAvatarId={cls.corpusAvatarId} classId={classId} />}
-        {tab === 'assignments' && <AssignmentsTab orgId={org.orgId} classId={classId} />}
         {tab === 'submissions' && <SubmissionsTab orgId={org.orgId} classId={classId} subject={cls.subject} />}
         {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
-        {tab === 'review' && <ReviewTab orgId={org.orgId} classId={classId} />}
         {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
         {tab === 'brief' && <ClassBriefTab orgId={org.orgId} classId={classId} />}
         {tab === 'report' && <ReportTab orgId={org.orgId} classId={classId} />}
