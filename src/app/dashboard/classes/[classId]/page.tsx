@@ -2,7 +2,15 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  SECTIONS,
+  SUBTAB_LABEL,
+  DEFAULT_TAB,
+  isTab,
+  sectionOf,
+  type Tab,
+} from './sections';
 import { api, type OrgClass } from '@/lib/api';
 import { mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
@@ -25,15 +33,30 @@ import { ClassBriefTab } from './tabs/ClassBriefTab';
 import { ReportTab } from './tabs/ReportTab';
 import TabErrorBoundary from '@/components/TabErrorBoundary';
 
-type Tab = 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content' | 'assignments' | 'submissions' | 'challenges' | 'review' | 'readiness' | 'brief' | 'report' | 'add';
-
 export default function ClassDetailPage() {
   const params = useParams();
   const router = useRouter();
   const org = useOrg();
   const qc = useQueryClient();
   const classId = params.classId as string;
-  const [tab, setTab] = useState<Tab>('roster');
+  const [tab, setTab] = useState<Tab>(DEFAULT_TAB);
+
+  // Restore ?tab= on load (shareable/bookmarkable deep links; old bookmarks use
+  // the same 13 keys) and keep the URL in sync on select — via history so it
+  // doesn't pull useSearchParams (and its Suspense requirement) into the page.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (isTab(t)) setTab(t);
+  }, []);
+
+  const selectTab = useCallback((t: Tab) => {
+    setTab(t);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', t);
+      window.history.replaceState(null, '', url.toString());
+    }
+  }, []);
   const [editingClass, setEditingClass] = useState(false);
   const [deletingClass, setDeletingClass] = useState(false);
 
@@ -147,42 +170,51 @@ export default function ClassDetailPage() {
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Section nav — job-based: Teach · Mark · Insights · Students */}
       <div className="flex gap-1 border-b border-line overflow-x-auto">
-        {(['roster', 'modules', 'heatmap', 'concepts', 'content', 'assignments', 'submissions', 'challenges', 'review', 'readiness', 'brief', 'report', 'add'] as Tab[]).map((t) => {
-          const label: Record<Tab, string> = {
-            roster: 'Roster',
-            modules: 'Modules',
-            heatmap: 'Heatmap',
-            concepts: 'Concept Mastery',
-            content: 'Brain',
-            assignments: 'Assignments',
-            submissions: 'Submissions',
-            challenges: 'Challenges',
-            review: 'Review',
-            readiness: 'Exam Readiness',
-            brief: 'Class Brief',
-            report: 'AI Report',
-            add: 'Add students',
-          };
+        {SECTIONS.map((s) => {
+          const active = sectionOf(tab) === s.key;
           return (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition ${
-                tab === t ? 'border-accent text-ink' : 'border-transparent text-ink3 hover:text-ink2'
+              key={s.key}
+              onClick={() => selectTab(s.subtabs[0])}
+              className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition ${
+                active ? 'border-accent text-ink' : 'border-transparent text-ink3 hover:text-ink2'
               }`}
             >
-              {label[t]}
+              {s.label}
             </button>
           );
         })}
       </div>
 
+      {/* Sub-nav — the views within the active section (hidden when only one) */}
+      {(() => {
+        const section = SECTIONS.find((s) => s.key === sectionOf(tab));
+        if (!section || section.subtabs.length <= 1) return null;
+        return (
+          <div className="flex gap-1.5 flex-wrap">
+            {section.subtabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => selectTab(t)}
+                className={`px-3 py-1.5 text-sm rounded-full transition ${
+                  tab === t
+                    ? 'bg-accent text-white'
+                    : 'bg-panel2 text-ink3 hover:text-ink2'
+                }`}
+              >
+                {SUBTAB_LABEL[t]}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Empty brain banner — only after loading settles, never while loading */}
       {cls.corpusAvatarId && brainIsEmpty && tab !== 'content' && (
         <button
-          onClick={() => setTab('content')}
+          onClick={() => selectTab('content')}
           className="w-full text-left px-4 py-3 rounded-xl bg-warn/10 border border-warn/30 text-sm text-warn font-medium hover:bg-warn/15 transition"
         >
           This class has no content yet — upload notes so the Mochi can teach.{' '}
