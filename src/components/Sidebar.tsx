@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useOrg } from '@/lib/org-context';
@@ -33,11 +34,12 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-line">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/mochi-base-transparent.png"
             alt="Apalchi"
-            className="w-8 h-8 object-contain"
+            width={32}
+            height={32}
+            className="object-contain"
           />
           <div>
             <p className="text-ink font-bold text-lg leading-tight">Apalchi</p>

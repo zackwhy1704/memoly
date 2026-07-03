@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Image from 'next/image';
 
 // Single source of truth for store URLs — set these env vars once the app
 // listings are live. When unset, badges show "coming soon" instead of #.
@@ -57,11 +58,12 @@ export default function GetTheAppPage() {
         textAlign: 'center',
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src="/mochi-base-transparent.png"
         alt="Mochi"
-        style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 24 }}
+        width={100}
+        height={100}
+        style={{ objectFit: 'contain', marginBottom: 24 }}
       />
 
       <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>

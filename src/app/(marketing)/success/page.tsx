@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 
 // Deep link back into the native app after a web-originated checkout completes.
@@ -70,11 +71,12 @@ export default function SuccessPage() {
         textAlign: 'center',
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src="/mochi-base-transparent.png"
         alt="Mochi"
-        style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 24 }}
+        width={100}
+        height={100}
+        style={{ objectFit: 'contain', marginBottom: 24 }}
       />
 
       {phase === 'activating' && (

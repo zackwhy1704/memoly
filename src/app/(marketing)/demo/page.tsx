@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { api, ApiError } from '@/lib/api';
 
 const CALENDLY = process.env.NEXT_PUBLIC_CALENDLY_URL ?? null;
@@ -60,16 +61,16 @@ export default function DemoPage() {
           textDecoration: 'none', zIndex: 10,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <Image src="/mochi-base-transparent.png" alt="" aria-hidden="true" width={28} height={28} style={{ objectFit: 'contain' }} />
         <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733' }}>Apalchi</span>
       </a>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src="/mochi-base-transparent.png"
         alt="Mochi"
-        style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 20 }}
+        width={80}
+        height={80}
+        style={{ objectFit: 'contain', marginBottom: 20 }}
       />
 
       {submitted ? (

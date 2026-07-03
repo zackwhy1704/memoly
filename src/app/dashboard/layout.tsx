@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { getToken } from '@/lib/auth';
 import { api } from '@/lib/api';
+import Image from 'next/image';
 import { OrgProvider } from '@/lib/org-context';
 
 export default function DashboardLayout({
@@ -50,8 +51,7 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mochi-base-transparent.png" alt="Loading…" className="w-9 h-9 object-contain animate-bounce" />
+          <Image src="/mochi-base-transparent.png" alt="Loading…" width={36} height={36} className="object-contain animate-bounce" />
           <p className="text-ink3 text-sm">Loading…</p>
         </div>
       </div>

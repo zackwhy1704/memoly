@@ -71,6 +71,8 @@ export default function MochiAvatar({
       )}
 
       {/* 2. Recoloured base PNG with optional breathing animation. */}
+      {/* next-image-exempt: absolute-fill overlay with a per-avatar CSS recolor
+          filter + breathe animation; layered composition, not a plain mascot. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/mochi-base-transparent.png"

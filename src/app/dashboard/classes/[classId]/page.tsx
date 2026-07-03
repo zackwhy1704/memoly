@@ -106,6 +106,8 @@ export default function ClassDetailPage() {
           <ClassAvatar appearance={appearance} size={64} />
         ) : (
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 bg-accent/10">
+            {/* Kept as <img>: m.image is a per-module dynamic/remote thumbnail URL
+                (no fixed host to allowlist for next/image). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.image} alt={m.name} width={52} height={52} className="object-contain" />
           </div>

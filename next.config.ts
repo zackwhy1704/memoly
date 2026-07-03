@@ -44,6 +44,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    // Remote hosts allowed for next/image optimisation. randomuser.me is the
+    // placeholder testimonial avatars on the marketing homepage.
+    remotePatterns: [
+      { protocol: "https", hostname: "randomuser.me" },
+    ],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

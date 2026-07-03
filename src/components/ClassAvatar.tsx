@@ -83,6 +83,8 @@ export default function ClassAvatar({
         className="absolute flex items-center justify-center"
         style={{ inset: bodyInset }}
       >
+        {/* next-image-exempt: local SVG layer of a composed avatar; next/image
+            doesn't optimise SVG and complicates the layered render. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/mochi-base.svg"

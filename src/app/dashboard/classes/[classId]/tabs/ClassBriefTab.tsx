@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type ClassBriefData } from '@/lib/api';
 import AsyncBoundary from '@/components/AsyncBoundary';
@@ -41,11 +42,12 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             {/* Header row — Mochi as teaching-assistant voice */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="/mochi-base-transparent.png"
                   alt="Mochi"
-                  className="w-10 h-10 object-contain shrink-0"
+                  width={40}
+                  height={40}
+                  className="object-contain shrink-0"
                   style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
                 />
                 <div>

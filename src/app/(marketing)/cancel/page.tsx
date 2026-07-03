@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const metadata = {
   title: 'Checkout cancelled — Apalchi',
@@ -20,11 +21,12 @@ export default function CancelPage() {
         textAlign: 'center',
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src="/mochi-base-transparent.png"
         alt="Mochi"
-        style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 24 }}
+        width={100}
+        height={100}
+        style={{ objectFit: 'contain', marginBottom: 24 }}
       />
 
       <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>

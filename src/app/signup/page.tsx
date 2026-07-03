@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
@@ -118,18 +119,18 @@ export default function SignupPage() {
           textDecoration: 'none', zIndex: 10,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true"
-          style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <Image src="/mochi-base-transparent.png" alt="" aria-hidden="true"
+          width={28} height={28} style={{ objectFit: 'contain' }} />
         <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733' }}>Apalchi</span>
       </a>
 
       <div style={{ width: '100%', maxWidth: 420 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/mochi-base-transparent.png"
           alt="Mochi"
-          style={{ width: 72, height: 72, objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
+          width={72}
+          height={72}
+          style={{ objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
         />
 
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', textAlign: 'center', marginBottom: 6 }}>

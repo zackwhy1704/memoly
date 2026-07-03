@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { getToken } from '@/lib/auth';
 
@@ -32,8 +33,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   if (state === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mochi-base-transparent.png" alt="Loading…" className="w-9 h-9 object-contain animate-bounce" />
+        <Image src="/mochi-base-transparent.png" alt="Loading…" width={36} height={36} className="object-contain animate-bounce" />
       </div>
     );
   }

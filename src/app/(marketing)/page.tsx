@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const SPARK_COLORS = ['#00BBA4', '#FF6BAE', '#FFB81A', '#FF6660', '#2EC870', '#FFD100', '#2BA8F2'];
 
@@ -107,8 +108,7 @@ export default function MarketingPage() {
         <div className="mkt-wrap mkt-nav-in">
           <Link className="mkt-brand" href="/">
             <span className="mkt-brand-chip">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mochi-base-transparent.png" alt="" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+              <Image src="/mochi-base-transparent.png" alt="" width={22} height={22} style={{ objectFit: 'contain' }} />
             </span>
             Apalchi
           </Link>
@@ -150,6 +150,8 @@ export default function MarketingPage() {
           >
             <div className="mkt-blob" />
             <div className="mkt-float" ref={heroFloatRef}>
+              {/* next-image-exempt: hero is driven by heroImgRef for a JS float/parallax
+                  animation; next/image's wrapper + required dims would complicate it. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="mkt-mochi-img"
@@ -277,8 +279,7 @@ export default function MarketingPage() {
                 before prelims!&rdquo;
               </p>
               <div className="mkt-who">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="mkt-av" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Rachel L." />
+                <Image className="mkt-av" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Rachel L." width={46} height={46} />
                 <span>
                   <b>Rachel L.</b>
                   <small>Student</small>
@@ -293,8 +294,7 @@ export default function MarketingPage() {
                 in half.&rdquo;
               </p>
               <div className="mkt-who">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="mkt-av" src="https://randomuser.me/api/portraits/men/52.jpg" alt="Mr Tan" />
+                <Image className="mkt-av" src="https://randomuser.me/api/portraits/men/52.jpg" alt="Mr Tan" width={46} height={46} />
                 <span>
                   <b>Issac T.</b>
                   <small>Tuition tutor</small>
@@ -309,8 +309,7 @@ export default function MarketingPage() {
                 worth it just for that.&rdquo;
               </p>
               <div className="mkt-who">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="mkt-av" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Priya S." />
+                <Image className="mkt-av" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Priya S." width={46} height={46} />
                 <span>
                   <b>Jessie L.</b>
                   <small>Parent</small>

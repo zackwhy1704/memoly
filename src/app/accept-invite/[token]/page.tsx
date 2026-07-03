@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { getToken } from '@/lib/auth';
@@ -71,11 +72,12 @@ export default function AcceptInvitePage() {
         textAlign: 'center',
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src="/mochi-base-transparent.png"
         alt="Mochi"
-        style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 20 }}
+        width={80}
+        height={80}
+        style={{ objectFit: 'contain', marginBottom: 20 }}
       />
 
       {phase === 'loading' && (

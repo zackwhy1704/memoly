@@ -87,6 +87,8 @@ function FilePreview({ orgId, classId, submissionId, file }: {
       ) : !url ? (
         <p className="px-3 py-6 text-xs text-ink3 text-center">Loading preview…</p>
       ) : isImage ? (
+        // Kept as <img>: src is a signed/arbitrary submission-file URL — next/image
+        // would need a wildcard remote host (security smell) and can break signed URLs.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt={file.name} className="w-full max-h-[480px] object-contain bg-black/20" />
       ) : isPdf ? (

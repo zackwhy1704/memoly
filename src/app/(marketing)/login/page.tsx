@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { api, ApiError } from '@/lib/api';
@@ -155,8 +156,7 @@ function LoginInner() {
           textDecoration: 'none', zIndex: 10,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mochi-base-transparent.png" alt="" aria-hidden="true" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        <Image src="/mochi-base-transparent.png" alt="" aria-hidden="true" width={28} height={28} style={{ objectFit: 'contain' }} />
         <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733', fontFamily: 'var(--font-nunito), Nunito, sans-serif' }}>Apalchi</span>
       </a>
       <div className="mkt-login-card" style={{ paddingTop: 96 }}>
@@ -166,6 +166,8 @@ function LoginInner() {
           ref={stageRef}
         >
           <div className="mkt-float" ref={floatRef}>
+            {/* next-image-exempt: responsive mkt-mochi-img hero inside a JS float
+                animation (floatRef); keep as <img> to avoid dims/wrapper conflicts. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="mkt-mochi-img"

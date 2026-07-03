@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { isAuthenticated } from '@/lib/auth';
@@ -73,8 +74,7 @@ function PricingInner() {
         <div className="mkt-wrap mkt-nav-in">
           <Link className="mkt-brand" href="/">
             <span className="mkt-brand-chip">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mochi-base-transparent.png" alt="" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+              <Image src="/mochi-base-transparent.png" alt="" width={22} height={22} style={{ objectFit: 'contain' }} />
             </span>
             Apalchi
           </Link>
