@@ -6,6 +6,7 @@ import { ModulesTab } from '../tabs/ModulesTab';
 import { AssignmentsTab } from '../tabs/AssignmentsTab';
 import { TeachStepper, type StepNo } from './TeachStepper';
 import { BuildStatusView } from './BuildStatusView';
+import { TrainingTipsPanel } from './TrainingTipsPanel';
 import { useBuildStatus } from './useBuildStatus';
 
 /**
@@ -47,6 +48,7 @@ export function TeachFlow({
           <p className="text-sm text-ink2">
             Add your notes, worksheets or PDFs — Mochi turns them into lessons for this class.
           </p>
+          <TrainingTipsPanel />
           <MochiUploader
             avatarId={corpusAvatarId}
             classId={classId}
