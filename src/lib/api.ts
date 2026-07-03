@@ -5,10 +5,13 @@ import {
 } from './mock';
 
 // Backend base URL. Defaults to the Railway production host so deploys work with
-// no env config; override with NEXT_PUBLIC_API_URL for local/staging backends.
+// Default to the SAME-SITE API host (api.apalchi.com ↔ www.apalchi.com) so the
+// httpOnly auth cookie (Domain=.apalchi.com) can be set + sent. The old railway.app
+// default is cross-site and silently blocks the cookie. Override with
+// NEXT_PUBLIC_API_URL only for local/staging.
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ??
-  'https://pallybackend-production.up.railway.app/api/v1';
+  'https://api.apalchi.com/api/v1';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
