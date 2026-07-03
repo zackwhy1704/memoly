@@ -1,0 +1,12 @@
+# Marketing pages are indexable; the app/auth surfaces are not.
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /account
+Disallow: /consent
+Disallow: /accept-invite
+Disallow: /review
+Disallow: /get-the-app
+
+Sitemap: https://apalchi.com/sitemap.xml
