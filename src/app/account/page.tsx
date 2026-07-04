@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getToken, logout } from '@/lib/auth';
+import { derivePlanState } from '@/lib/planState';
 
 // Store URLs — the "Continue in the app" nudge reuses the same env vars as the
 // public /get-the-app page. When unset, the badges read "soon" and are inert.
@@ -63,29 +64,17 @@ export default function AccountPage() {
   const displayName = me?.displayName || 'Your account';
   const email = me?.email ?? '';
 
-  // Fail-closed: if entitlement fails to load, treat the user as FREE. We never
-  // assume premium on an error.
+  // Fail-closed: on an entitlement error the fields are undefined, so derivePlanState
+  // yields FREE (it only promotes on an explicit premium/status signal). Plan display
+  // is shared with /account/billing via one helper so the two surfaces can't drift —
+  // this is what adds the past_due / cancel-scheduled / canceled states.
   const entitlement = entitlementQuery.data?.data;
-  const isPremium = entitlement?.isPremium === true;
-  const planName = entitlement?.plan ?? null;
-
-  // subscriptionStatus is an opaque record; pull a renewal date defensively if
-  // the backend exposes one. Omit the line entirely when absent.
-  const status = statusQuery.data?.data as Record<string, unknown> | undefined;
-  const renewalRaw =
-    (status?.renewsAt as string | undefined) ??
-    (status?.currentPeriodEnd as string | undefined) ??
-    (entitlement?.trialEndsAt ?? undefined);
-  const renewalDate = formatDate(renewalRaw);
-
-  // A real, billable Stripe subscription exists only when the status row is
-  // non-'free' (see getStatus on the backend). `isPremium` alone is true during
-  // the 7-day auto-trial, which has NO Stripe customer — so the CTA must say
-  // "Manage billing" only for a real subscriber, and "Subscribe" otherwise, to
-  // match what the billing page can actually do.
-  const subStatus = typeof status?.status === 'string' ? (status.status as string) : 'free';
-  const hasStripeBilling = subStatus !== 'free';
-  const onTrial = isPremium && !hasStripeBilling;
+  const plan = derivePlanState({
+    isPremium: entitlement?.isPremium === true,
+    plan: entitlement?.plan ?? null,
+    trialEndsAt: entitlement?.trialEndsAt ?? null,
+    status: statusQuery.data?.data as Record<string, unknown> | undefined,
+  });
 
   return (
     <div className="min-h-screen bg-bg py-10 px-4">
@@ -130,34 +119,26 @@ export default function AccountPage() {
           ) : (
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="min-w-0">
-                <p className="text-lg font-bold text-ink capitalize">
-                  {onTrial ? 'Free trial' : isPremium ? planName || 'Premium' : 'Free'}
-                </p>
-                {hasStripeBilling && renewalDate && (
-                  <p className="text-sm text-ink3 mt-0.5">Renews {renewalDate}</p>
-                )}
-                {onTrial && (
-                  <p className="text-sm text-ink3 mt-0.5">
-                    {renewalDate
-                      ? `Free trial — subscribe to keep premium after ${renewalDate}.`
-                      : 'Free trial — subscribe to keep premium when it ends.'}
-                  </p>
-                )}
-                {!isPremium && (
-                  <p className="text-sm text-ink3 mt-0.5">
-                    Upgrade to unlock the full LEARN → TEST → PROVE loop.
+                <p className="text-lg font-bold text-ink capitalize">{plan.title}</p>
+                {plan.detail && (
+                  <p
+                    className={`text-sm mt-0.5 ${
+                      plan.tone === 'warning' ? 'text-bad font-semibold' : 'text-ink3'
+                    }`}
+                  >
+                    {plan.detail}
                   </p>
                 )}
               </div>
               <Link
                 href="/account/billing"
                 className={`shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  hasStripeBilling
-                    ? 'border border-line text-ink hover:bg-panel2'
-                    : 'bg-accent text-white hover:bg-accent/80'
+                  plan.cta.kind === 'subscribe'
+                    ? 'bg-accent text-white hover:bg-accent/80'
+                    : 'border border-line text-ink hover:bg-panel2'
                 }`}
               >
-                {hasStripeBilling ? 'Manage billing' : onTrial ? 'Subscribe' : 'Upgrade'}
+                {plan.cta.label}
               </Link>
             </div>
           )}
@@ -180,13 +161,6 @@ export default function AccountPage() {
       </div>
     </div>
   );
-}
-
-function formatDate(raw: string | undefined): string | null {
-  if (!raw) return null;
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function StoreBadge({

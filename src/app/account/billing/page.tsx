@@ -7,6 +7,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { getToken, logout } from '@/lib/auth';
 import { CONSUMER_PLANS } from '@/lib/plans';
+import { derivePlanState } from '@/lib/planState';
 
 const PAYMENTS_UNAVAILABLE =
   "Payments aren't available right now. Please try again later or contact support.";
@@ -100,12 +101,17 @@ export default function BillingPage() {
   // no subscription, and the actual Stripe status otherwise. A non-'free' status
   // means a subscription row exists → there is a Stripe customer → the portal
   // works. This is exactly what should gate "Manage billing".
-  const subStatus  = typeof status?.status === 'string' ? (status.status as string) : 'free';
-  const hasStripeBilling = subStatus !== 'free';
-  // Premium-but-no-Stripe-billing == on the free trial (or any server-granted
-  // premium). These users must always see the subscribe plans, never a
-  // portal-only dead end.
-  const onTrial = isPremium && !hasStripeBilling;
+  // Shared plan-state derivation (planState.ts) — adds past_due / cancel-scheduled /
+  // canceled display, and crucially makes a CANCELED sub NOT count as hasStripeBilling
+  // so the subscribe plans reappear: a canceled user must be able to resubscribe, never
+  // be trapped on a portal-only page (the same class of bug as the trial trap).
+  const planState = derivePlanState({
+    isPremium,
+    plan: entitlement?.plan ?? null,
+    status,
+  });
+  const hasStripeBilling = planState.hasStripeBilling;
+  const onTrial = planState.onTrial;
   const currentPlan = (status?.plan as string | undefined)
     ?? (onTrial ? 'Free trial' : 'free');
 
@@ -158,10 +164,14 @@ export default function BillingPage() {
           ) : (
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-lg font-bold text-ink capitalize">{currentPlan}</p>
-                {onTrial && (
-                  <p className="text-sm text-ink3 mt-0.5">
-                    You&apos;re on a free trial — subscribe below to keep premium when it ends.
+                <p className="text-lg font-bold text-ink capitalize">{planState.title}</p>
+                {planState.detail && (
+                  <p
+                    className={`text-sm mt-0.5 ${
+                      planState.tone === 'warning' ? 'text-bad font-semibold' : 'text-ink3'
+                    }`}
+                  >
+                    {planState.detail}
                   </p>
                 )}
               </div>
