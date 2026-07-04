@@ -8,15 +8,11 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ThemeProvider } from '@/lib/theme';
 import { ToastProvider } from '@/components/Toast';
 import { initAnalytics } from '@/lib/analytics';
-import { bridgeAuthCookie } from '@/lib/api';
 import { GOOGLE_CLIENT_ID, isGoogleEnabled } from '@/lib/google';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initAnalytics();
-    // Auth-cookie migration: if this session still authenticates via a localStorage
-    // bearer, establish the httpOnly cookie once so the edge middleware won't bounce it.
-    void bridgeAuthCookie();
     if (process.env.NODE_ENV === 'development' && !isGoogleEnabled) {
       console.warn(
         'Google sign-in disabled: NEXT_PUBLIC_GOOGLE_CLIENT_ID not set. ' +

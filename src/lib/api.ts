@@ -5,39 +5,14 @@ import {
 } from './mock';
 
 // Backend base URL. Defaults to the Railway production host so deploys work with
-// Default to the SAME-SITE API host (api.apalchi.com ↔ www.apalchi.com) so the
-// httpOnly auth cookie (Domain=.apalchi.com) can be set + sent. The old railway.app
-// default is cross-site and silently blocks the cookie. Override with
-// NEXT_PUBLIC_API_URL only for local/staging.
+// no env config; override with NEXT_PUBLIC_API_URL for local/staging backends.
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ??
-  'https://api.apalchi.com/api/v1';
+  'https://pallybackend-production.up.railway.app/api/v1';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('memoly_token');
-}
-
-/**
- * Migration bridge: establish the httpOnly auth cookie from the current bearer, so a
- * session that predates the cookie (bearer in localStorage, no cookie) gets a cookie
- * on boot — and the edge middleware never bounces a legitimate session to /login.
- * Best-effort + idempotent; no-op with no real token or while the API is cross-site
- * (the cookie is only set when the backend's AUTH_COOKIE_DOMAIN is configured and
- * the request is same-site). Never blocks boot.
- */
-export async function bridgeAuthCookie(): Promise<void> {
-  const token = getToken();
-  if (!token || token === 'mock-token') return;
-  try {
-    await fetch(BASE + '/auth/cookie-bridge', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    /* best-effort migration bridge — never surface to the user */
-  }
 }
 
 // ── Typed API Error ───────────────────────────────────────────────────
@@ -124,10 +99,6 @@ export async function apiFetch<T>(
     res = await fetch(BASE + path, {
       ...opts,
       headers,
-      // Send the httpOnly auth cookie once the API is same-site (api.apalchi.com).
-      // No-op while cross-site (railway) or before the cookie exists; the Bearer
-      // header stays as the belt until the migration completes.
-      credentials: 'include',
       signal: controller.signal,
     });
   } catch (err) {
@@ -973,7 +944,6 @@ export async function authedObjectUrl(path: string): Promise<string> {
   const token = getToken();
   const res = await fetch(BASE + path, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
-    credentials: 'include',
   });
   if (!res.ok) {
     const text = await res.text();

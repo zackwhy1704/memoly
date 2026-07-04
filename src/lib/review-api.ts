@@ -18,7 +18,7 @@
 // only resolved locally and was a latent prod break.
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ??
-  'https://api.apalchi.com/api/v1';
+  'https://pallybackend-production.up.railway.app/api/v1';
 
 export interface ReviewContent {
   pageTitle: string;
