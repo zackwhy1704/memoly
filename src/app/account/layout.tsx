@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { getToken } from '@/lib/auth';
 
 type State = 'loading' | 'ok' | 'owner-only';
@@ -27,7 +27,16 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
           setState('ok');
         }
       })
-      .catch(() => setState('ok')); // network failure → allow through
+      .catch((err: unknown) => {
+        // An expired/invalid session (401) must go to sign-in — NOT render the account
+        // shell for a signed-out user. Only a genuine network/other error degrades
+        // through to 'ok' (the page's own queries then surface their errors).
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+        } else {
+          setState('ok');
+        }
+      });
   }, [router, pathname]);
 
   if (state === 'loading') {
