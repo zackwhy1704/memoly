@@ -11,14 +11,9 @@
  * 401. Here we use a plain fetch and surface structured outcomes instead.
  */
 
-// The configured base already ends in `/api/v1` (see .env.local), matching how
-// every existing apiFetch path resolves (e.g. '/avatars' → '.../api/v1/avatars').
-// Default to the Railway prod host (same as src/lib/api.ts) so the trusted-adult
-// review flow works on apalchi.com without an explicit env — the old '' default
-// only resolved locally and was a latent prod break.
-const BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  'https://pallybackend-production.up.railway.app/api/v1';
+// Shared origin via apiBase.ts so this can never diverge from api.ts (we deliberately
+// don't reuse apiFetch itself — see the header — only the base string is shared).
+import { API_BASE as BASE } from './apiBase';
 
 export interface ReviewContent {
   pageTitle: string;

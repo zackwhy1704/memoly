@@ -3,12 +3,8 @@ import {
   USE_MOCK, mockMe, mockCentreMe, mockEntitlement,
   mockOverview, mockHeatmap, mockStudent, mockRoster, mockClasses,
 } from './mock';
-
-// Backend base URL. Defaults to the Railway production host so deploys work with
-// no env config; override with NEXT_PUBLIC_API_URL for local/staging backends.
-const BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  'https://pallybackend-production.up.railway.app/api/v1';
+// Backend base URL — shared origin (see apiBase.ts); NEXT_PUBLIC_API_URL overrides for local/staging.
+import { API_BASE as BASE } from './apiBase';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
