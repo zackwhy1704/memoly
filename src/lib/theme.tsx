@@ -10,13 +10,14 @@ const ThemeContext = createContext<{
 }>({ theme: 'light', toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-
-  // Persist preference across refreshes
-  useEffect(() => {
-    const stored = localStorage.getItem('memoly_theme') as Theme | null;
-    if (stored === 'light' || stored === 'dark') setTheme(stored);
-  }, []);
+  // Initial theme reads the saved preference synchronously (client) so it matches
+  // what the pre-paint script in layout.tsx already applied — no post-hydration
+  // re-flash. SSR has no window → 'light' (the default); the theme value isn't
+  // rendered into HTML, so there's no hydration mismatch. Default = light.
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return localStorage.getItem('memoly_theme') === 'dark' ? 'dark' : 'light';
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

@@ -42,8 +42,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full bg-bg antialiased`}>
+        {/* Pre-paint theme: set data-theme=dark BEFORE first paint for a saved-dark
+            user, so neither light nor dark users flash. :root is light by default,
+            so no attribute = light. React ThemeProvider owns toggling after this. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(localStorage.getItem('memoly_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();",
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>
