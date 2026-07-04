@@ -12,19 +12,9 @@
 /* Dynamic tokens — dark theme defaults (runtime CSS variables, NOT @theme).
    Tailwind utility classes for these (bg-bg, text-ink, etc.) work because
    Tailwind v4 reads the CSS variable by name at runtime. */
+/* Light is the DEFAULT theme — the un-themed :root renders light on first
+   paint (no flash of dark before JS sets data-theme). */
 :root {
-  --color-bg:    #0A0A0C;
-  --color-side:  #0E0E12;
-  --color-panel: #141418;
-  --color-panel2:#1C1C22;
-  --color-line:  rgba(255,255,255,0.08);
-  --color-ink:   #ECECEF;
-  --color-ink2:  #9A9AA6;
-  --color-ink3:  #66666F;
-}
-
-/* Light theme — flips every surface to white/grey */
-[data-theme="light"] {
   --color-bg:    #FFFFFF;
   --color-side:  #FAFAFA;
   --color-panel: #FFFFFF;
@@ -33,6 +23,18 @@
   --color-ink:   #14132A;
   --color-ink2:  #61607A;
   --color-ink3:  #A2A1B4;
+}
+
+/* Dark theme — opt-in via the toggle (data-theme="dark"). */
+[data-theme="dark"] {
+  --color-bg:    #0A0A0C;
+  --color-side:  #0E0E12;
+  --color-panel: #141418;
+  --color-panel2:#1C1C22;
+  --color-line:  rgba(255,255,255,0.08);
+  --color-ink:   #ECECEF;
+  --color-ink2:  #9A9AA6;
+  --color-ink3:  #66666F;
 }
 
 /* Re-declare the dynamic colours into @theme so Tailwind generates
