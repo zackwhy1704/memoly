@@ -931,6 +931,24 @@ export interface MarkingBrain {
 }
 
 /**
+ * A captured teacher marking correction — the AI-vs-teacher delta on a released
+ * submission that trains the assistant. `pending` = not yet folded into the
+ * marking standard (removing it fully prevents it grounding any draft);
+ * `applied` = already compiled in (removing excludes it from FUTURE updates, but
+ * its residual influence decays rather than un-learning instantly).
+ */
+export interface MarkingCorrection {
+  id: string;
+  subject: string | null;
+  aiSuggestedGrade: string | null;
+  teacherGrade: string | null;
+  aiFeedback: string | null;
+  teacherFeedback: string | null;
+  capturedAt: string | null;
+  status: 'pending' | 'applied';
+}
+
+/**
  * Fetch a bearer-protected binary endpoint and return an object URL for it.
  * `<img src>`/`<iframe src>` can't carry the Authorization header, so the
  * artifact-stream routes must be fetched as a blob first. Callers must
@@ -1594,6 +1612,19 @@ export const api = {
   markingBrain: (orgId: string, classId: string) =>
     apiFetch<{ data: MarkingBrain }>(
       `/centre/organizations/${orgId}/classes/${classId}/marking-references/brain`
+    ),
+
+  /** Corrections the assistant has learned from this teacher's marking (Part 4). */
+  markingCorrections: (orgId: string, classId: string) =>
+    apiFetch<{ data: MarkingCorrection[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/marking-corrections`
+    ),
+
+  /** Remove a captured correction so it stops grounding future AI drafts. */
+  deleteMarkingCorrection: (orgId: string, classId: string, id: string) =>
+    apiFetch<{ data: { removed: boolean } }>(
+      `/centre/organizations/${orgId}/classes/${classId}/marking-corrections/${id}`,
+      { method: 'DELETE' }
     ),
 
   /** Teacher (owner) view of per-student weak areas for a class subject. */
