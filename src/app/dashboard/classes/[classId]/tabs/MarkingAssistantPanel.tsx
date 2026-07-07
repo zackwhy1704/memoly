@@ -11,6 +11,7 @@ import EmptyState from '@/components/EmptyState';
 import { useOrg } from '@/lib/org-context';
 import { QualityBadge, extractionBadge, confidenceBadge, NOTES_TIPS_HREF } from '@/components/QualityBadge';
 import { MarkingWorkedExample } from './MarkingWorkedExample';
+import { MarkingCorrectionsSection } from './MarkingCorrections';
 
 // ── Kind presentation ───────────────────────────────────────────────────
 const KIND_LABEL: Record<MarkingReferenceKind, string> = {
@@ -403,6 +404,8 @@ export function MarkingAssistantPanel({ orgId, classId, subject }: {
       )}
 
       <MarkingBrainSection orgId={orgId} classId={classId} centreName={centreName} subject={subj} />
+
+      <MarkingCorrectionsSection orgId={orgId} classId={classId} />
 
       {query.isLoading ? (
         <p className="text-ink3 text-xs py-6">Loading reference material…</p>
