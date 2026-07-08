@@ -626,7 +626,9 @@ export interface ClassModule {
   // "—" rather than a misleading 0%. See masteryPct() in ModulesTab.
   studentCount: number | null;
   completedCount: number | null;
-  avgMastery: number | null;
+  // 0–100 (backend key is `masteryPct`; was mis-named `avgMastery` → always undefined
+  // → rendered "—"). Null/absent for a fresh module with no attempts.
+  masteryPct: number | null;
 }
 
 export interface ConceptMasteryData {

@@ -35,11 +35,12 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
 
   const concepts = asArray<ExamReadinessConcept>(data.concepts);
 
+  // avgMastery / avgReadiness are on a 0–100 scale (backend contract) — do NOT ×100.
   const weakConcepts = concepts
-    .filter((c) => c.avgMastery < 0.6)
+    .filter((c) => c.avgMastery < 60)
     .sort((a, b) => a.avgMastery - b.avgMastery);
 
-  const readinessPct = Math.round(data.avgReadiness * 100);
+  const readinessPct = Math.round(data.avgReadiness);
   const readinessColor = readinessPct >= 70 ? 'text-ok' : readinessPct >= 40 ? 'text-warn' : 'text-bad';
 
   return (
@@ -69,7 +70,7 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
         ) : (
           <div className="space-y-3">
             {[...concepts].sort((a, b) => a.avgMastery - b.avgMastery).map((c) => {
-              const pct = Math.round(c.avgMastery * 100);
+              const pct = Math.round(c.avgMastery); // 0–100 already
               const barColor = pct >= 70 ? 'bg-ok' : pct >= 40 ? 'bg-warn' : 'bg-bad';
               const textColor = pct >= 70 ? 'text-ok' : pct >= 40 ? 'text-warn' : 'text-bad';
               return (

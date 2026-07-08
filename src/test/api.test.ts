@@ -239,7 +239,7 @@ describe('api.classModules', () => {
         stage: 'LEARN',
         studentCount: 20,
         completedCount: 15,
-        avgMastery: 0.72,
+        masteryPct: 72,
       },
     ];
     mockFetch(200, { data: mockModules });

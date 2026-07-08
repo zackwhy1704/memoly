@@ -16,7 +16,9 @@ import { ModulePreviewModal } from '../components/ModulePreviewModal';
  */
 export function masteryPct(value: number | null | undefined): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
-  return Math.round(value * 100);
+  // Backend sends mastery on a 0–100 scale — do NOT ×100. Clamp defensively so no
+  // legacy row can render >100% (the 2600% bug class).
+  return Math.min(100, Math.max(0, Math.round(value)));
 }
 
 function MasteryBar({ value }: { value: number | null | undefined }) {
@@ -156,7 +158,7 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
               {m.completedCount ?? 0}/{m.studentCount ?? 0} completed
             </div>
             <div className="min-w-[140px] flex-1 max-w-[220px]">
-              <MasteryBar value={m.avgMastery} />
+              <MasteryBar value={m.masteryPct} />
             </div>
             <div className="shrink-0 flex items-center gap-2">
               <button

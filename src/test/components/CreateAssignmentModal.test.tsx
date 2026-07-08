@@ -29,7 +29,7 @@ const MODULE: ClassModule = {
   stage: 'LEARN',
   studentCount: 5,
   completedCount: 2,
-  avgMastery: 40,
+  masteryPct: 40,
 };
 
 function renderModal(props?: Partial<Parameters<typeof CreateAssignmentModal>[0]>) {
