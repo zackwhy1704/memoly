@@ -35,6 +35,13 @@ export function logout(): void {
   }
 }
 
+/** The signed-in user's id (persisted at login), for client-scoped per-user
+ *  keys like the feature-tour seen-flag. Null when logged out / SSR. */
+export function getUserId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(USER_ID_KEY);
+}
+
 export function getToken(): string | null {
   // In mock mode the dashboard runs with no backend; hand the auth gate a
   // dummy token so it doesn't bounce to /login. The token is never sent —

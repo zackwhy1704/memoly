@@ -114,7 +114,7 @@ export function MarkingCorrectionsSection({ orgId, classId }: {
   const corrections = asArray<MarkingCorrection>(query.data?.data);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-tour="mark-corrections">
       <div>
         <h3 className="text-sm font-semibold text-ink">📝 What the assistant learned from your marking</h3>
         <p className="text-xs text-ink2 mt-0.5">

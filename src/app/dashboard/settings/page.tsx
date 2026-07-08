@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { logout } from '@/lib/auth';
 import { useOrg } from '@/lib/org-context';
+import { resetTour } from '@/app/dashboard/classes/[classId]/tourStorage';
 
 export default function SettingsPage() {
   const org = useOrg();
@@ -36,6 +38,8 @@ export default function SettingsPage() {
       {/* Invite students — one code per class, shown on the Classes page */}
       <InvitePanel />
 
+      <ReplayTourPanel />
+
       <div className="bg-panel border border-bad/30 rounded-2xl p-6">
         <h2 className="text-sm font-semibold text-ink mb-1">Sign out</h2>
         <p className="text-ink3 text-xs mb-4">You will be redirected to the login page.</p>
@@ -47,6 +51,29 @@ export default function SettingsPage() {
           Sign out
         </button>
       </div>
+    </div>
+  );
+}
+
+function ReplayTourPanel() {
+  const [armed, setArmed] = useState(false);
+  return (
+    <div className="bg-panel border border-line rounded-2xl p-6 space-y-3">
+      <div>
+        <h2 className="text-sm font-semibold text-ink">Feature tour</h2>
+        <p className="text-ink3 text-xs mt-1 leading-relaxed">
+          The 60-second guided tour of the class dashboard. Replay it the next time you open a class.
+        </p>
+      </div>
+      <button
+        onClick={() => {
+          resetTour();
+          setArmed(true);
+        }}
+        className="inline-block px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
+      >
+        {armed ? 'Tour re-armed — open a class to see it' : 'Replay tour'}
+      </button>
     </div>
   );
 }
