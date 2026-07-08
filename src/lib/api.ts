@@ -30,10 +30,18 @@ function statusToApiError(status: number, body: string): ApiError {
   let code: string | null = null;
   let backendMsg: string | null = null;
   let parsed: unknown = null;
+  let feature: string | null = null;
   try {
     parsed = JSON.parse(body);
     const p = parsed as Record<string, unknown>;
-    code = typeof p.code === 'string' ? p.code : null;
+    // The 402/gate envelope nests the discriminator under `data`:
+    //   { data: { code: "UPGRADE_REQUIRED", feature: "CHUNK_COMPILE" }, error, status }
+    // so read `data.code`/`data.feature` too, not just the top level.
+    const d = p.data && typeof p.data === 'object' ? (p.data as Record<string, unknown>) : null;
+    code =
+      (typeof p.code === 'string' ? p.code : null) ??
+      (d && typeof d.code === 'string' ? d.code : null);
+    feature = d && typeof d.feature === 'string' ? d.feature : null;
     backendMsg =
       (typeof p.error === 'string' ? p.error : null) ??
       (typeof p.message === 'string' ? p.message : null);
@@ -44,6 +52,11 @@ function statusToApiError(status: number, body: string): ApiError {
   switch (status) {
     case 400:
       return new ApiError(400, code, backendMsg || 'Something was off with that request.', false);
+    case 402:
+      // Plan-limit gate (upload cap, chunk-compile cap). `feature` distinguishes
+      // which limit (UPLOAD_DOC vs CHUNK_COMPILE) so the UI renders the right
+      // allowance-hit state instead of a generic error. Not retryable.
+      return new ApiError(402, feature ?? code, backendMsg || 'You’ve reached a plan limit.', false);
     case 401: {
       // Only redirect if we had a token — avoid redirect loop on login form submits.
       if (typeof window !== 'undefined' && localStorage.getItem('memoly_token')) {
@@ -323,11 +336,48 @@ export interface UsageResponse { data: UsageToday }
 
 export interface UploadResponse {
   data: {
-    id: string;
-    fileName: string;
-    pageCount: number;
-    status: string;
+    id?: string;
+    fileName?: string;
+    pageCount?: number;
+    status?: string;
+    // Segmented (large upload split into pickable chapters). When `chunks` is
+    // present the upload was NOT compiled — the client shows the chapter picker.
+    parentFileId?: string;
+    chunks?: ChunkInfo[];
   };
+}
+
+/** One pickable chapter returned by the segmented upload response. */
+export interface ChunkInfo {
+  chunkId: string;
+  title: string;
+  pageFrom: number;
+  pageTo: number;
+  pageCount: number;
+}
+
+/** A chapter row from GET /chapters (picker + locked-chapter surface). */
+export interface Chapter {
+  chunkId: string;
+  parentFileId: string;
+  title: string;
+  pageFrom: number;
+  pageTo: number;
+  pageCount: number;
+  state: 'LOCKED' | 'COMPILING' | 'COMPILED';
+}
+
+export interface ChaptersResult {
+  allowanceUsed: number;
+  /** -1 = unlimited. */
+  allowanceLimit: number;
+  chapters: Chapter[];
+}
+
+export interface CompileChunkResult {
+  chunkId: string;
+  status: string;
+  allowance: { used: number; limit: number };
 }
 
 export interface RelevanceResponse {
@@ -1091,6 +1141,19 @@ export const api = {
 
   files: (avatarId: string) =>
     apiFetch<FilesResponse>(`/avatars/${avatarId}/files`),
+
+  // Chapter chunks + the compile allowance — the read behind the picker AND the
+  // locked-chapter surface. One source for the "N of M compiles left" counter.
+  chapters: (avatarId: string) =>
+    apiFetch<{ data: ChaptersResult }>(`/avatars/${avatarId}/chapters`),
+
+  // Pick ONE chapter to compile. Throws ApiError(402, 'CHUNK_COMPILE') when over
+  // the monthly allowance — the picker renders its allowance-hit state from that.
+  compileChunk: (avatarId: string, chunkId: string) =>
+    apiFetch<{ data: CompileChunkResult }>(
+      `/avatars/${avatarId}/files/${chunkId}/compile`,
+      { method: 'POST' }
+    ),
 
   // Upload — multipart, no Content-Type header (browser sets boundary).
   // skipRelevance mirrors the mobile "Add Anyway" path.

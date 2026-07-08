@@ -9,7 +9,7 @@
 //
 // Keep this in lockstep with lib/features/upload/presentation/upload_view_model.dart.
 
-import { api, ApiError, type CompilePageFailure } from '@/lib/api';
+import { api, ApiError, type CompilePageFailure, type ChunkInfo } from '@/lib/api';
 
 export const MAX_FILES = 10;
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // matches backend cap
@@ -22,6 +22,7 @@ export type FileStage =
   | 'uploading'
   | 'done'
   | 'warning' // uploaded despite low relevance
+  | 'segmented' // large file split into pickable chapters — NOT compiled; show the picker
   | 'error'
   | 'compiling'      // recompile in progress
   | 'compileTimeout' // recompile didn't finish in time
@@ -46,6 +47,9 @@ export interface FileProgress {
   qualityReason?: string;
   extractedText?: string;
   fileId?: string;
+  /** Segmented upload: the parent file id + its pickable chapters (stage 'segmented'). */
+  parentFileId?: string;
+  chunks?: ChunkInfo[];
 }
 
 /** Returns a user-friendly error string if the file is invalid, else null. */
@@ -123,6 +127,23 @@ export async function uploadSingleFile(
   onProgress({ name: file.name, stage: 'uploading', file });
   try {
     const res = await api.uploadFile(avatarId, file, { skipRelevance });
+
+    // Segmented upload: a large file was split into pickable chapters and NOT
+    // compiled. Surface the chunks so MochiUploader opens the picker instead of
+    // the compile watch. (Same contract mobile consumes — keep in lockstep.)
+    if (Array.isArray(res.data?.chunks) && res.data.chunks.length > 0) {
+      const segmented: FileProgress = {
+        name: file.name,
+        stage: 'segmented',
+        file,
+        parentFileId: res.data.parentFileId,
+        chunks: res.data.chunks,
+        message: `Split into ${res.data.chunks.length} chapters — pick which to compile.`,
+      };
+      onProgress(segmented);
+      return segmented;
+    }
+
     // Guard new backend fields
     const resData = res.data as Record<string, unknown> | undefined;
     const servedBy = typeof resData?.servedBy === 'string' ? resData.servedBy : undefined;

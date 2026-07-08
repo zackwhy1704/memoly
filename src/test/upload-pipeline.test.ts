@@ -352,3 +352,28 @@ describe('pollBrainReady', () => {
     expect(ticks.at(-1)).toBe('ready');
   });
 });
+
+// ── Chapter-chunking: segmented upload surfaces the chunks ───────────
+describe('uploadSingleFile — segmented (large) upload', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns stage=segmented with the chunks instead of compiling', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValue({ data: { isRelevant: true } } as never);
+    vi.mocked(api.uploadFile).mockResolvedValue({
+      data: {
+        parentFileId: 'p1',
+        chunks: [
+          { chunkId: 'c1', title: 'Ch 1', pageFrom: 1, pageTo: 25, pageCount: 25 },
+          { chunkId: 'c2', title: 'Ch 2', pageFrom: 26, pageTo: 50, pageCount: 25 },
+        ],
+      },
+    } as never);
+
+    const file = new File(['x'], 'book.pdf', { type: 'application/pdf' });
+    const res = await uploadSingleFile('av1', file, () => {});
+
+    expect(res.stage).toBe('segmented');
+    expect(res.parentFileId).toBe('p1');
+    expect(res.chunks).toHaveLength(2);
+  });
+});

@@ -8,6 +8,7 @@ const STAGE_LABEL: Record<FileProgress['stage'], { icon: string; cls: string }> 
   uploading:         { icon: '↑', cls: 'text-accent' },
   done:              { icon: '✓', cls: 'text-ok' },
   warning:           { icon: '!',     cls: 'text-warn' },
+  segmented:         { icon: '📑', cls: 'text-accent' },
   error:             { icon: '✕', cls: 'text-bad' },
   compiling:         { icon: '⋯', cls: 'text-accent' },
   compileTimeout:    { icon: '!',     cls: 'text-warn' },

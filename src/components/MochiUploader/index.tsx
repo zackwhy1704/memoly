@@ -16,6 +16,7 @@ import InfoBanner from '../InfoBanner';
 import FileProgressList from './FileProgressList';
 import PasteMode from './PasteMode';
 import UploadResult from './UploadResult';
+import ChapterPickerModal from '../ChapterPicker';
 
 type InputMode = 'upload' | 'paste';
 
@@ -44,6 +45,8 @@ export default function MochiUploader({
   const [compileState, setCompileState] = useState<CompileState | 'idle'>('idle');
   const [compilePages, setCompilePages] = useState(0);
   const [compileFailures, setCompileFailures] = useState<CompilePageFailure[]>([]);
+  // A large upload was split into chapters → open the picker instead of compiling.
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [result, setResult] = useState<{
     ok: number;
     failed: number;
@@ -93,16 +96,18 @@ export default function MochiUploader({
     });
     setRunning(false);
 
-    const ok = pipelineResult.files.filter((f) => f.stage === 'done' || f.stage === 'warning').length;
+    const segmentedFiles = pipelineResult.files.filter((f) => f.stage === 'segmented');
+    const compilable = pipelineResult.files.filter((f) => f.stage === 'done' || f.stage === 'warning').length;
+    const ok = compilable + segmentedFiles.length;
     const failed = pipelineResult.files.filter((f) => f.stage === 'error').length;
     setResult({ ok, failed });
     if (inputRef.current) inputRef.current.value = '';
-    if (ok > 0) {
-      trackEvent('content_uploaded', { avatarId, fileCount: ok });
-      startCompileWatch();
-    } else {
-      onComplete?.(0);
-    }
+    if (ok > 0) trackEvent('content_uploaded', { avatarId, fileCount: ok });
+    // Non-segmented files compile as before; segmented ones open the chapter picker
+    // (they are NOT compiled until the user picks chapters — the money rule).
+    if (compilable > 0) startCompileWatch();
+    if (segmentedFiles.length > 0) setPickerOpen(true);
+    else if (compilable === 0) onComplete?.(0);
   }
 
   const retryFile = useCallback(async (index: number) => {
@@ -355,6 +360,15 @@ export default function MochiUploader({
           classId={classId}
           onUploadMore={uploadMore}
           onRetryCompile={startCompileWatch}
+        />
+      )}
+
+      {/* Large upload → chapter picker (same component the locked-chapter surface opens). */}
+      {pickerOpen && (
+        <ChapterPickerModal
+          avatarId={avatarId}
+          onClose={() => setPickerOpen(false)}
+          onCompiled={() => onComplete?.(0)}
         />
       )}
     </div>

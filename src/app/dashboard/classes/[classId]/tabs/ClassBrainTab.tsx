@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
+import ChapterPickerModal from '@/components/ChapterPicker';
 import EmptyState from '@/components/EmptyState';
 import { FilesPanel } from '../components/FilesPanel';
 import { BrainPagesSection } from '../components/BrainPagesSection';
@@ -36,6 +37,9 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
 
       {/* 1 — Read: compiled brain pages */}
       <BrainPagesSection avatarId={corpusAvatarId} orgId={org?.orgId} classId={classId} />
+
+      {/* 1b — the return loop: chapters uploaded but not yet compiled */}
+      <LockedChaptersCard avatarId={corpusAvatarId} />
 
       {/* 2 — Read + Delete: source files */}
       <FilesPanel avatarId={corpusAvatarId} />
@@ -69,6 +73,47 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The locked-chapter surface (0.7): uploaded-but-uncompiled chapters, tappable →
+ *  the SAME ChapterPickerModal the post-upload picker uses. Copy stays honest. */
+function LockedChaptersCard({ avatarId }: { avatarId: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const { data } = useQuery({
+    queryKey: ['chapters', avatarId],
+    queryFn: () => api.chapters(avatarId),
+    enabled: !!avatarId,
+  });
+  const locked = (data?.data.chapters ?? []).filter((c) => c.state === 'LOCKED');
+  if (locked.length === 0) return null;
+
+  return (
+    <div className="bg-panel border border-line rounded-2xl p-5 flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-ink">
+          {locked.length} chapter{locked.length === 1 ? '' : 's'} not compiled yet
+        </h3>
+        <p className="text-ink3 text-xs mt-1">
+          Mochi hasn&apos;t read {locked.length === 1 ? 'this chapter' : 'these chapters'} yet —
+          pick which to compile.
+        </p>
+      </div>
+      <button
+        onClick={() => setOpen(true)}
+        className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition shrink-0"
+      >
+        Choose chapters
+      </button>
+      {open && (
+        <ChapterPickerModal
+          avatarId={avatarId}
+          onClose={() => setOpen(false)}
+          onCompiled={() => qc.invalidateQueries({ queryKey: ['wikiPages', avatarId] })}
+        />
+      )}
     </div>
   );
 }
