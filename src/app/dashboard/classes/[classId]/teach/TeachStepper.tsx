@@ -4,7 +4,10 @@ import { Fragment } from 'react';
 
 export type StepNo = 1 | 2 | 3;
 
-const STEPS: { n: StepNo; label: string }[] = [
+// Exported so the feature tour's Teach-loop copy can be pinned to this exact
+// stage sequence (a reorder here fails the tour test instead of silently
+// desyncing the narration).
+export const STEPS: { n: StepNo; label: string }[] = [
   { n: 1, label: 'Add material' },
   { n: 2, label: 'Mochi builds' },
   { n: 3, label: 'Preview & assign' },
@@ -19,7 +22,7 @@ export function TeachStepper({
   onNavigate?: (n: StepNo) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 sm:gap-2" role="list" aria-label="Teach steps">
+    <div className="flex items-center gap-1 sm:gap-2" role="list" aria-label="Teach steps" data-tour="teach-stepper">
       {STEPS.map((s, i) => {
         const state = s.n < current ? 'done' : s.n === current ? 'current' : 'upcoming';
         return (

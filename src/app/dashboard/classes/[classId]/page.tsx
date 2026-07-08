@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   SECTIONS,
   SUBTAB_LABEL,
@@ -11,6 +11,9 @@ import {
   sectionOf,
   type Tab,
 } from './sections';
+import { TourOverlay } from './TourOverlay';
+import { firstRunLandingTab } from './tourSteps';
+import { isTourSeen, markTourSeen } from './tourStorage';
 import { api, type OrgClass } from '@/lib/api';
 import { mochiFor } from '@/lib/centre-mochis';
 import { useOrg } from '@/lib/org-context';
@@ -37,13 +40,19 @@ export default function ClassDetailPage() {
   const qc = useQueryClient();
   const classId = params.classId as string;
   const [tab, setTab] = useState<Tab>(DEFAULT_TAB);
+  const [showTour, setShowTour] = useState(false);
+  const tourInitRef = useRef(false);
+  const hasExplicitTabRef = useRef(false);
 
   // Restore ?tab= on load (shareable/bookmarkable deep links; old bookmarks use
   // the same 13 keys) and keep the URL in sync on select — via history so it
   // doesn't pull useSearchParams (and its Suspense requirement) into the page.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
-    if (isTab(t)) setTab(t);
+    if (isTab(t)) {
+      hasExplicitTabRef.current = true; // a deep link — don't override its landing
+      setTab(t);
+    }
   }, []);
 
   const selectTab = useCallback((t: Tab) => {
@@ -88,6 +97,24 @@ export default function ClassDetailPage() {
     enabled: !!cls?.corpusAvatarId,
   });
   const brainIsEmpty = !wikiPagesLoading && wikiPagesData !== undefined && (wikiPagesData.data?.length ?? 0) === 0;
+
+  // First-run feature tour: once, after data settles, for a teacher who hasn't
+  // seen it. First-run landing: an empty brain (and no deep-linked ?tab=) starts
+  // on Teach ▸ Brain so the tour's opening action lands on the real uploader.
+  const brainSettled = !cls?.corpusAvatarId || !wikiPagesLoading;
+  useEffect(() => {
+    if (tourInitRef.current) return;
+    if (isLoading || !cls || !brainSettled) return; // wait for class + brain state
+    tourInitRef.current = true;
+    const seen = isTourSeen();
+    const landing = firstRunLandingTab({
+      brainIsEmpty,
+      hasExplicitTab: hasExplicitTabRef.current,
+      tourSeen: seen,
+    });
+    if (landing) setTab(landing);
+    if (!seen) setShowTour(true);
+  }, [isLoading, cls, brainSettled, brainIsEmpty]);
 
   if (isLoading) {
     return (
@@ -174,6 +201,7 @@ export default function ClassDetailPage() {
           return (
             <button
               key={s.key}
+              data-tour={`nav-${s.key}`}
               onClick={() => selectTab(s.subtabs[0])}
               className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition ${
                 active ? 'border-accent text-ink' : 'border-transparent text-ink3 hover:text-ink2'
@@ -195,6 +223,7 @@ export default function ClassDetailPage() {
             {section.subtabs.map((t) => (
               <button
                 key={t}
+                data-tour={`subtab-${t}`}
                 onClick={() => selectTab(t)}
                 className={`px-3 py-1.5 text-sm rounded-full transition ${
                   tab === t
@@ -284,6 +313,17 @@ export default function ClassDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* First-run feature tour — never over a modal (2.1). */}
+      {showTour && !editingClass && !deletingClass && (
+        <TourOverlay
+          onNavigate={selectTab}
+          onClose={() => {
+            markTourSeen();
+            setShowTour(false);
+          }}
+        />
       )}
     </div>
   );
