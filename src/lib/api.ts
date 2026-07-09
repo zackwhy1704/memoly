@@ -1054,6 +1054,9 @@ export const api = {
       body: JSON.stringify({
         email: req.email,
         password: req.password,
+        // The web is adults-only (centre admins) — mark the account ADULT so the backend
+        // never treats it as a student and forces the birth-year / under-13 age gate.
+        role: 'adult',
         ...(req.displayName ? { displayName: req.displayName } : {}),
       }),
     }),
