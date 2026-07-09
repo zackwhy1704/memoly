@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { logout } from '@/lib/auth';
+import { apiFetch, ApiError } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import { resetTour } from '@/app/dashboard/classes/[classId]/tourStorage';
 
@@ -51,7 +52,100 @@ export default function SettingsPage() {
           Sign out
         </button>
       </div>
+
+      <DeleteAccountPanel />
     </div>
+  );
+}
+
+function DeleteAccountPanel() {
+  const [password, setPassword] = useState('');
+  const [phase, setPhase] = useState<
+    'idle' | 'loading' | 'scheduled' | 'centre' | 'error'
+  >('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!password || phase === 'loading') return;
+    setPhase('loading');
+    setError(null);
+    try {
+      await apiFetch('/account/delete', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+        // A wrong-password 401 here must render inline, not clear the session.
+        noAuthRedirect: true,
+      });
+      setPhase('scheduled');
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'CENTRE_NOT_EMPTY') {
+        setPhase('centre');
+      } else if (err instanceof ApiError) {
+        setError(err.userMessage);
+        setPhase('error');
+      } else {
+        setError('Something went wrong. Please try again.');
+        setPhase('error');
+      }
+    }
+  }
+
+  if (phase === 'scheduled') {
+    return (
+      <div className="bg-panel border border-bad/30 rounded-2xl p-6">
+        <h2 className="text-sm font-semibold text-ink mb-1">
+          Account scheduled for deletion
+        </h2>
+        <p className="text-ink3 text-xs mb-4">
+          Your account will be permanently deleted after a 14-day restore window.
+          Sign back in before then to restore it.
+        </p>
+        <button
+          onClick={logout}
+          className="px-4 py-2 rounded-lg bg-bad/20 text-bad text-sm font-semibold hover:bg-bad/30 transition-colors"
+        >
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="bg-panel border border-bad/30 rounded-2xl p-6 space-y-3"
+    >
+      <div>
+        <h2 className="text-sm font-semibold text-ink mb-1">Delete account</h2>
+        <p className="text-ink3 text-xs">
+          Permanently deletes your account. You have 14 days to restore it by
+          signing back in. Confirm your password to continue.
+        </p>
+      </div>
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Your password"
+        aria-label="Password"
+        className="w-full px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink text-sm"
+      />
+      {phase === 'centre' && (
+        <p className="text-bad text-xs">
+          Please transfer or close your centre before deleting your account — it
+          still has classes, students, or staff.
+        </p>
+      )}
+      {phase === 'error' && error && <p className="text-bad text-xs">{error}</p>}
+      <button
+        type="submit"
+        disabled={phase === 'loading'}
+        className="px-4 py-2 rounded-lg bg-bad/20 text-bad text-sm font-semibold hover:bg-bad/30 transition-colors disabled:opacity-50"
+      >
+        {phase === 'loading' ? 'Working…' : 'Delete my account'}
+      </button>
+    </form>
   );
 }
 
