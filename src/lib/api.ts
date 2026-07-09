@@ -25,7 +25,11 @@ export class ApiError extends Error {
 }
 
 
-function statusToApiError(status: number, body: string): ApiError {
+function statusToApiError(
+  status: number,
+  body: string,
+  suppressAuthRedirect = false
+): ApiError {
   // Try to parse the backend envelope: { error, data, status }
   let code: string | null = null;
   let backendMsg: string | null = null;
@@ -59,7 +63,9 @@ function statusToApiError(status: number, body: string): ApiError {
       return new ApiError(402, feature ?? code, backendMsg || 'You’ve reached a plan limit.', false);
     case 401: {
       // Only redirect if we had a token — avoid redirect loop on login form submits.
-      if (typeof window !== 'undefined' && localStorage.getItem('memoly_token')) {
+      // suppressAuthRedirect: for re-auth endpoints (e.g. account deletion) where a
+      // wrong password is a 401 that must NOT nuke the session — the caller renders it.
+      if (!suppressAuthRedirect && typeof window !== 'undefined' && localStorage.getItem('memoly_token')) {
         clearAuth();
         // Use href assignment (not location.assign): assign() isn't always present
         // (e.g. test/SSR shims), and throwing here would swallow this ApiError so
@@ -89,7 +95,7 @@ function statusToApiError(status: number, body: string): ApiError {
 
 export async function apiFetch<T>(
   path: string,
-  opts?: RequestInit & { skipAuth?: boolean; timeoutMs?: number }
+  opts?: RequestInit & { skipAuth?: boolean; timeoutMs?: number; noAuthRedirect?: boolean }
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -121,7 +127,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const text = await res.text();
-    throw statusToApiError(res.status, text);
+    throw statusToApiError(res.status, text, opts?.noAuthRedirect);
   }
 
   return res.json() as Promise<T>;
