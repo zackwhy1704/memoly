@@ -11,6 +11,23 @@ if (
   );
 }
 
+// Fail a production build loudly when the Google client id is missing instead of
+// silently self-hiding the Google sign-in button (google.ts defaults it to '' →
+// Providers.tsx just warns to the console → the button vanishes). That silent
+// self-hide already cost one debugging session; a required var must announce its
+// absence at build time, not disappear a login path in the field. (The frontend var
+// is SEPARATE from the backend auth.google.client-ids — both must be set.)
+if (
+  process.env.NODE_ENV === "production" &&
+  !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+) {
+  throw new Error(
+    "NEXT_PUBLIC_GOOGLE_CLIENT_ID must be set for a production build — without it the " +
+      "Google sign-in button silently disappears. Set it on Vercel (same OAuth web client " +
+      "as the backend auth.google.client-ids).",
+  );
+}
+
 const BACKEND = "https://pallybackend-production.up.railway.app";
 const POSTHOG = "https://us.i.posthog.com https://us-assets.i.posthog.com";
 
