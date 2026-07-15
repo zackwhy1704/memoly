@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, asArray, type MuddiestPoint, type ClassModule } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
-import { NarrationAction } from '../components/NarrationAction';
+import { NarrationAction, NARRATION_ENABLED } from '../components/NarrationAction';
 import { ModulePreviewModal } from '../components/ModulePreviewModal';
 
 /**
@@ -167,7 +167,9 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
               >
                 Preview
               </button>
-              <NarrationAction orgId={orgId} classId={classId} moduleId={m.moduleId} />
+              {NARRATION_ENABLED && (
+                <NarrationAction orgId={orgId} classId={classId} moduleId={m.moduleId} />
+              )}
             </div>
           </div>
         </div>

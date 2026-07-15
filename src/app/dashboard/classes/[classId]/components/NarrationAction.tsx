@@ -5,6 +5,13 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { api, type NarrationData } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 
+// Narration is NOT implemented on the backend yet — the generate/status endpoints
+// (POST/GET /centre/.../modules/{moduleId}/narration[/generate]) have NO controller in
+// pally-backend, so the button 404s on click. Gate it off until the endpoint ships;
+// flip NEXT_PUBLIC_NARRATION_ENABLED=true to unhide (one-liner). See DEFERRED.md.
+export const NARRATION_ENABLED =
+  process.env.NEXT_PUBLIC_NARRATION_ENABLED === 'true';
+
 function formatDuration(ms: number): string {
   const totalSeconds = Math.round(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
