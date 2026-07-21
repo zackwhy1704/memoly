@@ -432,6 +432,20 @@ describe('deriveUploadStatus — single status owner', () => {
     expect(s.message).toContain('disk full');
   });
 
+  it('does not double the terminal period when the reason is a full sentence (FIX 2)', () => {
+    // AvatarMapper emits a complete sentence ending in a period; one owner composes
+    // the final string, so appending the suffix must NOT produce "…PDF.. Your files".
+    const s = deriveUploadStatus({
+      ...base,
+      files: [{ name: 'a.pdf', stage: 'done' }],
+      compileFailureReason:
+        'We couldn’t read enough text from this file — try a clearer scan or a text-based PDF.',
+    });
+    expect(s.kind).toBe('failed');
+    expect(s.message).not.toMatch(/\.\./);
+    expect(s.message).toMatch(/text-based PDF\. Your files are saved — try recompiling\./);
+  });
+
   it('awaiting chapter selection → awaiting-selection with the count', () => {
     const s = deriveUploadStatus({
       ...base,

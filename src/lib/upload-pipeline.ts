@@ -479,8 +479,11 @@ export function deriveUploadStatus(s: UploadStatusState): UploadStatus {
   const inFlight = s.running || s.files.some((f) => IN_FLIGHT_STAGES.includes(f.stage));
 
   // 1. Honest failure — highest priority. Distinct copy from the soft "shortly".
+  // ONE owner composes the final string. The backend reason is a complete sentence
+  // ending in a period (AvatarMapper) — strip its trailing sentence punctuation
+  // before appending our suffix, so we never emit "…PDF.. Your files are saved".
   if (s.compileFailureReason || s.compileState === 'failed') {
-    const reason = s.compileFailureReason?.trim();
+    const reason = s.compileFailureReason?.trim().replace(/[.!?\s]+$/, '');
     return {
       kind: 'failed',
       message: reason

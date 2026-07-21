@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { api, ApiError, type Chapter } from '@/lib/api';
+import { api, type Chapter } from '@/lib/api';
 
 /**
  * The ONE place chapter-picking lives. Opened right after a large upload (the
@@ -28,7 +28,6 @@ export default function ChapterPickerModal({
 }) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [allowanceHit, setAllowanceHit] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['chapters', avatarId],
@@ -44,31 +43,39 @@ export default function ChapterPickerModal({
   const unlimited = limit < 0;
   const remaining = unlimited ? Infinity : Math.max(0, limit - used);
 
-  const compile = useMutation({
-    mutationFn: async (ids: string[]) => {
-      // Sequential: the backend serializes per-avatar anyway, and a 402 must stop
-      // the run at the first over-limit pick rather than firing N doomed requests.
-      for (const id of ids) await api.compileChunk(avatarId, id);
-    },
-    onError: (err) => {
-      if (err instanceof ApiError && err.status === 402) setAllowanceHit(true);
-    },
-    onSuccess: () => {
-      setSelected(new Set());
-      onCompiled?.();
-    },
-    // Refetch either way — on a partial 402 the chunks that DID compile must update.
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['chapters', avatarId] });
-      qc.invalidateQueries({ queryKey: ['wikiPages', avatarId] });
-    },
-  });
+  // BACKGROUND PICK-AND-COMPILE (FIX 3). compileChunk only ENQUEUES — the backend
+  // flips PENDING_CHUNK→READY and schedules the debounced recompile; it does NOT
+  // block on generation (CompileChunkUseCase). So picking chapters fires the
+  // requests and CLOSES the picker IMMEDIATELY — there is nothing for the teacher to
+  // wait on. The parent's EXISTING avatar poll then surfaces the non-blocking
+  // "compiling…" state and resolves it into modules as they land. Requests run
+  // sequentially in the background so a 402 (over-allowance) stops at the first
+  // over-limit pick instead of firing N doomed requests; the client also pre-checks
+  // the allowance below so a 402 is only ever a cross-session race.
+  function startCompile(ids: string[]) {
+    if (ids.length === 0) return;
+    void (async () => {
+      try {
+        for (const id of ids) await api.compileChunk(avatarId, id);
+      } catch {
+        /* allowance/transient — the refreshed counter + poll reflect reality */
+      } finally {
+        qc.invalidateQueries({ queryKey: ['chapters', avatarId] });
+        qc.invalidateQueries({ queryKey: ['wikiPages', avatarId] });
+        qc.invalidateQueries({ queryKey: ['avatar', avatarId] }); // wake the poll fast
+        onCompiled?.();
+      }
+    })();
+    onClose(); // close immediately — do NOT await generation (the core FIX 3 ask)
+  }
 
   const selectedCount = selected.size;
   const overLimit = !unlimited && selectedCount > remaining;
-  const canCompileSelected = selectedCount > 0 && !overLimit && !compile.isPending;
-  const showCompileAll =
-    locked.length >= 2 && (unlimited || remaining >= locked.length) && !compile.isPending;
+  const canCompileSelected = selectedCount > 0 && !overLimit;
+  const showCompileAll = locked.length >= 2 && (unlimited || remaining >= locked.length);
+  // Out of monthly compiles but chapters remain → show the upgrade path proactively
+  // (previously only surfaced after a 402; the picker now closes before that fires).
+  const allowanceExhausted = !unlimited && remaining === 0 && locked.length > 0;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -154,7 +161,7 @@ export default function ChapterPickerModal({
                     >
                       <input
                         type="checkbox"
-                        disabled={!isLocked || compile.isPending}
+                        disabled={!isLocked}
                         checked={checked}
                         onChange={() => toggle(c.chunkId)}
                         className="h-4 w-4 accent-[var(--color-accent)] shrink-0"
@@ -175,7 +182,7 @@ export default function ChapterPickerModal({
         </div>
 
         {/* Footer */}
-        {allowanceHit ? (
+        {allowanceExhausted ? (
           <div className="rounded-xl bg-bad/5 border border-bad/20 p-3 space-y-2">
             <p className="text-sm text-ink">
               You&apos;ve used all {limit} chapter compiles this month.
@@ -207,18 +214,18 @@ export default function ChapterPickerModal({
             <div className="flex items-center gap-2">
               {showCompileAll && (
                 <button
-                  onClick={() => compile.mutate(locked.map((c) => c.chunkId))}
+                  onClick={() => startCompile(locked.map((c) => c.chunkId))}
                   className="px-3 py-2 rounded-lg border border-accent/40 text-accent text-sm font-semibold hover:bg-accent/5 transition"
                 >
                   Compile all ({locked.length})
                 </button>
               )}
               <button
-                onClick={() => compile.mutate([...selected])}
+                onClick={() => startCompile([...selected])}
                 disabled={!canCompileSelected}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
               >
-                {compile.isPending ? 'Compiling…' : `Compile selected${selectedCount > 0 ? ` (${selectedCount})` : ''}`}
+                {`Compile selected${selectedCount > 0 ? ` (${selectedCount})` : ''}`}
               </button>
             </div>
           </div>

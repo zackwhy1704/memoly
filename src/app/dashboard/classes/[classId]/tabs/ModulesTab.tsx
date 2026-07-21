@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, type MuddiestPoint, type ClassModule } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
@@ -120,12 +120,67 @@ function MuddiestBar({ classId, moduleId }: { classId: string; moduleId: string 
   );
 }
 
-export function ModulesTab({ orgId, classId }: { orgId: string; classId: string }) {
+/** Non-blocking "compiling N chapters" indicator (FIX 3). Driven by the EXISTING
+ *  avatar poll — after the teacher picks chapters (the picker closes immediately),
+ *  the brain is non-READY / awaiting until each chapter's modules land. Resolves on
+ *  its own as the poll flips to READY. */
+function CompilingChaptersIndicator({ pendingChapters }: { pendingChapters: number }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-accent/5 border border-accent/20">
+      <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
+      <p className="text-sm text-ink2">
+        {pendingChapters > 0
+          ? `Compiling ${pendingChapters} chapter${pendingChapters === 1 ? '' : 's'} — modules will appear here as they land.`
+          : 'Compiling chapters — modules will appear here as they land.'}
+      </p>
+    </div>
+  );
+}
+
+export function ModulesTab({
+  orgId,
+  classId,
+  corpusAvatarId,
+}: {
+  orgId: string;
+  classId: string;
+  /** When provided, ModulesTab polls the avatar so background chapter-compiles
+   *  surface a non-blocking indicator that resolves into modules as they land. */
+  corpusAvatarId?: string;
+}) {
+  const qc = useQueryClient();
   const [preview, setPreview] = useState<ClassModule | null>(null);
   const query = useQuery({
     queryKey: ['classModules', orgId, classId],
     queryFn: () => api.classModules(orgId, classId),
   });
+
+  // Poll the avatar ONLY while a compile is in flight (brain not READY, or chapters
+  // awaiting selection). Stops as soon as it's READY — the SAME signal the wizard
+  // and Teach flow already poll, so no new backend surface.
+  const avatarQ = useQuery({
+    queryKey: ['avatar', corpusAvatarId],
+    queryFn: () => api.avatar(corpusAvatarId as string),
+    enabled: !!corpusAvatarId,
+    refetchInterval: (q) => {
+      const d = q.state.data?.data;
+      const inFlight = !!d && (d.brainState !== 'READY' || d.awaitingChapterSelection === true);
+      return inFlight ? 4000 : false;
+    },
+  });
+  const av = avatarQ.data?.data;
+  const compiling = !!av && (av.brainState !== 'READY' || av.awaitingChapterSelection === true);
+  const pendingChapters = av?.pendingChapterCount ?? 0;
+
+  // When compile finishes, pull the freshly-built modules in so the indicator
+  // resolves directly into the new module rows.
+  const wasCompiling = useRef(compiling);
+  useEffect(() => {
+    if (wasCompiling.current && !compiling) {
+      qc.invalidateQueries({ queryKey: ['classModules', orgId, classId] });
+    }
+    wasCompiling.current = compiling;
+  }, [compiling, qc, orgId, classId]);
 
   if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading modules...</p>;
   if (query.error) return <ErrorView message="Could not load modules." onRetry={() => query.refetch()} />;
@@ -133,6 +188,9 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
   const modules = asArray<ClassModule>(query.data);
 
   if (modules.length === 0) {
+    // Mid-compile with nothing built yet → show the honest compiling indicator, not
+    // the "No modules yet" empty state (which reads as a dead end).
+    if (compiling) return <CompilingChaptersIndicator pendingChapters={pendingChapters} />;
     return (
       <EmptyState
         icon="📦"
@@ -144,6 +202,7 @@ export function ModulesTab({ orgId, classId }: { orgId: string; classId: string 
 
   return (
     <div className="space-y-4">
+      {compiling && <CompilingChaptersIndicator pendingChapters={pendingChapters} />}
       {modules.map((m) => (
         <div key={m.moduleId} className="bg-panel border border-line rounded-2xl p-5 space-y-4">
           {/* Muddiest-point bar FIRST — the reteach signal sits at the top of the row. */}

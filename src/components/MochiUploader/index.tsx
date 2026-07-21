@@ -260,19 +260,6 @@ export default function MochiUploader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.kind, status.message]);
 
-  // Chip tint mirrors the single status kind (partial success stays amber).
-  const chipTextClass =
-    status.kind === 'failed'
-      ? 'text-bad'
-      : status.kind === 'awaiting-selection'
-        ? 'text-accent'
-        : status.kind === 'ready'
-          ? (compileFailures.length > 0 ? 'text-warn' : 'text-ok')
-          : status.kind === 'timeout'
-            ? 'text-ink2'
-            : 'text-ink2';
-  const chipShowsSpinner = status.kind === 'uploading' || status.kind === 'compiling';
-
   const isUploadMode = mode === 'upload';
 
   return (
@@ -384,17 +371,16 @@ export default function MochiUploader({
         onReviewCancel={(i) => setReviewExpanded((s) => ({ ...s, [i]: false }))}
       />
 
-      {/* Non-blocking compile indicator — single owner (deriveUploadStatus). */}
-      {compileState !== 'idle' && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-panel2 border border-line text-sm">
-          {chipShowsSpinner && (
-            <span className="inline-block w-3.5 h-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
-          )}
-          <span className={chipTextClass}>{status.message}</span>
-        </div>
+      {/* Empty-state hint — the ONLY place the "upload something" copy renders, and
+          ONLY when zero files exist (never over a done file). Every post-upload state
+          (uploading / compiling / awaiting / ready / failed) is owned by the single
+          UploadResult card below — no second, drifting status string. */}
+      {!result && status.kind === 'empty' && (
+        <p className="text-xs text-ink3">{status.message}</p>
       )}
 
-      {/* Upload result summary */}
+      {/* Upload result summary — the SINGLE owner of the derived upload/compile
+          status once any file has been handled. */}
       {result && (
         <UploadResult
           ok={result.ok}

@@ -103,10 +103,16 @@ export default function UploadResult({
               View content
             </Link>
           )}
-          {partial && onRetryCompile && (
+          {/* Recompile affordance — the failure copy says "try recompiling", so the
+              action must be present in BOTH the partial (warn) and the hard-failed
+              (bad) states, not only partial. Without this the only button in a failed
+              state was "Upload more", which doesn't recompile the saved files. */}
+          {(partial || failedTone) && onRetryCompile && (
             <button
               onClick={onRetryCompile}
-              className="px-3 py-1.5 rounded-lg bg-warn text-white text-xs font-semibold hover:bg-warn/80 transition-colors"
+              className={`px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-colors ${
+                failedTone ? 'bg-accent hover:bg-accent/80' : 'bg-warn hover:bg-warn/80'
+              }`}
             >
               Recompile
             </button>
