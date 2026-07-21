@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock the pipeline so we control the recompile outcome (partial vs clean) and
 // never touch the network. Spread the ACTUAL module so the pure helpers the
@@ -20,14 +21,34 @@ vi.mock('@/lib/upload-pipeline', async (importActual) => {
   };
 });
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
+// MochiUploader now fetches the avatar's subject (['avatar', avatarId]) for the
+// RelevanceWarningDialog's fallback copy — spread the real module so unrelated
+// exports (types, other api functions) stay intact; only `avatar` is stubbed so
+// no test here touches the network.
+vi.mock('@/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/api')>();
+  return {
+    ...actual,
+    api: { ...actual.api, avatar: vi.fn().mockResolvedValue({ data: { subject: 'MATHS' } }) },
+  };
+});
 
 import MochiUploader from '@/components/MochiUploader';
-import { recompileAndPollBrain } from '@/lib/upload-pipeline';
+import { recompileAndPollBrain, runUploadPipeline, uploadSingleFile, type FileProgress } from '@/lib/upload-pipeline';
 
 function selectAFile() {
   const input = document.querySelector('input[type="file"]') as HTMLInputElement;
   const file = new File([new Uint8Array(1024)], 'notes.pdf', { type: 'application/pdf' });
   fireEvent.change(input, { target: { files: [file] } });
+}
+
+function renderUploader(props: Parameters<typeof MochiUploader>[0]) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MochiUploader {...props} />
+    </QueryClientProvider>
+  );
 }
 
 describe('MochiUploader — partial-compile surfacing', () => {
@@ -43,7 +64,7 @@ describe('MochiUploader — partial-compile surfacing', () => {
       };
     });
 
-    render(<MochiUploader avatarId="av1" classId="cls-1" />);
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
     selectAFile();
 
     // Honest count — "6 of 7 pages compiled". Single owner now (UploadResult); the
@@ -64,7 +85,7 @@ describe('MochiUploader — partial-compile surfacing', () => {
       return { brainReady: true, wikiPageCount: 6, failedPages: [] };
     });
 
-    render(<MochiUploader avatarId="av1" classId="cls-1" />);
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
     selectAFile();
 
     // Single owner is the UploadResult card; its clean-success copy (not the removed
@@ -96,7 +117,7 @@ describe('MochiUploader — compile-failure affordances (FIX 1 + FIX 2)', () => 
 
   it('renders the failure copy EXACTLY ONCE (single owner — no duplicate chip)', async () => {
     mockFailedCompile();
-    render(<MochiUploader avatarId="av1" classId="cls-1" />);
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
     selectAFile();
 
     await waitFor(() =>
@@ -106,7 +127,7 @@ describe('MochiUploader — compile-failure affordances (FIX 1 + FIX 2)', () => 
 
   it('offers a Recompile button in the FAILED state (not only "Upload more")', async () => {
     mockFailedCompile();
-    render(<MochiUploader avatarId="av1" classId="cls-1" />);
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
     selectAFile();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Recompile' })).toBeInTheDocument());
@@ -115,12 +136,83 @@ describe('MochiUploader — compile-failure affordances (FIX 1 + FIX 2)', () => 
 
   it('does NOT double the period when the backend reason already ends in one', async () => {
     mockFailedCompile();
-    render(<MochiUploader avatarId="av1" classId="cls-1" />);
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
     selectAFile();
 
     await waitFor(() => expect(screen.getByText(/Compiling failed/)).toBeInTheDocument());
     const text = screen.getByText(/Compiling failed/).textContent ?? '';
     expect(text).not.toMatch(/\.\./); // no ".." artifact from suffix-on-a-sentence
     expect(text).toMatch(/text-based PDF\. Your files are saved — try recompiling\./);
+  });
+});
+
+// ── SERVER relevance rejection dialog ────────────────────────────────
+// Before this fix, web had NO handler for the server's RelevanceWarning result
+// at all — the file silently reported as 'done'. Applies uniformly to every
+// caller of this uploader (personal Mochi + centre class), never gated by
+// centre-vs-solo.
+describe('MochiUploader — RelevanceWarning dialog', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function pipelineYieldsRelevanceWarning(reason = "This file doesn't seem to match Maths.") {
+    vi.mocked(runUploadPipeline).mockImplementation(async (_avatarId, files, onUpdate) => {
+      const file = files[0];
+      const fp: FileProgress = { name: file.name, stage: 'relevanceWarning', reason, file };
+      onUpdate([fp]);
+      return { files: [fp], brainReady: false, wikiPageCount: 0 };
+    });
+  }
+
+  it('a relevanceWarning file → dialog opens showing the reason text', async () => {
+    pipelineYieldsRelevanceWarning('This file looks like a grocery list, not Maths notes.');
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
+    selectAFile();
+
+    await waitFor(() => expect(screen.getByText('Hmm, this might not fit!')).toBeInTheDocument());
+    expect(screen.getByText(/grocery list, not Maths notes/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Anyway' })).toBeInTheDocument();
+  });
+
+  it('"Add Anyway" retries the SAME file with skipRelevance:true (forceSkipRelevance)', async () => {
+    pipelineYieldsRelevanceWarning();
+    // Mirrors the real uploadSingleFile contract: invoke onProgress with the final
+    // result (as the real implementation does) so the component's progress state
+    // actually transitions out of 'relevanceWarning' and the dialog can close.
+    vi.mocked(uploadSingleFile).mockImplementation(async (_avatarId, file, onProgress) => {
+      const result: FileProgress = { name: file.name, stage: 'done', file };
+      onProgress(result);
+      return result;
+    });
+
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
+    selectAFile();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add Anyway' })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Anyway' }));
+
+    await waitFor(() =>
+      expect(uploadSingleFile).toHaveBeenCalledWith(
+        'av1',
+        expect.any(File),
+        expect.any(Function),
+        { forceSkipRelevance: true }
+      )
+    );
+    // Dialog closes once the retried file leaves the relevanceWarning stage.
+    await waitFor(() => expect(screen.queryByText('Hmm, this might not fit!')).not.toBeInTheDocument());
+  });
+
+  it('"Go Back" removes the file from the pending list and fires NO retry call', async () => {
+    pipelineYieldsRelevanceWarning();
+    renderUploader({ avatarId: 'av1', classId: 'cls-1' });
+    selectAFile();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Go Back' })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+
+    await waitFor(() => expect(screen.queryByText('Hmm, this might not fit!')).not.toBeInTheDocument());
+    expect(screen.queryByText('notes.pdf')).not.toBeInTheDocument();
+    expect(uploadSingleFile).not.toHaveBeenCalled();
   });
 });

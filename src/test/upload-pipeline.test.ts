@@ -203,18 +203,23 @@ describe('upload-pipeline constants', () => {
 // ── FileStage type usage ─────────────────────────────────────────────
 describe('FileStage type', () => {
   it('all expected stages are assignable', () => {
+    // Invariant unchanged (all expected stages are assignable to FileStage) —
+    // 'relevanceWarning' (SERVER relevance rejection) added alongside the rest,
+    // length bumped 9 → 10 to match.
     const stages: FileStage[] = [
       'queued',
       'checkingRelevance',
       'uploading',
       'done',
       'warning',
+      'segmented',
+      'relevanceWarning',
       'error',
       'compiling',
       'compileTimeout',
       'compileFailed',
     ];
-    expect(stages).toHaveLength(9);
+    expect(stages).toHaveLength(11);
   });
 
   it('FileProgress can be constructed with all fields', () => {
@@ -511,6 +516,75 @@ describe('pollBrainReady', () => {
 
     expect(ticks[0]).toBe('compiling');
     expect(ticks.at(-1)).toBe('ready');
+  });
+});
+
+// ── SERVER relevance rejection (RelevanceWarning) ─────────────────────
+// The client pre-check (~30-char sample) is a SEPARATE, earlier check — it can
+// pass while the server's full-text check still rejects. Before this fix, that
+// server RelevanceWarning body (no chunks, no quality/pageCount) fell through to
+// the 'done' branch, silently reporting a server-rejected file as a success.
+describe('uploadSingleFile — SERVER relevance rejection (RelevanceWarning)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('a RelevanceWarning body (score+reason, no chunks/pageCount) → relevanceWarning stage, NOT done', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValueOnce({
+      data: { isRelevant: true, studyMaterial: true }, // client pre-check PASSES
+    } as Awaited<ReturnType<typeof api.checkRelevance>>);
+    vi.mocked(api.uploadFile).mockResolvedValueOnce({
+      data: { fileId: 'f9', score: 0.12, reason: "This doesn't look like Biology notes." },
+    } as never);
+    const file = createFile('random-recipe.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    // Fail-without-fix: pre-change code has no RelevanceWarning branch, so a body
+    // with no `chunks`/`quality`/`pageCount` and lowRelevance=false (client check
+    // passed) computes qualityStage = 'done' — this assertion would fail against
+    // the old code, proving the fix is load-bearing.
+    expect(result.stage).toBe('relevanceWarning');
+    expect(result.stage).not.toBe('done');
+    expect(result.reason).toBe("This doesn't look like Biology notes.");
+    expect(result.score).toBe(0.12);
+    expect(result.fileId).toBe('f9');
+  });
+
+  it('does not mark a RelevanceWarning file as uploaded (excluded from done/warning)', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValueOnce({
+      data: { isRelevant: true, studyMaterial: true },
+    } as Awaited<ReturnType<typeof api.checkRelevance>>);
+    vi.mocked(api.uploadFile).mockResolvedValueOnce({
+      data: { fileId: 'f9', score: 0.05, reason: 'Off-topic.' },
+    } as never);
+    const file = createFile('off-topic.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    expect(['done', 'warning']).not.toContain(result.stage);
+  });
+
+  it('a normal Success body (pageCount, no score/reason) still resolves done — RelevanceWarning detection does not false-positive', async () => {
+    vi.mocked(api.checkRelevance).mockResolvedValueOnce({
+      data: { isRelevant: true, studyMaterial: true },
+    } as Awaited<ReturnType<typeof api.checkRelevance>>);
+    vi.mocked(api.uploadFile).mockResolvedValueOnce({
+      data: { id: 'f1', pageCount: 4 },
+    } as never);
+    const file = createFile('chapter-1.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {});
+
+    expect(result.stage).toBe('done');
+  });
+
+  it('"Add Anyway" (forceSkipRelevance) skips the client pre-check and uploads with skipRelevance:true', async () => {
+    const file = createFile('random-recipe.pdf', 2048);
+
+    const result = await uploadSingleFile('av1', file, () => {}, { forceSkipRelevance: true });
+
+    expect(api.checkRelevance).not.toHaveBeenCalled();
+    expect(api.uploadFile).toHaveBeenCalledWith('av1', file, { skipRelevance: true });
+    expect(result.stage).toBe('done');
   });
 });
 
