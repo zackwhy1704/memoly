@@ -12,7 +12,7 @@ vi.mock('@/lib/api', async () => {
   };
 });
 
-import { api, ApiError, type ChaptersResult } from '@/lib/api';
+import { api, type ChaptersResult } from '@/lib/api';
 import ChapterPickerModal from '@/components/ChapterPicker';
 
 const mockedChapters = vi.mocked(api.chapters);
@@ -67,19 +67,20 @@ describe('ChapterPickerModal', () => {
     await waitFor(() => expect(mockedCompile).toHaveBeenCalledWith('av1', 'c1'));
   });
 
-  it('shows the allowance-hit state (with an upgrade link) on a 402', async () => {
-    mockedChapters.mockResolvedValue({ data: CHAPTERS });
-    mockedCompile.mockRejectedValue(new ApiError(402, 'CHUNK_COMPILE', 'limit', false));
+  // Under background pick-and-compile (FIX 3) the picker closes immediately on pick
+  // and never awaits the compile — so a post-click 402 can no longer reopen it.
+  // The upgrade path is instead surfaced PROACTIVELY when no compiles remain
+  // (remaining === 0), at open time, which is the honest place for it: the teacher
+  // sees they're out of allowance before firing a doomed pick. Same copy, same link.
+  it('shows the allowance-exhausted state (with an upgrade link) when no compiles remain', async () => {
+    mockedChapters.mockResolvedValue({ data: { ...CHAPTERS, allowanceUsed: 5, allowanceLimit: 5 } });
     renderPicker();
-
-    await screen.findByText('Chapter 1');
-    const firstBox = screen.getAllByRole('checkbox').find((b) => !(b as HTMLInputElement).disabled)!;
-    await userEvent.click(firstBox);
-    await userEvent.click(screen.getByRole('button', { name: /Compile selected/i }));
 
     expect(await screen.findByText(/used all 5 chapter compiles/i)).toBeInTheDocument();
     const upgrade = screen.getByRole('link', { name: /Upgrade/i });
     expect(upgrade).toHaveAttribute('href', '/account/billing');
+    // No compile request is possible from this state.
+    expect(mockedCompile).not.toHaveBeenCalled();
   });
 
   it('offers Compile all when allowance covers every locked chapter', async () => {

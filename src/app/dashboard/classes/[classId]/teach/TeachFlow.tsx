@@ -87,7 +87,7 @@ export function TeachFlow({
             </button>
           </div>
 
-          <ModulesTab orgId={orgId} classId={classId} />
+          <ModulesTab orgId={orgId} classId={classId} corpusAvatarId={corpusAvatarId} />
 
           <div className="border-t border-line pt-6">
             <h4 className="text-sm font-semibold text-ink mb-3">Assign to students</h4>
