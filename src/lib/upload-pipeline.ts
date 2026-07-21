@@ -128,9 +128,15 @@ export async function uploadSingleFile(
   try {
     const res = await api.uploadFile(avatarId, file, { skipRelevance });
 
-    // Segmented upload: a large file was split into pickable chapters and NOT
-    // compiled. Surface the chunks so MochiUploader opens the picker instead of
-    // the compile watch. (Same contract mobile consumes — keep in lockstep.)
+    // Segmented upload (EARLY / upload-time segmentation): a large file was split
+    // into pickable chapters in the upload response and NOT compiled. Surface the
+    // chunks so MochiUploader opens the picker instead of the compile watch.
+    //
+    // NOTE: this covers ONLY files the backend segments at upload time. A file
+    // segmented LATE (during compile) can't carry chunks here — the upload response
+    // is long gone by the time compile decides to split it. That awaiting-selection
+    // signal therefore arrives on the avatar-GET POLL (awaitingChapterSelection /
+    // pendingChapterCount), NOT on this upload response. See recompileAndPollBrain.
     if (Array.isArray(res.data?.chunks) && res.data.chunks.length > 0) {
       const segmented: FileProgress = {
         name: file.name,
@@ -202,7 +208,12 @@ export async function uploadSingleFile(
  * one avatar. Files are processed sequentially so one failure never blocks the
  * rest. `onUpdate` is called after every state change for live UI.
  */
-export type CompileState = 'compiling' | 'ready' | 'timeout';
+export type CompileState =
+  | 'compiling'
+  | 'ready'
+  | 'timeout'
+  | 'failed'            // compile errored — an HONEST terminal, distinct from timeout
+  | 'awaiting-selection'; // compile-time segmentation — the teacher must pick chapters
 export interface RecompileOutcome {
   brainReady: boolean;
   wikiPageCount: number;
@@ -210,6 +221,15 @@ export interface RecompileOutcome {
    *  brainState READY, so this is the only honest signal that the brain is
    *  incomplete. Empty on full success. */
   failedPages: CompilePageFailure[];
+  /** Compile-time segmentation: the file was split DURING compile (not at upload),
+   *  so the awaiting-selection signal arrives on the avatar-GET poll — never on the
+   *  upload response. The teacher must pick chapters before compile can finish. */
+  awaitingChapterSelection?: boolean;
+  pendingChapterCount?: number;
+  /** Honest failure reason from api.recompile() throwing OR the avatar-GET poll's
+   *  compileFailureReason. Present ⇒ compile did NOT succeed; render an honest
+   *  failure, never the soft "still compiling… shortly". */
+  compileFailureReason?: string | null;
 }
 
 /** Coerce the compile-status payload's failedPages into a clean, typed list —
@@ -237,26 +257,47 @@ export async function recompileAndPollBrain(
   onTick?: (state: CompileState) => void
 ): Promise<RecompileOutcome> {
   onTick?.('compiling');
+  let brainReady = false;
+  let wikiPageCount = 0;
+  let awaitingChapterSelection = false;
+  let pendingChapterCount = 0;
+  let compileFailureReason: string | null = null;
+
   // recompile once for the batch (mobile fires per upload; recompile is idempotent)
   try {
     await api.recompile(avatarId);
-  } catch {
-    /* non-fatal — backend also schedules recompile after upload */
+  } catch (err) {
+    // Un-swallowed (was an empty catch): a recompile that never STARTED can't
+    // complete, so silently polling for ~90s then soft-timing-out is dishonest.
+    // Capture the reason and surface an honest failure to the caller.
+    compileFailureReason = err instanceof ApiError ? err.userMessage : 'Could not start compiling. Please try again.';
   }
 
-  let brainReady = false;
-  let wikiPageCount = 0;
-  for (let attempt = 0; attempt < 18; attempt++) {
-    await sleep(5000);
-    try {
-      const a = await api.avatar(avatarId);
-      wikiPageCount = a.data.wikiPageCount ?? 0;
-      if ((a.data.brainState ?? 'READY') === 'READY' && wikiPageCount > 0) {
-        brainReady = true;
-        break;
+  if (!compileFailureReason) {
+    for (let attempt = 0; attempt < 18; attempt++) {
+      await sleep(5000);
+      try {
+        const a = await api.avatar(avatarId);
+        wikiPageCount = a.data.wikiPageCount ?? 0;
+        // Honest failure recorded by the backend — terminal.
+        if (a.data.compileFailureReason) {
+          compileFailureReason = a.data.compileFailureReason;
+          break;
+        }
+        // Compile-time segmentation — the file was split during compile, so no
+        // chunks rode the upload response; the picker signal arrives HERE.
+        if (a.data.awaitingChapterSelection === true) {
+          awaitingChapterSelection = true;
+          pendingChapterCount = a.data.pendingChapterCount ?? 0;
+          break;
+        }
+        if ((a.data.brainState ?? 'READY') === 'READY' && wikiPageCount > 0) {
+          brainReady = true;
+          break;
+        }
+      } catch {
+        /* transient — keep polling until the cap */
       }
-    } catch {
-      /* transient — keep polling until the cap */
     }
   }
 
@@ -273,8 +314,22 @@ export async function recompileAndPollBrain(
     }
   }
 
-  onTick?.(brainReady ? 'ready' : 'timeout');
-  return { brainReady, wikiPageCount, failedPages };
+  onTick?.(resolveCompileState({ brainReady, awaitingChapterSelection, compileFailureReason }));
+  return { brainReady, wikiPageCount, failedPages, awaitingChapterSelection, pendingChapterCount, compileFailureReason };
+}
+
+/** Maps a resolved poll outcome to the single terminal CompileState the UI chip
+ *  reads. Priority: failure > awaiting-selection > ready > timeout (still polling
+ *  hit the cap). Kept pure + shared so both poll variants tick identically. */
+function resolveCompileState(o: {
+  brainReady: boolean;
+  awaitingChapterSelection: boolean;
+  compileFailureReason: string | null;
+}): CompileState {
+  if (o.compileFailureReason) return 'failed';
+  if (o.awaitingChapterSelection) return 'awaiting-selection';
+  if (o.brainReady) return 'ready';
+  return 'timeout';
 }
 
 /**
@@ -293,11 +348,23 @@ export async function pollBrainReady(
   onTick?.('compiling');
   let brainReady = false;
   let wikiPageCount = 0;
+  let awaitingChapterSelection = false;
+  let pendingChapterCount = 0;
+  let compileFailureReason: string | null = null;
   for (let attempt = 0; attempt < 18; attempt++) {
     await sleep(5000);
     try {
       const a = await api.avatar(avatarId);
       wikiPageCount = a.data.wikiPageCount ?? 0;
+      if (a.data.compileFailureReason) {
+        compileFailureReason = a.data.compileFailureReason;
+        break;
+      }
+      if (a.data.awaitingChapterSelection === true) {
+        awaitingChapterSelection = true;
+        pendingChapterCount = a.data.pendingChapterCount ?? 0;
+        break;
+      }
       if ((a.data.brainState ?? 'READY') === 'READY') {
         brainReady = true;
         break;
@@ -306,10 +373,10 @@ export async function pollBrainReady(
       /* transient — keep polling until the cap */
     }
   }
-  onTick?.(brainReady ? 'ready' : 'timeout');
+  onTick?.(resolveCompileState({ brainReady, awaitingChapterSelection, compileFailureReason }));
   // Delete-driven refresh: no compile this avatar initiated here, so no page
   // failures to report.
-  return { brainReady, wikiPageCount, failedPages: [] };
+  return { brainReady, wikiPageCount, failedPages: [], awaitingChapterSelection, pendingChapterCount, compileFailureReason };
 }
 
 export async function runUploadPipeline(
@@ -344,6 +411,21 @@ export async function runUploadPipeline(
     const outcome = await recompileAndPollBrain(avatarId);
     brainReady = outcome.brainReady;
     wikiPageCount = outcome.wikiPageCount;
+    // Reflect an honest compile terminal onto the uploaded files (these per-file
+    // stages were defined but never set). Only the SYNCHRONOUS path lands here; the
+    // uploader compiles out-of-band and surfaces the batch state via the status chip.
+    if (!brainReady && !outcome.awaitingChapterSelection) {
+      const stage: FileStage = outcome.compileFailureReason ? 'compileFailed' : 'compileTimeout';
+      const message = outcome.compileFailureReason
+        ? `Compiling failed: ${outcome.compileFailureReason}`
+        : 'Still compiling in the background — this can take a minute for large uploads.';
+      for (let i = 0; i < progress.length; i++) {
+        if (progress[i].stage === 'done' || progress[i].stage === 'warning') {
+          progress[i] = { ...progress[i], stage, message };
+        }
+      }
+      emit();
+    }
   }
 
   return { files: progress, brainReady, wikiPageCount };
@@ -351,6 +433,108 @@ export async function runUploadPipeline(
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ── Single source of truth for the upload/compile status message ───────────────
+// Four surfaces used to each render their OWN independent string (the compile
+// chip, the result panel, the per-file line, and the wizard hint), so a stale
+// "still compiling…" could sit over a green ✓, or "upload at least one file" over
+// a done file. deriveUploadStatus collapses the file/compile/awaiting state into
+// exactly ONE authoritative status; every surface renders from THIS value, so two
+// contradictory messages can never be visible at once.
+
+export type UploadStatusKind =
+  | 'uploading'
+  | 'compiling'
+  | 'awaiting-selection'
+  | 'ready'
+  | 'failed'
+  | 'timeout'
+  | 'empty';
+
+export interface UploadStatus {
+  kind: UploadStatusKind;
+  message: string;
+}
+
+export interface UploadStatusState {
+  files: FileProgress[];
+  running: boolean;
+  compileState: CompileState | 'idle';
+  wikiPageCount: number;
+  failedPages: CompilePageFailure[];
+  awaitingChapterSelection?: boolean;
+  pendingChapterCount?: number;
+  compileFailureReason?: string | null;
+}
+
+const IN_FLIGHT_STAGES: FileStage[] = ['queued', 'checkingRelevance', 'uploading'];
+
+/** Pure. Returns the ONE authoritative status for the current upload/compile
+ *  state. Priority is deliberate: an honest failure and awaiting-selection
+ *  outrank the soft "compiling" states so a real problem is never masked. */
+export function deriveUploadStatus(s: UploadStatusState): UploadStatus {
+  const uploaded = s.files.filter((f) => f.stage === 'done' || f.stage === 'warning');
+  const hasSegmented = s.files.some((f) => f.stage === 'segmented');
+  const inFlight = s.running || s.files.some((f) => IN_FLIGHT_STAGES.includes(f.stage));
+
+  // 1. Honest failure — highest priority. Distinct copy from the soft "shortly".
+  if (s.compileFailureReason || s.compileState === 'failed') {
+    const reason = s.compileFailureReason?.trim();
+    return {
+      kind: 'failed',
+      message: reason
+        ? `Compiling failed: ${reason}. Your files are saved — try recompiling.`
+        : 'Compiling failed. Your files are saved — try recompiling.',
+    };
+  }
+
+  // 2. Awaiting chapter selection — from upload-time OR compile-time segmentation.
+  if (s.awaitingChapterSelection || s.compileState === 'awaiting-selection' || hasSegmented) {
+    const n = s.pendingChapterCount && s.pendingChapterCount > 0 ? s.pendingChapterCount : null;
+    return {
+      kind: 'awaiting-selection',
+      message: n ? `${n} chapters ready to pick.` : 'Chapters ready to pick.',
+    };
+  }
+
+  // 3. Files still uploading.
+  if (inFlight) {
+    return { kind: 'uploading', message: 'Uploading your files…' };
+  }
+
+  // 4. Compile in progress.
+  if (s.compileState === 'compiling') {
+    return { kind: 'compiling', message: 'Content still compiling — modules will appear shortly.' };
+  }
+
+  // 5. Compile finished (READY). Partial ⇒ honest "X of Y"; clean ⇒ success.
+  if (s.compileState === 'ready') {
+    if (s.failedPages.length > 0) {
+      const total = s.wikiPageCount + s.failedPages.length;
+      return {
+        kind: 'ready',
+        message: `⚠ ${s.wikiPageCount} of ${total} pages compiled — ${s.failedPages.length} failed. Recompile to complete the brain.`,
+      };
+    }
+    return {
+      kind: 'ready',
+      message: `✓ Notes compiled — ${s.wikiPageCount} page${s.wikiPageCount === 1 ? '' : 's'} ready.`,
+    };
+  }
+
+  // 6. Compile timed out — honest but soft (the backend may still finish).
+  if (s.compileState === 'timeout') {
+    return { kind: 'timeout', message: 'Still compiling — modules will appear here shortly.' };
+  }
+
+  // 7. Uploaded but the compile watch hasn't ticked yet (brief window) — compiling.
+  if (uploaded.length > 0) {
+    return { kind: 'compiling', message: 'Content still compiling — modules will appear shortly.' };
+  }
+
+  // 8. Nothing uploaded yet.
+  return { kind: 'empty', message: 'Upload at least one file so Mochi has something to teach.' };
 }
 
 function friendlyError(err: unknown, fileName: string): string {

@@ -2,18 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Mock the pipeline so we control the recompile outcome (partial vs clean) and
-// never touch the network. ACCEPT_ATTR/MAX_FILES are consumed by the component.
-vi.mock('@/lib/upload-pipeline', () => ({
-  ACCEPT_ATTR: '.pdf,.png,.jpg',
-  MAX_FILES: 10,
-  runUploadPipeline: vi.fn().mockResolvedValue({
-    files: [{ name: 'notes.pdf', stage: 'done' }],
-    brainReady: false,
-    wikiPageCount: 0,
-  }),
-  recompileAndPollBrain: vi.fn(),
-  uploadSingleFile: vi.fn(),
-}));
+// never touch the network. Spread the ACTUAL module so the pure helpers the
+// component now depends on — deriveUploadStatus (the single status owner),
+// ACCEPT_ATTR, MAX_FILES — stay real; only the network-touching functions are
+// stubbed. (Stubbing deriveUploadStatus away would crash the component at render.)
+vi.mock('@/lib/upload-pipeline', async (importActual) => {
+  const actual = await importActual<typeof import('@/lib/upload-pipeline')>();
+  return {
+    ...actual,
+    runUploadPipeline: vi.fn().mockResolvedValue({
+      files: [{ name: 'notes.pdf', stage: 'done' }],
+      brainReady: false,
+      wikiPageCount: 0,
+    }),
+    recompileAndPollBrain: vi.fn(),
+    uploadSingleFile: vi.fn(),
+  };
+});
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 
 import MochiUploader from '@/components/MochiUploader';

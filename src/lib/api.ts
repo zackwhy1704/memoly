@@ -196,6 +196,15 @@ export interface Avatar {
   // Teaching instruction fed into the tutor's system prompt (## TEACHER
   // INSTRUCTIONS). For a class corpus this is the teacher's per-class style.
   teacherPreferences?: string;
+  // ── Compile-poll surface (additive; all OPTIONAL for back-compat) ──────────
+  // GET /avatars/{id} now also reports compile-time state. A file segmented DURING
+  // compile can't carry chunks on its upload response, so the awaiting-selection
+  // signal arrives HERE on the poll. `compileFailureReason` makes a dead compile
+  // honest instead of an endless soft "still compiling…". Older servers omit all
+  // three → the client behaves exactly as before.
+  awaitingChapterSelection?: boolean;
+  pendingChapterCount?: number;
+  compileFailureReason?: string | null;
 }
 
 export interface WikiPage {

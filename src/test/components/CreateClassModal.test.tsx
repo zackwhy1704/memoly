@@ -6,9 +6,25 @@ import { api } from '@/lib/api';
 
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 vi.mock('@/components/MochiUploader', () => ({
-  default: ({ onComplete }: { onComplete?: (n: number) => void }) => (
+  default: ({
+    onComplete,
+    onStatusChange,
+  }: {
+    onComplete?: (n: number) => void;
+    onStatusChange?: (s: { kind: string; message: string }) => void;
+  }) => (
     <div data-testid="mochi-uploader">
       <button onClick={() => onComplete?.(3)}>simulate upload complete</button>
+      {/* Segmented upload reports 0 pages (chapters still to pick). */}
+      <button onClick={() => onComplete?.(0)}>simulate segmented complete</button>
+      {/* Compile still running — status stream fires before onComplete. */}
+      <button
+        onClick={() =>
+          onStatusChange?.({ kind: 'compiling', message: 'Content still compiling — modules will appear shortly.' })
+        }
+      >
+        simulate compiling status
+      </button>
     </div>
   ),
 }));
@@ -224,5 +240,24 @@ describe('CreateClassModal — step 3 (upload)', () => {
     // Join code appears in the header and footer — both should be present
     const codes = screen.getAllByText('XYZ789');
     expect(codes.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // FIX 4 (allow-continue, not a wall): a SEGMENTED upload reports 0 pages. The
+  // old gate (pageCount>0) stranded it behind a permanently-disabled Continue.
+  it('"Continue to review" enables on a segmented (0-page) upload', async () => {
+    await goToStep3();
+    fireEvent.click(screen.getByRole('button', { name: 'simulate segmented complete' }));
+    expect(screen.getByRole('button', { name: /Continue to review/i })).not.toBeDisabled();
+  });
+
+  // FIX 4: enable the moment a compile state begins (status stream), BEFORE
+  // onComplete fires — the teacher is never blocked behind a compile that runs
+  // out of band and can silently die; the banner keeps the state visible.
+  it('"Continue to review" enables from the compiling status alone (before onComplete)', async () => {
+    await goToStep3();
+    fireEvent.click(screen.getByRole('button', { name: 'simulate compiling status' }));
+    expect(screen.getByRole('button', { name: /Continue to review/i })).not.toBeDisabled();
+    // The non-blocking banner reflects the ONE derived status.
+    expect(screen.getByText(/Content still compiling/i)).toBeInTheDocument();
   });
 });

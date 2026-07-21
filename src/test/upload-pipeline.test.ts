@@ -5,11 +5,13 @@ import {
   uploadSingleFile,
   pollBrainReady,
   recompileAndPollBrain,
+  deriveUploadStatus,
   MAX_FILE_BYTES,
   ALLOWED_EXT,
   MAX_FILES,
   type FileStage,
   type FileProgress,
+  type UploadStatusState,
 } from '@/lib/upload-pipeline';
 
 vi.mock('@/lib/api', () => ({
@@ -305,6 +307,151 @@ describe('recompileAndPollBrain — partial-compile failures', () => {
     const result = await run();
 
     expect(result.failedPages).toEqual([{ slug: 'real', reason: 'x' }]);
+  });
+});
+
+// ── recompileAndPollBrain — compile-time segmentation surfaces on the POLL ─
+// A file segmented DURING compile can't carry chunks on its (long-gone) upload
+// response — the awaiting-selection signal arrives on GET /avatars/{id}. Before
+// the fix the poll read only brainState/wikiPageCount, so this state was invisible
+// and the watch soft-timed-out after ~90s instead of telling the teacher to pick.
+describe('recompileAndPollBrain — compile-time segmentation (awaiting-selection)', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('resolves AWAITING-SELECTION with the pending chapter count from the poll', async () => {
+    vi.mocked(api.avatar).mockResolvedValue({
+      data: {
+        brainState: 'PENDING_RECOMPILE',
+        wikiPageCount: 0,
+        awaitingChapterSelection: true,
+        pendingChapterCount: 3,
+      },
+    } as Awaited<ReturnType<typeof api.avatar>>);
+    vi.useFakeTimers();
+    const ticks: string[] = [];
+
+    const p = recompileAndPollBrain('av1', (s) => ticks.push(s));
+    await vi.advanceTimersByTimeAsync(5000);
+    const result = await p;
+
+    expect(result.brainReady).toBe(false);
+    expect(result.awaitingChapterSelection).toBe(true);
+    expect(result.pendingChapterCount).toBe(3);
+    // NOT a soft timeout — the terminal tick is the honest awaiting-selection state.
+    expect(ticks.at(-1)).toBe('awaiting-selection');
+    // Partial-failure lookup must be skipped (brain never reached READY).
+    expect(api.compileStatus).not.toHaveBeenCalled();
+  });
+});
+
+// ── recompileAndPollBrain — honest compile FAILURE (no more soft "shortly") ─
+describe('recompileAndPollBrain — honest failure', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('resolves FAILED carrying the poll compileFailureReason', async () => {
+    vi.mocked(api.avatar).mockResolvedValue({
+      data: {
+        brainState: 'PENDING_RECOMPILE',
+        wikiPageCount: 0,
+        compileFailureReason: 'Compile crashed on page 4 (unreadable scan).',
+      },
+    } as Awaited<ReturnType<typeof api.avatar>>);
+    vi.useFakeTimers();
+    const ticks: string[] = [];
+
+    const p = recompileAndPollBrain('av1', (s) => ticks.push(s));
+    await vi.advanceTimersByTimeAsync(5000);
+    const result = await p;
+
+    expect(result.brainReady).toBe(false);
+    expect(result.compileFailureReason).toBe('Compile crashed on page 4 (unreadable scan).');
+    expect(ticks.at(-1)).toBe('failed'); // honest terminal, not 'timeout'
+  });
+
+  it('surfaces a FAILED reason when the recompile call itself throws (un-swallowed)', async () => {
+    const { ApiError } = await import('@/lib/api');
+    // Real ApiError takes (status, code, userMessage, retryable); the mocked class
+    // ignores them, so we also set userMessage explicitly for the instanceof branch.
+    vi.mocked(api.recompile).mockRejectedValueOnce(
+      Object.assign(new ApiError(500, null, 'Server is busy — try again.', false), {
+        userMessage: 'Server is busy — try again.',
+      })
+    );
+    vi.useFakeTimers();
+    const ticks: string[] = [];
+
+    const p = recompileAndPollBrain('av1', (s) => ticks.push(s));
+    await vi.runAllTimersAsync();
+    const result = await p;
+
+    expect(result.compileFailureReason).toBe('Server is busy — try again.');
+    expect(ticks.at(-1)).toBe('failed');
+    // A recompile that never STARTED must not then poll for ~90s.
+    expect(api.avatar).not.toHaveBeenCalled();
+  });
+});
+
+// ── deriveUploadStatus — the ONE status owner ────────────────────────────────
+// Four surfaces used to each render their own string; this pure reducer collapses
+// them to exactly one. The invariant: never two contradictory messages — a
+// done-file that's compiling must NEVER also read "upload at least one file".
+describe('deriveUploadStatus — single status owner', () => {
+  const base: UploadStatusState = {
+    files: [],
+    running: false,
+    compileState: 'idle',
+    wikiPageCount: 0,
+    failedPages: [],
+  };
+
+  it('a done file while compiling → exactly "compiling", NOT the empty prompt', () => {
+    const s = deriveUploadStatus({
+      ...base,
+      files: [{ name: 'a.pdf', stage: 'done' }],
+      compileState: 'compiling',
+    });
+    expect(s.kind).toBe('compiling');
+    expect(s.message).not.toMatch(/upload at least one file/i);
+  });
+
+  it('nothing uploaded → empty prompt', () => {
+    expect(deriveUploadStatus(base).kind).toBe('empty');
+    expect(deriveUploadStatus(base).message).toMatch(/upload at least one file/i);
+  });
+
+  it('a compile failure reason outranks everything → failed with the reason', () => {
+    const s = deriveUploadStatus({
+      ...base,
+      files: [{ name: 'a.pdf', stage: 'done' }],
+      compileState: 'ready', // even a "ready" tick must not mask a real failure
+      compileFailureReason: 'disk full',
+    });
+    expect(s.kind).toBe('failed');
+    expect(s.message).toContain('disk full');
+  });
+
+  it('awaiting chapter selection → awaiting-selection with the count', () => {
+    const s = deriveUploadStatus({
+      ...base,
+      files: [{ name: 'book.pdf', stage: 'done' }],
+      awaitingChapterSelection: true,
+      pendingChapterCount: 4,
+    });
+    expect(s.kind).toBe('awaiting-selection');
+    expect(s.message).toContain('4');
+  });
+
+  it('clean READY compile → single ready success line', () => {
+    const s = deriveUploadStatus({
+      ...base,
+      files: [{ name: 'a.pdf', stage: 'done' }],
+      compileState: 'ready',
+      wikiPageCount: 5,
+    });
+    expect(s.kind).toBe('ready');
+    expect(s.message).toMatch(/5 pages ready/);
   });
 });
 

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { CompilePageFailure } from '@/lib/api';
+import type { UploadStatus } from '@/lib/upload-pipeline';
 
 interface UploadResultProps {
   ok: number;
@@ -13,6 +14,10 @@ interface UploadResultProps {
    *  INCOMPLETE even though it reached READY — surfaced as a warning, never
    *  conflated with the file-upload `failed` count. */
   failedPages?: CompilePageFailure[];
+  /** The single derived status (deriveUploadStatus). While the compile is not yet
+   *  READY, this panel renders THIS message instead of its own independent
+   *  "still compiling" string — so it can never contradict the status chip. */
+  status?: UploadStatus;
   classId?: string;
   onUploadMore: () => void;
   /** Optional retry that re-runs the recompile + poll (the partial-state path). */
@@ -25,18 +30,24 @@ export default function UploadResult({
   brainReady,
   wikiPageCount,
   failedPages = [],
+  status,
   classId,
   onUploadMore,
   onRetryCompile,
 }: UploadResultProps) {
   const partial = brainReady && failedPages.length > 0;
   const totalPages = wikiPageCount + failedPages.length;
+  const failedTone = status?.kind === 'failed';
 
   if (ok > 0) {
     return (
       <div
         className={`rounded-xl px-4 py-4 space-y-3 border ${
-          partial ? 'bg-warn/10 border-warn/30' : 'bg-ok/10 border-ok/30'
+          failedTone
+            ? 'bg-bad/10 border-bad/30'
+            : partial
+              ? 'bg-warn/10 border-warn/30'
+              : 'bg-ok/10 border-ok/30'
         }`}
       >
         <div className="text-sm text-ink">
@@ -68,9 +79,13 @@ export default function UploadResult({
               </p>
             )
           ) : (
-            <p className="text-ink2">
-              Still compiling in the background — this can take a minute for large uploads.
-              {ok > 0 && ` ${ok} file${ok === 1 ? '' : 's'} uploaded.`}
+            // NOT-ready branch — render the SINGLE owner's message (compiling /
+            // timeout / failed / awaiting), never an independent string that could
+            // contradict the status chip.
+            <p className={failedTone ? 'text-bad' : 'text-ink2'}>
+              {status?.message ??
+                'Still compiling in the background — this can take a minute for large uploads.'}
+              {!failedTone && ok > 0 && ` ${ok} file${ok === 1 ? '' : 's'} uploaded.`}
             </p>
           )}
           {failed > 0 && (

@@ -1,14 +1,16 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import {
   ACCEPT_ATTR,
   MAX_FILES,
   runUploadPipeline,
   recompileAndPollBrain,
   uploadSingleFile,
+  deriveUploadStatus,
   type CompileState,
   type FileProgress,
+  type UploadStatus,
 } from '@/lib/upload-pipeline';
 import { api, type CompilePageFailure } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
@@ -31,11 +33,16 @@ export default function MochiUploader({
   avatarId,
   classId,
   onComplete,
+  onStatusChange,
 }: {
   avatarId: string;
   /** Optional class ID for "View content" link after upload. */
   classId?: string;
   onComplete?: (pageCount: number) => void;
+  /** Emits the single derived upload/compile status on every change, so a parent
+   *  wizard can drive its own banner + continue-gate from the SAME source of
+   *  truth (never a second, drifting string). */
+  onStatusChange?: (status: UploadStatus) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<FileProgress[]>([]);
@@ -45,6 +52,10 @@ export default function MochiUploader({
   const [compileState, setCompileState] = useState<CompileState | 'idle'>('idle');
   const [compilePages, setCompilePages] = useState(0);
   const [compileFailures, setCompileFailures] = useState<CompilePageFailure[]>([]);
+  // Honest compile-time signals from the avatar-GET poll (FIX 1/2).
+  const [awaitingSelection, setAwaitingSelection] = useState(false);
+  const [pendingChapters, setPendingChapters] = useState(0);
+  const [compileFailureReason, setCompileFailureReason] = useState<string | null>(null);
   // A large upload was split into chapters → open the picker instead of compiling.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [result, setResult] = useState<{
@@ -72,9 +83,15 @@ export default function MochiUploader({
     setCompileState('compiling');
     setCompilePages(0);
     setCompileFailures([]);
+    setAwaitingSelection(false);
+    setPendingChapters(0);
+    setCompileFailureReason(null);
     void recompileAndPollBrain(avatarId, setCompileState).then((o) => {
       setCompilePages(o.wikiPageCount);
       setCompileFailures(o.failedPages);
+      setAwaitingSelection(o.awaitingChapterSelection ?? false);
+      setPendingChapters(o.pendingChapterCount ?? 0);
+      setCompileFailureReason(o.compileFailureReason ?? null);
       onComplete?.(o.wikiPageCount);
     });
   }, [avatarId, onComplete]);
@@ -88,6 +105,9 @@ export default function MochiUploader({
     setCompileState('idle');
     setCompilePages(0);
     setCompileFailures([]);
+    setAwaitingSelection(false);
+    setPendingChapters(0);
+    setCompileFailureReason(null);
     resetReviewState();
     // Uploads only — recompile/poll runs non-blocking below, so the uploader
     // returns to idle the moment uploads finish and more files can be queued.
@@ -144,6 +164,9 @@ export default function MochiUploader({
     setCompileState('idle');
     setCompilePages(0);
     setCompileFailures([]);
+    setAwaitingSelection(false);
+    setPendingChapters(0);
+    setCompileFailureReason(null);
     resetReviewState();
 
     try {
@@ -209,11 +232,46 @@ export default function MochiUploader({
     setCompileState('idle');
     setCompilePages(0);
     setCompileFailures([]);
+    setAwaitingSelection(false);
+    setPendingChapters(0);
+    setCompileFailureReason(null);
     resetReviewState();
     if (mode === 'upload') {
       inputRef.current?.click();
     }
   }
+
+  // The ONE authoritative status — every surface below (and the parent wizard)
+  // renders from this single value, so no two contradictory messages can show.
+  const status = deriveUploadStatus({
+    files: progress,
+    running,
+    compileState,
+    wikiPageCount: compilePages,
+    failedPages: compileFailures,
+    awaitingChapterSelection: awaitingSelection,
+    pendingChapterCount: pendingChapters,
+    compileFailureReason,
+  });
+
+  useEffect(() => {
+    onStatusChange?.(status);
+    // Emit on message/kind change only; `status` is a fresh object each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status.kind, status.message]);
+
+  // Chip tint mirrors the single status kind (partial success stays amber).
+  const chipTextClass =
+    status.kind === 'failed'
+      ? 'text-bad'
+      : status.kind === 'awaiting-selection'
+        ? 'text-accent'
+        : status.kind === 'ready'
+          ? (compileFailures.length > 0 ? 'text-warn' : 'text-ok')
+          : status.kind === 'timeout'
+            ? 'text-ink2'
+            : 'text-ink2';
+  const chipShowsSpinner = status.kind === 'uploading' || status.kind === 'compiling';
 
   const isUploadMode = mode === 'upload';
 
@@ -326,26 +384,13 @@ export default function MochiUploader({
         onReviewCancel={(i) => setReviewExpanded((s) => ({ ...s, [i]: false }))}
       />
 
-      {/* Non-blocking compile indicator — uploads don't wait on it */}
+      {/* Non-blocking compile indicator — single owner (deriveUploadStatus). */}
       {compileState !== 'idle' && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-panel2 border border-line text-sm">
-          {compileState === 'compiling' && (
-            <>
-              <span className="inline-block w-3.5 h-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              <span className="text-ink2">Compiling your notes… you can add more files meanwhile.</span>
-            </>
+          {chipShowsSpinner && (
+            <span className="inline-block w-3.5 h-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
           )}
-          {compileState === 'ready' && compileFailures.length === 0 && (
-            <span className="text-ok">&#10003; Notes compiled — {compilePages} page{compilePages === 1 ? '' : 's'} ready.</span>
-          )}
-          {compileState === 'ready' && compileFailures.length > 0 && (
-            <span className="text-warn">
-              &#9888; {compilePages} of {compilePages + compileFailures.length} pages compiled — {compileFailures.length} failed. Recompile to complete the brain.
-            </span>
-          )}
-          {compileState === 'timeout' && (
-            <span className="text-ink2">Still compiling — modules will appear here shortly.</span>
-          )}
+          <span className={chipTextClass}>{status.message}</span>
         </div>
       )}
 
@@ -357,6 +402,7 @@ export default function MochiUploader({
           brainReady={compileState === 'ready'}
           wikiPageCount={compilePages}
           failedPages={compileFailures}
+          status={status}
           classId={classId}
           onUploadMore={uploadMore}
           onRetryCompile={startCompileWatch}
