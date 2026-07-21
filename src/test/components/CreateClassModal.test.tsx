@@ -252,12 +252,14 @@ describe('CreateClassModal — step 3 (upload)', () => {
 
   // FIX 4: enable the moment a compile state begins (status stream), BEFORE
   // onComplete fires — the teacher is never blocked behind a compile that runs
-  // out of band and can silently die; the banner keeps the state visible.
+  // out of band and can silently die. (The wizard no longer echoes the status in a
+  // second banner — that duplicate was removed under FIX 1; the derived status is
+  // rendered once by MochiUploader's own card. Here the uploader is mocked, so we
+  // assert only the gate behaviour; the single-render invariant is proven with the
+  // REAL uploader in CreateClassModal.singleRender.test.tsx.)
   it('"Continue to review" enables from the compiling status alone (before onComplete)', async () => {
     await goToStep3();
     fireEvent.click(screen.getByRole('button', { name: 'simulate compiling status' }));
     expect(screen.getByRole('button', { name: /Continue to review/i })).not.toBeDisabled();
-    // The non-blocking banner reflects the ONE derived status.
-    expect(screen.getByText(/Content still compiling/i)).toBeInTheDocument();
   });
 });

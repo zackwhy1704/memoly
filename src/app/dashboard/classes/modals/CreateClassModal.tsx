@@ -79,34 +79,6 @@ function Stepper({ current }: { current: WizardStep }) {
   );
 }
 
-// ── Step-3 status banner — renders the ONE derived upload/compile status ───────
-// Non-blocking: it only reports state, it never gates the wizard. A null status
-// (nothing emitted yet) falls back to the same "upload something" guidance so the
-// step still onboards the teacher before the first file lands.
-function UploadStatusBanner({ status }: { status: UploadStatus | null }) {
-  const kind = status?.kind ?? 'empty';
-  const message = status?.message ?? 'Upload at least one file so Mochi has something to teach.';
-  const tone =
-    kind === 'failed'
-      ? 'text-bad'
-      : kind === 'awaiting-selection'
-        ? 'text-accent'
-        : kind === 'ready'
-          ? (message.startsWith('⚠') ? 'text-warn' : 'text-ok')
-          : kind === 'empty'
-            ? 'text-ink3'
-            : 'text-ink2';
-  const showSpinner = kind === 'uploading' || kind === 'compiling';
-  return (
-    <div className="flex items-center justify-center gap-2 text-xs text-center">
-      {showSpinner && (
-        <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
-      )}
-      <span className={tone}>{message}</span>
-    </div>
-  );
-}
-
 // Hoisted to module scope so it isn't re-created every render (react-hooks
 // static-components). Takes the text as a prop; no parent-scope dependencies.
 function CopyButton({ text }: { text: string }) {
@@ -377,10 +349,11 @@ export default function CreateClassModal({
                 />
               )}
 
-              {/* SINGLE status owner for step 3 — the banner renders the ONE
-                  derived status (deriveUploadStatus) from MochiUploader, so it can
-                  never contradict the uploader's own chip/result. */}
-              <UploadStatusBanner status={uploadStatus} />
+              {/* SINGLE-RENDER INVARIANT: the derived upload/compile status is shown
+                  in EXACTLY ONE place — MochiUploader's own UploadResult card. The
+                  wizard no longer renders a second banner (that was the third of the
+                  "three red boxes"). `uploadStatus` is still consumed, but only as
+                  LOGIC for the Continue gate below — never as a duplicate string. */}
             </div>
           )}
 
