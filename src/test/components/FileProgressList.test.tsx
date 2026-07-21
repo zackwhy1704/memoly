@@ -46,12 +46,17 @@ describe('FileProgressList', () => {
     expect(screen.getByText('Uploading...')).toBeInTheDocument();
   });
 
-  it('shows page count when a file is done with pageCount', () => {
+  it('shows the per-file pages-READ count (extraction fact, not compile status)', () => {
+    // The per-file line reports how many pages were READ from this upload — it must
+    // NOT claim "compiled", because compile status has a single owner (the status
+    // chip via deriveUploadStatus). Conflating the two is what let a stale
+    // "compiled" sit over an unfinished/failed compile.
     const progress: FileProgress[] = [
       { name: 'chapter.pdf', stage: 'done', pageCount: 12 },
     ];
     render(<FileProgressList {...baseProps} progress={progress} />);
-    expect(screen.getByText('12 pages compiled')).toBeInTheDocument();
+    expect(screen.getByText('12 pages read')).toBeInTheDocument();
+    expect(screen.queryByText(/12 pages compiled/)).not.toBeInTheDocument();
   });
 
   it('shows a Retry button for error-stage files with a file reference', () => {

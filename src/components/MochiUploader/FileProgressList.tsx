@@ -78,7 +78,10 @@ export default function FileProgressList({
                 )}
                 {f.stage === 'uploading' && <p className="text-xs text-ink3">Uploading...</p>}
                 {f.stage === 'done' && f.pageCount != null && (
-                  <p className="text-xs text-ink3">{f.pageCount} pages compiled</p>
+                  // Per-file EXTRACTION fact from the upload — NOT compile status.
+                  // The aggregate compile message has a single owner (the status
+                  // chip via deriveUploadStatus); this line must not claim "compiled".
+                  <p className="text-xs text-ink3">{f.pageCount} page{f.pageCount === 1 ? '' : 's'} read</p>
                 )}
                 {f.stage === 'done' && f.degraded && !isBorderline && (
                   <p className="text-xs text-warn">Read with backup engine — double-check the text looks right.</p>

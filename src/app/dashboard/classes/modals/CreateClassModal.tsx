@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, randomMochiConfig, type MochiConfig, type OrgClass } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
@@ -8,6 +8,7 @@ import { CENTRE_SUBJECTS } from '@/lib/centre-mochis';
 import MochiAvatar from '@/components/MochiAvatar';
 import AvatarPickerModal from '@/components/AvatarPickerModal';
 import MochiUploader from '@/components/MochiUploader';
+import type { UploadStatus } from '@/lib/upload-pipeline';
 import { ContentReviewPanel } from '../[classId]/components/ContentReviewPanel';
 
 // ── Friendly compile messages — rotate while the brain compiles ──────────────
@@ -78,6 +79,48 @@ function Stepper({ current }: { current: WizardStep }) {
   );
 }
 
+// ── Step-3 status banner — renders the ONE derived upload/compile status ───────
+// Non-blocking: it only reports state, it never gates the wizard. A null status
+// (nothing emitted yet) falls back to the same "upload something" guidance so the
+// step still onboards the teacher before the first file lands.
+function UploadStatusBanner({ status }: { status: UploadStatus | null }) {
+  const kind = status?.kind ?? 'empty';
+  const message = status?.message ?? 'Upload at least one file so Mochi has something to teach.';
+  const tone =
+    kind === 'failed'
+      ? 'text-bad'
+      : kind === 'awaiting-selection'
+        ? 'text-accent'
+        : kind === 'ready'
+          ? (message.startsWith('⚠') ? 'text-warn' : 'text-ok')
+          : kind === 'empty'
+            ? 'text-ink3'
+            : 'text-ink2';
+  const showSpinner = kind === 'uploading' || kind === 'compiling';
+  return (
+    <div className="flex items-center justify-center gap-2 text-xs text-center">
+      {showSpinner && (
+        <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
+      )}
+      <span className={tone}>{message}</span>
+    </div>
+  );
+}
+
+// Hoisted to module scope so it isn't re-created every render (react-hooks
+// static-components). Takes the text as a prop; no parent-scope dependencies.
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition whitespace-nowrap"
+    >
+      {copied ? 'Copied!' : 'Copy code'}
+    </button>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function CreateClassModal({
   orgId,
@@ -101,21 +144,39 @@ export default function CreateClassModal({
   const [subject, setSubject] = useState('MATHS');
   const [level, setLevel] = useState('');
 
-  // Step 3 — track at least one compile-complete so the review gate is meaningful
+  // Step 3 — a file finished UPLOADING (compile runs on afterwards, out of band).
+  // This gates "Continue to review": we enable on upload, NOT on compile finishing
+  // (see the PRODUCT DECISION note on the Continue button).
   const [uploadCompleted, setUploadCompleted] = useState(false);
+  // The ONE derived upload/compile status emitted by MochiUploader — the single
+  // source of truth for the step-3 banner AND the second continue-enable path
+  // (so we light up the moment a compile/awaiting state begins, before onComplete).
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
 
   // Step 4 — compile poll + review ready
   const [allReviewed, setAllReviewed] = useState(false);
   const [compileTimedOut, setCompileTimedOut] = useState(false);
 
-  // Poll avatar brainState (proven approach from recompileAndPollBrain)
+  // Poll avatar brainState (proven approach from recompileAndPollBrain). The poll
+  // now also reads the compile-time honesty fields the backend added to GET
+  // /avatars/{id}: a dead compile (compileFailureReason) and compile-time chapter
+  // segmentation (awaitingChapterSelection) are terminal — surface them instead of
+  // spinning forever, and stop polling once any terminal state is reached.
   const brainQuery = useQuery({
     queryKey: ['avatar', created?.corpusAvatarId],
     queryFn: () => api.avatar(created!.corpusAvatarId!),
     enabled: step === 'review' && !!created?.corpusAvatarId,
-    refetchInterval: (q) => (q.state.data?.data?.brainState === 'READY' ? false : 4000),
+    refetchInterval: (q) => {
+      const d = q.state.data?.data;
+      if (d?.brainState === 'READY' || d?.compileFailureReason || d?.awaitingChapterSelection) return false;
+      return 4000;
+    },
   });
-  const brainReady = brainQuery.data?.data?.brainState === 'READY';
+  const avatarData = brainQuery.data?.data;
+  const brainReady = avatarData?.brainState === 'READY';
+  const compileFailureReason = avatarData?.compileFailureReason ?? null;
+  const awaitingChapters = avatarData?.awaitingChapterSelection === true;
+  const pendingChapterCount = avatarData?.pendingChapterCount ?? 0;
 
   // Compile progress numbers from the compile-status endpoint
   const statusQuery = useQuery({
@@ -134,7 +195,9 @@ export default function CreateClassModal({
     return () => clearTimeout(t);
   }, [step, brainReady, compileTimedOut]);
 
-  const compilingMessage = useRotatingMessage(step === 'review' && !brainReady && !compileTimedOut);
+  const compilingMessage = useRotatingMessage(
+    step === 'review' && !brainReady && !compileTimedOut && !compileFailureReason && !awaitingChapters
+  );
 
   // ── Step 2 — class creation mutation ─────────────────────────────────────
   const createMut = useMutation({
@@ -169,22 +232,19 @@ export default function CreateClassModal({
     }
   }
 
+  // Continue-to-review enablement: TRUE once at least one file has uploaded —
+  // either a completion fired (onComplete, including a segmented 0-page upload) OR
+  // the derived status has moved past "empty"/"uploading" (a compile/awaiting/ready
+  // state means a file already landed). Deliberately NOT gated on the compile
+  // finishing (see the PRODUCT DECISION note on the Continue button).
+  const canContinue =
+    uploadCompleted ||
+    (uploadStatus != null && uploadStatus.kind !== 'empty' && uploadStatus.kind !== 'uploading');
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   function advance() {
     const idx = STEP_ORDER.indexOf(step);
     if (idx < STEP_ORDER.length - 1) setStep(STEP_ORDER[idx + 1]);
-  }
-
-  function CopyButton({ text }: { text: string }) {
-    const [copied, setCopied] = useState(false);
-    return (
-      <button
-        onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-        className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition whitespace-nowrap"
-      >
-        {copied ? 'Copied!' : 'Copy code'}
-      </button>
-    );
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -304,18 +364,23 @@ export default function CreateClassModal({
                 <MochiUploader
                   avatarId={created.corpusAvatarId}
                   onComplete={(pageCount) => {
-                    if (pageCount > 0) setUploadCompleted(true);
+                    // Enable on ANY completion, including a segmented upload that
+                    // reports 0 pages (chapters still to pick) — never gate on
+                    // pageCount>0, which stranded segmented uploads behind a
+                    // permanently-disabled Continue.
+                    void pageCount;
+                    setUploadCompleted(true);
                     qc.invalidateQueries({ queryKey: ['classFiles', created.corpusAvatarId] });
                     qc.invalidateQueries({ queryKey: ['wikiPages', created.corpusAvatarId] });
                   }}
+                  onStatusChange={setUploadStatus}
                 />
               )}
 
-              {!uploadCompleted && (
-                <p className="text-xs text-ink3 text-center">
-                  Upload at least one file so Mochi has something to teach.
-                </p>
-              )}
+              {/* SINGLE status owner for step 3 — the banner renders the ONE
+                  derived status (deriveUploadStatus) from MochiUploader, so it can
+                  never contradict the uploader's own chip/result. */}
+              <UploadStatusBanner status={uploadStatus} />
             </div>
           )}
 
@@ -327,8 +392,36 @@ export default function CreateClassModal({
                 <p className="text-ink3 text-xs mt-1">Approve or reject what Mochi generated from your notes.</p>
               </div>
 
+              {/* Honest compile failure — terminal, from the poll's
+                  compileFailureReason. Distinct from the soft "taking longer"
+                  timeout: this compile is NOT going to finish on its own. */}
+              {!brainReady && compileFailureReason && (
+                <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-4 space-y-2">
+                  <p className="text-sm font-semibold text-bad">⚠ Compiling failed</p>
+                  <p className="text-xs text-ink2">
+                    {compileFailureReason} Your files are saved — reopen this class from the
+                    dashboard to recompile, or skip to finish setup for now.
+                  </p>
+                </div>
+              )}
+
+              {/* Compile-time chapter segmentation — the file was split DURING
+                  compile, so the picker signal arrives on this poll, not on the
+                  upload response. The teacher must choose chapters to continue. */}
+              {!brainReady && !compileFailureReason && awaitingChapters && (
+                <div className="bg-accent/5 border border-accent/20 rounded-xl px-4 py-4 space-y-2">
+                  <p className="text-sm font-semibold text-accent">
+                    📖 {pendingChapterCount > 0 ? `${pendingChapterCount} chapters` : 'Chapters'} ready to pick
+                  </p>
+                  <p className="text-xs text-ink2">
+                    Your upload was large, so Mochi split it into chapters. Open this class from
+                    the dashboard to choose which chapters to compile into lessons.
+                  </p>
+                </div>
+              )}
+
               {/* Compiling state */}
-              {!brainReady && !compileTimedOut && (
+              {!brainReady && !compileFailureReason && !awaitingChapters && !compileTimedOut && (
                 <div className="flex flex-col items-center gap-5 py-10">
                   <div className="relative">
                     <div className="w-20 h-20 rounded-full border-4 border-accent/20 border-t-accent animate-spin" />
@@ -349,7 +442,7 @@ export default function CreateClassModal({
               )}
 
               {/* Timeout fallback */}
-              {!brainReady && compileTimedOut && (
+              {!brainReady && !compileFailureReason && !awaitingChapters && compileTimedOut && (
                 <div className="bg-warn/10 border border-warn/30 rounded-xl px-4 py-4 space-y-2">
                   <p className="text-sm font-semibold text-warn">⏱ This is taking longer than usual</p>
                   <p className="text-xs text-ink2">
@@ -462,11 +555,15 @@ export default function CreateClassModal({
             )}
 
             {step === 'upload' && (
+              // PRODUCT DECISION (allow-continue, not a wall): class exists + join
+              // code issued, so a teacher isn't blocked behind a compile that can
+              // silently die; the banner keeps compile/awaiting state visible.
+              // Flagged for Zack — flip to hard-block here if product decides otherwise.
               <button
                 onClick={() => advance()}
-                disabled={!uploadCompleted}
+                disabled={!canContinue}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
-                title={!uploadCompleted ? 'Upload at least one file first' : undefined}
+                title={!canContinue ? 'Upload at least one file first' : undefined}
               >
                 Continue to review →
               </button>
