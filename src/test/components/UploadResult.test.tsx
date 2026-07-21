@@ -174,6 +174,71 @@ describe('UploadResult', () => {
     });
   });
 
+  // ── Recovery affordance keyed on compileFailureKind ─────────────────────
+  // A hard compile failure (status.kind='failed'). For IRRELEVANT the relevance
+  // verdict is terminal, so Recompile is a dead end — the ONLY recovery is a
+  // re-upload. For FAILED/MIXED, Recompile stays valid.
+  describe('failure recovery affordance (compileFailureKind)', () => {
+    const failedStatus = { kind: 'failed' as const, message: 'This file doesn\'t seem to match your class\'s subject.' };
+
+    it('IRRELEVANT: hides Recompile (a dead end) and offers "Upload a different file"', () => {
+      const onUploadMore = vi.fn();
+      render(
+        <UploadResult
+          ok={1}
+          failed={0}
+          brainReady={false}
+          wikiPageCount={0}
+          status={failedStatus}
+          compileFailureKind="IRRELEVANT"
+          onUploadMore={onUploadMore}
+          onRetryCompile={vi.fn()}
+        />
+      );
+      // Dead-end Recompile is gone; the re-upload CTA is the recovery.
+      expect(screen.queryByRole('button', { name: 'Recompile' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Upload a different file' }));
+      expect(onUploadMore).toHaveBeenCalledTimes(1);
+    });
+
+    it('FAILED: keeps Recompile (extraction failure — recompile is valid)', () => {
+      const onRetryCompile = vi.fn();
+      render(
+        <UploadResult
+          ok={1}
+          failed={0}
+          brainReady={false}
+          wikiPageCount={0}
+          status={failedStatus}
+          compileFailureKind="FAILED"
+          onUploadMore={vi.fn()}
+          onRetryCompile={onRetryCompile}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Recompile' }));
+      expect(onRetryCompile).toHaveBeenCalledTimes(1);
+      // The re-upload button stays the secondary "Upload more", not relabeled.
+      expect(screen.getByRole('button', { name: 'Upload more' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Upload a different file' })).not.toBeInTheDocument();
+    });
+
+    it('MIXED: keeps Recompile (helps the extraction-failed subset)', () => {
+      render(
+        <UploadResult
+          ok={1}
+          failed={0}
+          brainReady={false}
+          wikiPageCount={0}
+          status={failedStatus}
+          compileFailureKind="MIXED"
+          onUploadMore={vi.fn()}
+          onRetryCompile={vi.fn()}
+        />
+      );
+      expect(screen.getByRole('button', { name: 'Recompile' })).toBeInTheDocument();
+    });
+  });
+
   describe('error state (ok=0, failed > 0)', () => {
     it('renders the failed-upload error message', () => {
       render(

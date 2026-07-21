@@ -19,6 +19,10 @@ interface UploadResultProps {
    *  "still compiling" string — so it can never contradict the status chip. */
   status?: UploadStatus;
   classId?: string;
+  /** Machine-readable failure cause from the avatar poll (compileFailureKind):
+   *  'IRRELEVANT' (subject mismatch), 'FAILED' (extraction), 'MIXED', or null.
+   *  Drives which RECOVERY affordance is offered — see the button block below. */
+  compileFailureKind?: string | null;
   onUploadMore: () => void;
   /** Optional retry that re-runs the recompile + poll (the partial-state path). */
   onRetryCompile?: () => void;
@@ -32,12 +36,19 @@ export default function UploadResult({
   failedPages = [],
   status,
   classId,
+  compileFailureKind,
   onUploadMore,
   onRetryCompile,
 }: UploadResultProps) {
   const partial = brainReady && failedPages.length > 0;
   const totalPages = wikiPageCount + failedPages.length;
   const failedTone = status?.kind === 'failed';
+  // A subject-mismatch (IRRELEVANT) rejection is TERMINAL for recompiling — the
+  // relevance verdict never changes on a recompile, so "Recompile" is a dead end.
+  // The only genuine recovery is re-uploading (with the server's Add-Anyway override,
+  // or a different file). Hide Recompile and make re-upload the primary action.
+  // FAILED (extraction) and MIXED keep Recompile — it can still help.
+  const isIrrelevant = compileFailureKind === 'IRRELEVANT';
 
   if (ok > 0) {
     return (
@@ -107,7 +118,7 @@ export default function UploadResult({
               action must be present in BOTH the partial (warn) and the hard-failed
               (bad) states, not only partial. Without this the only button in a failed
               state was "Upload more", which doesn't recompile the saved files. */}
-          {(partial || failedTone) && onRetryCompile && (
+          {(partial || failedTone) && onRetryCompile && !isIrrelevant && (
             <button
               onClick={onRetryCompile}
               className={`px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-colors ${
@@ -117,11 +128,17 @@ export default function UploadResult({
               Recompile
             </button>
           )}
+          {/* For an IRRELEVANT rejection, re-upload IS the recovery — promote it to the
+              primary (accent) action; otherwise it stays the secondary "Upload more". */}
           <button
             onClick={onUploadMore}
-            className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition-colors"
+            className={
+              isIrrelevant
+                ? 'px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/80 transition-colors'
+                : 'px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition-colors'
+            }
           >
-            Upload more
+            {isIrrelevant ? 'Upload a different file' : 'Upload more'}
           </button>
         </div>
       </div>

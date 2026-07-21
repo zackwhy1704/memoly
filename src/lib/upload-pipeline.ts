@@ -273,6 +273,10 @@ export interface RecompileOutcome {
    *  compileFailureReason. Present ⇒ compile did NOT succeed; render an honest
    *  failure, never the soft "still compiling… shortly". */
   compileFailureReason?: string | null;
+  /** Machine-readable cause paired with compileFailureReason (backend compileFailureKind):
+   *  'IRRELEVANT' | 'FAILED' | 'MIXED' | null. Lets the UI pick the recovery affordance —
+   *  Recompile is a dead end for IRRELEVANT (re-upload instead). */
+  compileFailureKind?: string | null;
 }
 
 /** Coerce the compile-status payload's failedPages into a clean, typed list —
@@ -305,6 +309,7 @@ export async function recompileAndPollBrain(
   let awaitingChapterSelection = false;
   let pendingChapterCount = 0;
   let compileFailureReason: string | null = null;
+  let compileFailureKind: string | null = null;
 
   // recompile once for the batch (mobile fires per upload; recompile is idempotent)
   try {
@@ -325,6 +330,7 @@ export async function recompileAndPollBrain(
         // Honest failure recorded by the backend — terminal.
         if (a.data.compileFailureReason) {
           compileFailureReason = a.data.compileFailureReason;
+          compileFailureKind = a.data.compileFailureKind ?? null;
           break;
         }
         // Compile-time segmentation — the file was split during compile, so no
@@ -358,7 +364,7 @@ export async function recompileAndPollBrain(
   }
 
   onTick?.(resolveCompileState({ brainReady, awaitingChapterSelection, compileFailureReason }));
-  return { brainReady, wikiPageCount, failedPages, awaitingChapterSelection, pendingChapterCount, compileFailureReason };
+  return { brainReady, wikiPageCount, failedPages, awaitingChapterSelection, pendingChapterCount, compileFailureReason, compileFailureKind };
 }
 
 /** Maps a resolved poll outcome to the single terminal CompileState the UI chip
@@ -394,6 +400,7 @@ export async function pollBrainReady(
   let awaitingChapterSelection = false;
   let pendingChapterCount = 0;
   let compileFailureReason: string | null = null;
+  let compileFailureKind: string | null = null;
   for (let attempt = 0; attempt < 18; attempt++) {
     await sleep(5000);
     try {
@@ -401,6 +408,7 @@ export async function pollBrainReady(
       wikiPageCount = a.data.wikiPageCount ?? 0;
       if (a.data.compileFailureReason) {
         compileFailureReason = a.data.compileFailureReason;
+        compileFailureKind = a.data.compileFailureKind ?? null;
         break;
       }
       if (a.data.awaitingChapterSelection === true) {
@@ -419,7 +427,7 @@ export async function pollBrainReady(
   onTick?.(resolveCompileState({ brainReady, awaitingChapterSelection, compileFailureReason }));
   // Delete-driven refresh: no compile this avatar initiated here, so no page
   // failures to report.
-  return { brainReady, wikiPageCount, failedPages: [], awaitingChapterSelection, pendingChapterCount, compileFailureReason };
+  return { brainReady, wikiPageCount, failedPages: [], awaitingChapterSelection, pendingChapterCount, compileFailureReason, compileFailureKind };
 }
 
 export async function runUploadPipeline(
