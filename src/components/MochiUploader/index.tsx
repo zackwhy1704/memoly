@@ -69,6 +69,7 @@ export default function MochiUploader({
   const [awaitingSelection, setAwaitingSelection] = useState(false);
   const [pendingChapters, setPendingChapters] = useState(0);
   const [compileFailureReason, setCompileFailureReason] = useState<string | null>(null);
+  const [compileFailureKind, setCompileFailureKind] = useState<string | null>(null);
   // A large upload was split into chapters → open the picker instead of compiling.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [result, setResult] = useState<{
@@ -99,12 +100,14 @@ export default function MochiUploader({
     setAwaitingSelection(false);
     setPendingChapters(0);
     setCompileFailureReason(null);
+    setCompileFailureKind(null);
     void recompileAndPollBrain(avatarId, setCompileState).then((o) => {
       setCompilePages(o.wikiPageCount);
       setCompileFailures(o.failedPages);
       setAwaitingSelection(o.awaitingChapterSelection ?? false);
       setPendingChapters(o.pendingChapterCount ?? 0);
       setCompileFailureReason(o.compileFailureReason ?? null);
+      setCompileFailureKind(o.compileFailureKind ?? null);
       onComplete?.(o.wikiPageCount);
     });
   }, [avatarId, onComplete]);
@@ -121,6 +124,7 @@ export default function MochiUploader({
     setAwaitingSelection(false);
     setPendingChapters(0);
     setCompileFailureReason(null);
+    setCompileFailureKind(null);
     resetReviewState();
     // Uploads only — recompile/poll runs non-blocking below, so the uploader
     // returns to idle the moment uploads finish and more files can be queued.
@@ -180,6 +184,7 @@ export default function MochiUploader({
     setAwaitingSelection(false);
     setPendingChapters(0);
     setCompileFailureReason(null);
+    setCompileFailureKind(null);
     resetReviewState();
 
     try {
@@ -248,6 +253,7 @@ export default function MochiUploader({
     setAwaitingSelection(false);
     setPendingChapters(0);
     setCompileFailureReason(null);
+    setCompileFailureKind(null);
     resetReviewState();
     if (mode === 'upload') {
       inputRef.current?.click();
@@ -410,6 +416,7 @@ export default function MochiUploader({
           failedPages={compileFailures}
           status={status}
           classId={classId}
+          compileFailureKind={compileFailureKind}
           onUploadMore={uploadMore}
           onRetryCompile={startCompileWatch}
         />

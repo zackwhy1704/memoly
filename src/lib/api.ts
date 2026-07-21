@@ -205,6 +205,10 @@ export interface Avatar {
   awaitingChapterSelection?: boolean;
   pendingChapterCount?: number;
   compileFailureReason?: string | null;
+  /** Machine-readable cause paired with compileFailureReason: 'IRRELEVANT' | 'FAILED'
+   *  | 'MIXED' | null. Lets the UI pick the recovery affordance (recompile is a dead
+   *  end for IRRELEVANT). Older servers omit it → treated as null. */
+  compileFailureKind?: string | null;
 }
 
 export interface WikiPage {
