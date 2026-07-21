@@ -359,6 +359,12 @@ export interface UploadResponse {
     // present the upload was NOT compiled — the client shows the chapter picker.
     parentFileId?: string;
     chunks?: ChunkInfo[];
+    // Server relevance rejection (UploadResult.RelevanceWarning) — present ONLY
+    // on that variant. No type discriminator on the wire; upload-pipeline.ts
+    // detects it structurally via this score+reason pair.
+    fileId?: string;
+    score?: number;
+    reason?: string;
   };
 }
 

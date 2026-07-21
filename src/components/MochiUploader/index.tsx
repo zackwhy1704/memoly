@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   ACCEPT_ATTR,
   MAX_FILES,
@@ -18,6 +19,7 @@ import InfoBanner from '../InfoBanner';
 import FileProgressList from './FileProgressList';
 import PasteMode from './PasteMode';
 import UploadResult from './UploadResult';
+import RelevanceWarningDialog from './RelevanceWarningDialog';
 import ChapterPickerModal from '../ChapterPicker';
 
 type InputMode = 'upload' | 'paste';
@@ -44,6 +46,17 @@ export default function MochiUploader({
    *  truth (never a second, drifting string). */
   onStatusChange?: (status: UploadStatus) => void;
 }) {
+  // Subject for the RelevanceWarningDialog's fallback copy (used only when the
+  // backend RelevanceWarning has no `reason`, which the wire contract says it
+  // always does — this is a defensive fallback, matching mobile's default
+  // 'this subject'). Shares the ['avatar', avatarId] query key/cache with
+  // useBuildStatus, so this is typically a cache hit, not an extra round trip.
+  const avatarQ = useQuery({
+    queryKey: ['avatar', avatarId],
+    queryFn: () => api.avatar(avatarId),
+  });
+  const subject = avatarQ.data?.data.subject ?? 'this subject';
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<FileProgress[]>([]);
   const [running, setRunning] = useState(false);
@@ -130,7 +143,7 @@ export default function MochiUploader({
     else if (compilable === 0) onComplete?.(0);
   }
 
-  const retryFile = useCallback(async (index: number) => {
+  const retryFile = useCallback(async (index: number, opts: { forceSkipRelevance?: boolean } = {}) => {
     const fp = progress[index];
     if (!fp.file) return;
 
@@ -141,7 +154,7 @@ export default function MochiUploader({
         next[index] = p;
         return next;
       });
-    });
+    }, opts);
 
     setRunning(false);
     if (updated.stage === 'done' || updated.stage === 'warning') {
@@ -261,6 +274,13 @@ export default function MochiUploader({
   }, [status.kind, status.message]);
 
   const isUploadMode = mode === 'upload';
+
+  // One file at a time: surface the SERVER relevance rejection as a blocking
+  // dialog before anything else (never silently 'done'). If a batch contains
+  // several relevanceWarning files, this resolves them in order — as each is
+  // decided it either drops out (Go Back) or re-uploads out of this stage
+  // (Add Anyway), so the next one's index becomes the match on re-render.
+  const relevanceWarningIndex = progress.findIndex((f) => f.stage === 'relevanceWarning');
 
   return (
     <div className="space-y-4">
@@ -401,6 +421,19 @@ export default function MochiUploader({
           avatarId={avatarId}
           onClose={() => setPickerOpen(false)}
           onCompiled={() => onComplete?.(0)}
+        />
+      )}
+
+      {/* SERVER relevance rejection — blocking until the user decides. "Go Back"
+          reuses the exact same removal path as any other pending-file removal
+          (removeFile); "Add Anyway" re-uploads THIS file only, forcing past both
+          the client pre-check and the server check via skipRelevance:true. */}
+      {relevanceWarningIndex !== -1 && (
+        <RelevanceWarningDialog
+          subject={subject}
+          reason={progress[relevanceWarningIndex].reason}
+          onGoBack={() => removeFile(relevanceWarningIndex)}
+          onAddAnyway={() => retryFile(relevanceWarningIndex, { forceSkipRelevance: true })}
         />
       )}
     </div>

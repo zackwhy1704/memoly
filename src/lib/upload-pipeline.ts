@@ -23,6 +23,7 @@ export type FileStage =
   | 'done'
   | 'warning' // uploaded despite low relevance
   | 'segmented' // large file split into pickable chapters — NOT compiled; show the picker
+  | 'relevanceWarning' // SERVER rejected on the full text — terminal until the user decides
   | 'error'
   | 'compiling'      // recompile in progress
   | 'compileTimeout' // recompile didn't finish in time
@@ -50,6 +51,13 @@ export interface FileProgress {
   /** Segmented upload: the parent file id + its pickable chapters (stage 'segmented'). */
   parentFileId?: string;
   chunks?: ChunkInfo[];
+  /** SERVER relevance rejection (stage 'relevanceWarning'): the backend's reason
+   *  string and 0-1 relevance score, from POST /files returning UploadResult.
+   *  RelevanceWarning. Distinct from the CLIENT pre-check's lowRelevance/
+   *  notStudyMaterial above — this is the full-text check the ~30-char sample
+   *  can miss. */
+  reason?: string;
+  score?: number;
 }
 
 /** Returns a user-friendly error string if the file is invalid, else null. */
@@ -93,7 +101,8 @@ export interface PipelineResult {
 export async function uploadSingleFile(
   avatarId: string,
   file: File,
-  onProgress: (p: FileProgress) => void
+  onProgress: (p: FileProgress) => void,
+  opts: { forceSkipRelevance?: boolean } = {}
 ): Promise<FileProgress> {
   const invalid = validateFile(file);
   if (invalid) {
@@ -102,31 +111,65 @@ export async function uploadSingleFile(
     return p;
   }
 
-  // Relevance check (fail-open)
-  onProgress({ name: file.name, stage: 'checkingRelevance', file });
   let skipRelevance = false;
   let lowRelevance = false;
   let notStudyMaterial = false;
-  try {
-    const sample = await contentSampleFor(file);
-    const rel = await api.checkRelevance(avatarId, sample);
-    if (!rel.data.isRelevant) {
-      lowRelevance = true;
-      skipRelevance = true;
-    }
-    // A2: distinct from off-topic — this doesn't look like study material at all.
-    if (rel.data.studyMaterial === false) {
-      notStudyMaterial = true;
-      skipRelevance = true;
-    }
-  } catch {
+
+  if (opts.forceSkipRelevance) {
+    // "Add Anyway" from the server RelevanceWarning dialog — the user already
+    // confirmed on the FULL-text rejection, so the client's ~30-char pre-check
+    // would be redundant (and could only disagree, never overrule the user's
+    // choice). Go straight to upload with skipRelevance:true.
     skipRelevance = true;
+  } else {
+    // Relevance check (fail-open)
+    onProgress({ name: file.name, stage: 'checkingRelevance', file });
+    try {
+      const sample = await contentSampleFor(file);
+      const rel = await api.checkRelevance(avatarId, sample);
+      if (!rel.data.isRelevant) {
+        lowRelevance = true;
+        skipRelevance = true;
+      }
+      // A2: distinct from off-topic — this doesn't look like study material at all.
+      if (rel.data.studyMaterial === false) {
+        notStudyMaterial = true;
+        skipRelevance = true;
+      }
+    } catch {
+      skipRelevance = true;
+    }
   }
 
   // Upload
   onProgress({ name: file.name, stage: 'uploading', file });
   try {
     const res = await api.uploadFile(avatarId, file, { skipRelevance });
+
+    // SERVER relevance rejection: the backend ran its own check on the FULL
+    // extracted text (the client pre-check above only samples ~30 chars, so it
+    // can pass while the server still rejects — this is expected, not a bug).
+    // POST /files returns HTTP 200 with UploadResult.RelevanceWarning, which has
+    // NO type-discriminator field on the wire (Jackson serializes it flat under
+    // ApiResponse.data). Detect it structurally: RelevanceWarning is the ONLY
+    // variant with a numeric top-level `score` alongside a string `reason`; both
+    // Success (has `pageCount`) and Segmented (has `chunks`) lack this pair.
+    // Must run BEFORE the segmented/quality/done logic below, since without this
+    // check a RelevanceWarning body (no chunks, no quality) would fall through to
+    // 'done' — silently reporting a server-rejected file as a successful upload.
+    const maybeWarning = res.data as { score?: unknown; reason?: unknown; fileId?: unknown } | undefined;
+    if (typeof maybeWarning?.score === 'number' && typeof maybeWarning?.reason === 'string') {
+      const warning: FileProgress = {
+        name: file.name,
+        stage: 'relevanceWarning',
+        file,
+        reason: maybeWarning.reason,
+        score: maybeWarning.score,
+        fileId: typeof maybeWarning.fileId === 'string' ? maybeWarning.fileId : undefined,
+      };
+      onProgress(warning);
+      return warning;
+    }
 
     // Segmented upload (EARLY / upload-time segmentation): a large file was split
     // into pickable chapters in the upload response and NOT compiled. Surface the

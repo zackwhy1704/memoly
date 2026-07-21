@@ -9,6 +9,7 @@ const STAGE_LABEL: Record<FileProgress['stage'], { icon: string; cls: string }> 
   done:              { icon: '✓', cls: 'text-ok' },
   warning:           { icon: '!',     cls: 'text-warn' },
   segmented:         { icon: '📑', cls: 'text-accent' },
+  relevanceWarning:  { icon: '⚠',    cls: 'text-warn' },
   error:             { icon: '✕', cls: 'text-bad' },
   compiling:         { icon: '⋯', cls: 'text-accent' },
   compileTimeout:    { icon: '!',     cls: 'text-warn' },
@@ -77,6 +78,9 @@ export default function FileProgressList({
                   <p className="text-xs text-ink3">Checking relevance...</p>
                 )}
                 {f.stage === 'uploading' && <p className="text-xs text-ink3">Uploading...</p>}
+                {f.stage === 'relevanceWarning' && (
+                  <p className="text-xs text-warn">Waiting for your decision above...</p>
+                )}
                 {f.stage === 'done' && f.pageCount != null && (
                   // Per-file EXTRACTION fact from the upload — NOT compile status.
                   // The aggregate compile message has a single owner (the status
