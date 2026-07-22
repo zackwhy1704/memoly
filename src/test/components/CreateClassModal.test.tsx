@@ -9,9 +9,11 @@ vi.mock('@/components/MochiUploader', () => ({
   default: ({
     onComplete,
     onStatusChange,
+    onPendingRelevanceChange,
   }: {
     onComplete?: (n: number) => void;
     onStatusChange?: (s: { kind: string; message: string }) => void;
+    onPendingRelevanceChange?: (pending: boolean) => void;
   }) => (
     <div data-testid="mochi-uploader">
       <button onClick={() => onComplete?.(3)}>simulate upload complete</button>
@@ -25,6 +27,9 @@ vi.mock('@/components/MochiUploader', () => ({
       >
         simulate compiling status
       </button>
+      {/* Server RelevanceWarning dialog opened (must be resolved before continuing). */}
+      <button onClick={() => onPendingRelevanceChange?.(true)}>simulate relevance dialog open</button>
+      <button onClick={() => onPendingRelevanceChange?.(false)}>simulate relevance resolved</button>
     </div>
   ),
 }));
@@ -261,5 +266,78 @@ describe('CreateClassModal — step 3 (upload)', () => {
     await goToStep3();
     fireEvent.click(screen.getByRole('button', { name: 'simulate compiling status' }));
     expect(screen.getByRole('button', { name: /Continue to review/i })).not.toBeDisabled();
+  });
+
+  // Finding 1: an OPEN server-relevance dialog must BLOCK progression — otherwise a
+  // teacher clicks "Continue to review" past an unresolved Go-Back/Add-Anyway choice.
+  it('"Continue to review" is DISABLED while a relevance dialog is open, even after upload', async () => {
+    await goToStep3();
+    fireEvent.click(screen.getByRole('button', { name: 'simulate upload complete' }));
+    // Enabled after upload…
+    expect(screen.getByRole('button', { name: /Continue to review/i })).not.toBeDisabled();
+    // …then a server RelevanceWarning dialog opens → progression is blocked.
+    fireEvent.click(screen.getByRole('button', { name: 'simulate relevance dialog open' }));
+    expect(screen.getByRole('button', { name: /Continue to review/i })).toBeDisabled();
+  });
+
+  it('"Continue to review" re-enables once the relevance dialog is resolved', async () => {
+    await goToStep3();
+    fireEvent.click(screen.getByRole('button', { name: 'simulate upload complete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'simulate relevance dialog open' }));
+    expect(screen.getByRole('button', { name: /Continue to review/i })).toBeDisabled();
+    // Resolving (Go Back or Add Anyway) clears the block.
+    fireEvent.click(screen.getByRole('button', { name: 'simulate relevance resolved' }));
+    expect(screen.getByRole('button', { name: /Continue to review/i })).not.toBeDisabled();
+  });
+});
+
+// Finding 2: the step-4 header is STATE-MATCHED. "Review… / Approve or reject…" must
+// appear ONLY when the brain is READY; on failure/awaiting/compiling it would claim a
+// review is happening above a banner saying nothing was generated (false confirmation).
+describe('CreateClassModal — step 4 (review) header per brain state', () => {
+  async function goToReview(avatarData: Record<string, unknown>) {
+    vi.mocked(api.createClass).mockResolvedValue({ data: MOCK_CLASS } as ReturnType<typeof api.createClass> extends Promise<infer R> ? R : never);
+    vi.mocked(api.setMochiConfig).mockResolvedValue({} as ReturnType<typeof api.setMochiConfig> extends Promise<infer R> ? R : never);
+    vi.mocked(api.avatar).mockResolvedValue({ data: avatarData } as unknown as ReturnType<typeof api.avatar> extends Promise<infer R> ? R : never);
+    renderModal();
+    fireEvent.change(screen.getByPlaceholderText('P4 Math'), { target: { value: 'P4 Science' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Next →' }));
+    fireEvent.click(screen.getByRole('button', { name: /Create class & continue/i }));
+    await waitFor(() => expect(screen.getByTestId('mochi-uploader')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'simulate upload complete' }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue to review/i }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument());
+  }
+
+  it('READY → review framing (the ONLY state that says "Review / Approve or reject")', async () => {
+    await goToReview({ brainState: 'READY', wikiPageCount: 5 });
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent("Review Mochi's lessons")
+    );
+    expect(screen.getByText(/Approve or reject what Mochi generated/)).toBeInTheDocument();
+  });
+
+  it('FAILED → "Compiling failed" header, NOT review framing', async () => {
+    await goToReview({ brainState: 'PENDING_RECOMPILE', compileFailureReason: 'This file doesn\'t match your subject.' });
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Compiling failed')
+    );
+    expect(screen.queryByText(/Approve or reject what Mochi generated/)).not.toBeInTheDocument();
+  });
+
+  it('AWAITING chapters → "Chapters ready to pick" header, NOT review framing', async () => {
+    await goToReview({ brainState: 'PENDING_RECOMPILE', awaitingChapterSelection: true, pendingChapterCount: 4 });
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Chapters ready to pick')
+    );
+    expect(screen.queryByText(/Approve or reject what Mochi generated/)).not.toBeInTheDocument();
+  });
+
+  it('COMPILING → a working header, NOT review framing (fail-without-fix: header was static)', async () => {
+    await goToReview({ brainState: 'COMPILING' });
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/Compiling your notes/)
+    );
+    expect(screen.queryByText(/Approve or reject what Mochi generated/)).not.toBeInTheDocument();
   });
 });

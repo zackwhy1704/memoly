@@ -36,6 +36,7 @@ export default function MochiUploader({
   classId,
   onComplete,
   onStatusChange,
+  onPendingRelevanceChange,
 }: {
   avatarId: string;
   /** Optional class ID for "View content" link after upload. */
@@ -45,6 +46,11 @@ export default function MochiUploader({
    *  wizard can drive its own banner + continue-gate from the SAME source of
    *  truth (never a second, drifting string). */
   onStatusChange?: (status: UploadStatus) => void;
+  /** True while a server RelevanceWarning dialog is OPEN and unresolved (the teacher
+   *  must Go Back / Add Anyway). A parent wizard gates progression on this so the
+   *  choice can't be clicked past. Orthogonal to onStatusChange (a blocking
+   *  interaction, not a compile status). */
+  onPendingRelevanceChange?: (pending: boolean) => void;
 }) {
   // Subject for the RelevanceWarningDialog's fallback copy (used only when the
   // backend RelevanceWarning has no `reason`, which the wire contract says it
@@ -287,6 +293,14 @@ export default function MochiUploader({
   // decided it either drops out (Go Back) or re-uploads out of this stage
   // (Add Anyway), so the next one's index becomes the match on re-render.
   const relevanceWarningIndex = progress.findIndex((f) => f.stage === 'relevanceWarning');
+
+  // Surface the OPEN/unresolved state of the relevance dialog to a parent wizard so it
+  // can block progression until Go Back / Add Anyway is chosen (can't be clicked past).
+  const relevancePending = relevanceWarningIndex !== -1;
+  useEffect(() => {
+    onPendingRelevanceChange?.(relevancePending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relevancePending]);
 
   return (
     <div className="space-y-4">
