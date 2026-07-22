@@ -124,6 +124,10 @@ export default function CreateClassModal({
   // source of truth for the step-3 banner AND the second continue-enable path
   // (so we light up the moment a compile/awaiting state begins, before onComplete).
   const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
+  // True while a server RelevanceWarning dialog is open in the uploader. Blocks
+  // "Continue to review" so the teacher can't click past an unresolved Go-Back /
+  // Add-Anyway choice (and land on step 4 having never seen it).
+  const [relevancePending, setRelevancePending] = useState(false);
 
   // Step 4 — compile poll + review ready
   const [allReviewed, setAllReviewed] = useState(false);
@@ -171,6 +175,21 @@ export default function CreateClassModal({
     step === 'review' && !brainReady && !compileTimedOut && !compileFailureReason && !awaitingChapters
   );
 
+  // Step-4 header is STATE-MATCHED: the "Review… / Approve or reject…" framing appears
+  // ONLY when the brain is READY and there is real content to review. On failure /
+  // awaiting-chapters / timeout / still-compiling, the generic review framing would lie
+  // by omission (claiming a review is happening above a banner saying nothing exists),
+  // so each state gets its own honest title; the banners below carry the detail.
+  const reviewHeader = brainReady
+    ? { title: "Review Mochi's lessons", subtitle: 'Approve or reject what Mochi generated from your notes.' }
+    : compileFailureReason
+      ? { title: 'Compiling failed', subtitle: null }
+      : awaitingChapters
+        ? { title: 'Chapters ready to pick', subtitle: null }
+        : compileTimedOut
+          ? { title: 'Still working on it', subtitle: null }
+          : { title: 'Compiling your notes…', subtitle: null };
+
   // ── Step 2 — class creation mutation ─────────────────────────────────────
   const createMut = useMutation({
     mutationFn: () =>
@@ -210,8 +229,9 @@ export default function CreateClassModal({
   // state means a file already landed). Deliberately NOT gated on the compile
   // finishing (see the PRODUCT DECISION note on the Continue button).
   const canContinue =
-    uploadCompleted ||
-    (uploadStatus != null && uploadStatus.kind !== 'empty' && uploadStatus.kind !== 'uploading');
+    !relevancePending &&
+    (uploadCompleted ||
+      (uploadStatus != null && uploadStatus.kind !== 'empty' && uploadStatus.kind !== 'uploading'));
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function advance() {
@@ -346,6 +366,7 @@ export default function CreateClassModal({
                     qc.invalidateQueries({ queryKey: ['wikiPages', created.corpusAvatarId] });
                   }}
                   onStatusChange={setUploadStatus}
+                  onPendingRelevanceChange={setRelevancePending}
                 />
               )}
 
@@ -361,8 +382,10 @@ export default function CreateClassModal({
           {step === 'review' && created && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-bold text-ink">Review Mochi&apos;s lessons</h2>
-                <p className="text-ink3 text-xs mt-1">Approve or reject what Mochi generated from your notes.</p>
+                <h2 className="text-lg font-bold text-ink">{reviewHeader.title}</h2>
+                {reviewHeader.subtitle && (
+                  <p className="text-ink3 text-xs mt-1">{reviewHeader.subtitle}</p>
+                )}
               </div>
 
               {/* Honest compile failure — terminal, from the poll's
