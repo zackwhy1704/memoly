@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, randomMochiConfig, type MochiConfig, type OrgClass } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import { CENTRE_SUBJECTS } from '@/lib/centre-mochis';
+import { CONTENT_LANGUAGES, type ContentLanguageCode } from '@/lib/content-languages';
 import MochiAvatar from '@/components/MochiAvatar';
 import AvatarPickerModal from '@/components/AvatarPickerModal';
 import MochiUploader from '@/components/MochiUploader';
@@ -115,6 +116,12 @@ export default function CreateClassModal({
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('MATHS');
   const [level, setLevel] = useState('');
+  const [contentLanguage, setContentLanguage] = useState<ContentLanguageCode>('en');
+  // Loud-failure state for the teaching-language PATCH: the class is created but the language
+  // couldn't be set. We do NOT advance to upload while this is set — a silent failure would mean
+  // the teacher uploads Chinese material and gets English lessons with no explanation.
+  const [langError, setLangError] = useState<string | null>(null);
+  const [langRetrying, setLangRetrying] = useState(false);
 
   // Step 3 — a file finished UPLOADING (compile runs on afterwards, out of band).
   // This gates "Continue to review": we enable on upload, NOT on compile finishing
@@ -207,9 +214,44 @@ export default function CreateClassModal({
         // Non-blocking — look already applied locally.
       }
       setCreated(res.data);
+      // Teaching language must be set BEFORE the upload step: generation reads content_language at
+      // COMPILE time, so a file uploaded while the class is 'en' produces English content permanently.
+      // Only 'zh' needs a call (the corpus avatar is created 'en' by default — byte-identical path).
+      // LOUD on failure: do NOT advance to upload; surface the error and let the teacher retry.
+      if (contentLanguage !== 'en' && res.data.corpusAvatarId) {
+        try {
+          await api.setContentLanguage(res.data.corpusAvatarId, contentLanguage);
+        } catch (e) {
+          setLangError(
+            e instanceof ApiError
+              ? e.userMessage
+              : 'Could not set the teaching language — retry before uploading, or this class will generate English content.'
+          );
+          return; // stay on the avatar step; do NOT present the class as configured
+        }
+      }
       setStep('upload');
     },
   });
+
+  // Retry ONLY the teaching-language set (the class already exists — never re-create it).
+  async function retryLanguage() {
+    if (!created?.corpusAvatarId) return;
+    setLangError(null);
+    setLangRetrying(true);
+    try {
+      if (contentLanguage !== 'en') {
+        await api.setContentLanguage(created.corpusAvatarId, contentLanguage);
+      }
+      setStep('upload');
+    } catch (e) {
+      setLangError(
+        e instanceof ApiError ? e.userMessage : 'Could not set the teaching language — please try again.'
+      );
+    } finally {
+      setLangRetrying(false);
+    }
+  }
 
   // Re-customise Mochi in step 3/4 (non-blocking persist to already-created class)
   async function saveAvatar(cfg: MochiConfig) {
@@ -293,6 +335,21 @@ export default function CreateClassModal({
                     />
                   </label>
                 </div>
+                <label className="block">
+                  <span className="text-xs text-ink2 font-medium">Teaching language</span>
+                  <select
+                    value={contentLanguage}
+                    onChange={(e) => setContentLanguage(e.target.value as ContentLanguageCode)}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                  >
+                    {CONTENT_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}</option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs text-ink3">
+                    The Mochi generates lessons, quizzes and chat in this language for material compiled from now on. Changing it later affects only new material.
+                  </span>
+                </label>
               </div>
             </div>
           )}
@@ -320,6 +377,11 @@ export default function CreateClassModal({
                   {createMut.error instanceof ApiError
                     ? createMut.error.userMessage
                     : 'Could not create the class. Please try again.'}
+                </div>
+              )}
+              {langError && (
+                <div role="alert" className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">
+                  {langError} The class was created, but its teaching language isn’t set yet — use “Retry &amp; continue” below before uploading.
                 </div>
               )}
             </div>
@@ -542,11 +604,15 @@ export default function CreateClassModal({
 
             {step === 'avatar' && (
               <button
-                onClick={() => createMut.mutate()}
-                disabled={createMut.isPending}
+                onClick={() => (created ? retryLanguage() : createMut.mutate())}
+                disabled={createMut.isPending || langRetrying}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
               >
-                {createMut.isPending ? 'Creating…' : 'Create class & continue →'}
+                {createMut.isPending || langRetrying
+                  ? 'Working…'
+                  : created
+                    ? 'Retry & continue →'
+                    : 'Create class & continue →'}
               </button>
             )}
 

@@ -102,7 +102,7 @@ describe('CreateClassModal — step 1 (identity)', () => {
     renderModal();
     expect(screen.getByPlaceholderText('P4 Math')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('P4')).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Subject/i })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/brand/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/accent/i)).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('#')).not.toBeInTheDocument(); // no colour input

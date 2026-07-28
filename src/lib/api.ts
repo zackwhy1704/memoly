@@ -209,6 +209,10 @@ export interface Avatar {
    *  | 'MIXED' | null. Lets the UI pick the recovery affordance (recompile is a dead
    *  end for IRRELEVANT). Older servers omit it → treated as null. */
   compileFailureKind?: string | null;
+  /** Language the class's AI generates content in ('en' | 'zh') — V124. Present on
+   *  GET /avatars/{id}. Read from the class's corpusAvatarId to prefill the teaching-language
+   *  control; default 'en' when absent. */
+  contentLanguage?: string;
 }
 
 export interface WikiPage {
@@ -1318,6 +1322,22 @@ export const api = {
     apiFetch<{ data: { teacherPreferences: string } }>(
       `/centre/organizations/${orgId}/classes/${classId}/teaching-style`,
       { method: 'PATCH', body: JSON.stringify({ teacherPreferences }) }
+    ),
+
+  /**
+   * Sets the language the class's AI generates content in ('en' | 'zh') — V124.
+   * PATCH /avatars/{avatarId}/content-language — pass the class's corpusAvatarId.
+   * Server validates strictly (en|zh), 400 otherwise — never a silent default.
+   *
+   * NO-RETAG SEMANTICS: this changes only FUTURE generation. Wiki pages and modules
+   * already compiled keep the language they were compiled in — recompile to regenerate
+   * them. Set this BEFORE uploading material: a file compiled while the class is 'en'
+   * produces English content permanently.
+   */
+  setContentLanguage: (avatarId: string, contentLanguage: 'en' | 'zh') =>
+    apiFetch<{ data: Avatar }>(
+      `/avatars/${avatarId}/content-language`,
+      { method: 'PATCH', body: JSON.stringify({ contentLanguage }) }
     ),
 
   // All centre members + their class memberships + unassigned flag.
