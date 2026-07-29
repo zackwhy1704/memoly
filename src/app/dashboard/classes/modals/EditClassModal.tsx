@@ -1,9 +1,10 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api, type OrgClass } from '@/lib/api';
 import { CENTRE_SUBJECTS } from '@/lib/centre-mochis';
+import { CONTENT_LANGUAGES, type ContentLanguageCode } from '@/lib/content-languages';
 
 export default function EditClassModal({
   orgId,
@@ -21,13 +22,33 @@ export default function EditClassModal({
   const [subject, setSubject] = useState(cls.subject ?? 'GENERAL');
   const [level, setLevel] = useState(cls.level ?? '');
 
+  // Teaching language lives on the class's CORPUS avatar (content_language), not the class row —
+  // fetch it to prefill. Default 'en' until loaded / when the class has no corpus.
+  const avatarQuery = useQuery({
+    queryKey: ['avatar', cls.corpusAvatarId],
+    queryFn: () => api.avatar(cls.corpusAvatarId!),
+    enabled: !!cls.corpusAvatarId,
+  });
+  const initialLang: ContentLanguageCode =
+    avatarQuery.data?.data.contentLanguage === 'zh' ? 'zh' : 'en';
+  // Derive, don't sync-via-effect: the select shows the teacher's override if they picked one,
+  // otherwise the fetched value (which fills in once the avatar query resolves). No setState-in-effect.
+  const [languageOverride, setLanguageOverride] = useState<ContentLanguageCode | null>(null);
+  const contentLanguage = languageOverride ?? initialLang;
+
   const mut = useMutation({
-    mutationFn: () =>
-      api.updateClass(orgId, cls.id, {
+    mutationFn: async () => {
+      await api.updateClass(orgId, cls.id, {
         name: name.trim(),
         subject,
         level: level.trim() || undefined,
-      }),
+      });
+      // Language is a SEPARATE avatar PATCH, only when it changed. A failure fails the whole save
+      // (mut.isError → the visible error + Retry below), never a silent partial success.
+      if (cls.corpusAvatarId && contentLanguage !== initialLang) {
+        await api.setContentLanguage(cls.corpusAvatarId, contentLanguage);
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['classes', orgId] });
       onSaved();
@@ -82,6 +103,22 @@ export default function EditClassModal({
               />
             </label>
           </div>
+          <label className="block">
+            <span className="text-xs text-ink2 font-medium">Teaching language</span>
+            <select
+              value={contentLanguage}
+              onChange={(e) => setLanguageOverride(e.target.value as ContentLanguageCode)}
+              disabled={!cls.corpusAvatarId}
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-40"
+            >
+              {CONTENT_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-ink3">
+              Changing this affects only material compiled from now on — existing lessons and quizzes keep the language they were created in.
+            </span>
+          </label>
         </div>
 
         {mut.isError && (
