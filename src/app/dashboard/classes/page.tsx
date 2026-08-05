@@ -13,6 +13,7 @@ import { useClassAvatarMap } from './hooks/useClassAvatarMap';
 import MochiBadge from './components/MochiBadge';
 import CreateClassModal from './modals/CreateClassModal';
 import EditClassModal from './modals/EditClassModal';
+import { useTranslation } from '@/lib/messages';
 
 function ClassCard({
   cls,
@@ -27,6 +28,7 @@ function ClassCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -62,12 +64,12 @@ function ClassCard({
           <div className="min-w-0 pr-6">
             <h2 className="text-base font-bold text-ink truncate">{cls.name}</h2>
             <p className="text-ink3 text-xs truncate">
-              {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'}
+              {[cls.subject, cls.level].filter(Boolean).join(' · ') || t('classesPageNoSubjectSet')}
             </p>
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-ink3">{cls.studentCount} students</span>
+          <span className="text-xs text-ink3">{tp.classesPageStudentCount(cls.studentCount)}</span>
           <span className="font-mono text-xs px-2 py-1 rounded bg-panel2 text-ink2 tracking-wider">
             {cls.joinCode}
           </span>
@@ -83,7 +85,7 @@ function ClassCard({
         <button
           onClick={() => setMenuOpen((o) => !o)}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-ink3 hover:text-ink hover:bg-panel2 transition text-base font-bold"
-          title="Class options"
+          title={t('classesPageOptionsTitle')}
         >
           ⋯
         </button>
@@ -93,13 +95,13 @@ function ClassCard({
               onClick={() => { onEdit(); setMenuOpen(false); }}
               className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-panel2 transition"
             >
-              ✏️ Edit class
+              {t('classesPageEditClass')}
             </button>
             <button
               onClick={() => { onDelete(); setMenuOpen(false); }}
               className="w-full text-left px-4 py-2 text-sm text-bad hover:bg-bad/10 transition"
             >
-              🗑 Delete class
+              {t('classesPageDeleteClass')}
             </button>
           </div>
         )}
@@ -109,6 +111,7 @@ function ClassCard({
 }
 
 export default function ClassesPage() {
+  const { t, tp } = useTranslation();
   const router = useRouter();
   const org = useOrg();
   const qc = useQueryClient();
@@ -136,30 +139,30 @@ export default function ClassesPage() {
     <div className="max-w-4xl space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Classes</h1>
+          <h1 className="text-2xl font-bold text-ink">{t('classesPageHeading')}</h1>
           <p className="text-ink3 text-sm mt-1">
-            Each class has its own join code, shared corpus, and branded Mochi.
+            {t('classesPageSubtitle')}
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
         >
-          + New class
+          {t('classesPageNewClass')}
         </button>
       </div>
 
       <AsyncBoundary
         query={query}
         loadingIcon="🏫"
-        loadingLabel="Loading classes..."
-        errorMessage="Could not load classes."
+        loadingLabel={t('classesPageLoading')}
+        errorMessage={t('classesPageCouldNotLoad')}
         empty={
           <EmptyState
             icon="🏫"
-            title="No classes yet"
-            description="Create your first class to get a join code and start adding students."
-            actionLabel="+ New class"
+            title={t('classesPageEmptyTitle')}
+            description={t('classesPageEmptyDescription')}
+            actionLabel={t('classesPageNewClass')}
             onAction={() => setShowCreate(true)}
           />
         }
@@ -171,9 +174,9 @@ export default function ClassesPage() {
             return (
               <EmptyState
                 icon="🏫"
-                title="No classes yet"
-                description="Create your first class to get a join code and start adding students."
-                actionLabel="+ New class"
+                title={t('classesPageEmptyTitle')}
+                description={t('classesPageEmptyDescription')}
+                actionLabel={t('classesPageNewClass')}
                 onAction={() => setShowCreate(true)}
               />
             );
@@ -225,15 +228,14 @@ export default function ClassesPage() {
             className="bg-panel border border-line rounded-2xl w-full max-w-sm p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-ink">Delete &ldquo;{deletingClass.name}&rdquo;?</h2>
+            <h2 className="text-lg font-bold text-ink">{tp.classesPageDeleteConfirmHeading(deletingClass.name)}</h2>
             <p className="text-sm text-ink2">
-              This permanently deletes the class, its corpus brain, all modules, and all student memberships.
-              Students lose access immediately.{' '}
-              <strong className="text-bad">This cannot be undone.</strong>
+              {t('classesPageDeleteWarningBody')}{' '}
+              <strong className="text-bad">{t('classesPageDeleteWarningBold')}</strong>
             </p>
             {deleteMut.isError && (
               <p className="text-xs text-bad">
-                {(deleteMut.error as Error)?.message || 'Could not delete. Please try again.'}
+                {(deleteMut.error as Error)?.message || t('classesPageDeleteError')}
               </p>
             )}
             <div className="flex justify-end gap-3">
@@ -242,14 +244,14 @@ export default function ClassesPage() {
                 disabled={deleteMut.isPending}
                 className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition disabled:opacity-40"
               >
-                Cancel
+                {t('classesPageCancel')}
               </button>
               <button
                 onClick={() => deleteMut.mutate(deletingClass.id)}
                 disabled={deleteMut.isPending}
                 className="px-4 py-2 rounded-lg bg-bad text-white text-sm font-semibold hover:bg-bad/90 transition disabled:opacity-40"
               >
-                {deleteMut.isPending ? 'Deleting…' : 'Delete class'}
+                {deleteMut.isPending ? t('classesPageDeleting') : t('classesPageDeleteClassButton')}
               </button>
             </div>
           </div>

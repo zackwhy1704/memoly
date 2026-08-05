@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, ApiError, type WikiPage } from '@/lib/api';
 import { QualityBadge, confidenceBadge } from '@/components/QualityBadge';
 import ErrorView from '@/components/ErrorView';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
 
 /**
  * "Brain pages" — the compiled wiki that drives every student's lessons. This is
@@ -27,6 +29,7 @@ export function BrainPagesSection({
   orgId?: string;
   classId?: string;
 }) {
+  const { t, tp } = useTranslation();
   const pagesQuery = useQuery({
     queryKey: ['wikiPages', avatarId],
     queryFn: () => api.wikiPages(avatarId),
@@ -47,30 +50,27 @@ export function BrainPagesSection({
   return (
     <div className="bg-panel border border-line rounded-2xl overflow-hidden">
       <div className="px-5 py-3.5 border-b border-line">
-        <h3 className="text-sm font-semibold text-ink">Brain pages</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('brainPagesHeading')}</h3>
         <p className="text-xs text-ink3 mt-0.5">
-          The compiled notes every student&apos;s Mochi teaches from.
+          {t('brainPagesSubtitle')}
         </p>
       </div>
 
       {!mutable && !avatarQuery.isLoading && (
         <div className="mx-5 mt-4 bg-panel2 border border-line rounded-xl px-4 py-3 text-xs text-ink2">
-          Centre class material is managed centrally, so pages are read-only here. To change what
-          students learn, open a page and <span className="font-semibold text-ink">regenerate its lessons</span>{' '}
-          — that creates a draft for the <span className="font-semibold text-ink">Review</span> tab without
-          touching what students currently see.
+          {t('brainPagesReadOnlyPrefix')}<span className="font-semibold text-ink">{t('brainPagesReadOnlyRegenerate')}</span>{t('brainPagesReadOnlyMid')}<span className="font-semibold text-ink">{t('classIdSubtabReview')}</span>{t('brainPagesReadOnlySuffix')}
         </div>
       )}
 
       {pagesQuery.isLoading ? (
-        <p className="text-ink3 text-sm p-5">Loading brain pages…</p>
+        <p className="text-ink3 text-sm p-5">{t('brainPagesLoading')}</p>
       ) : pagesQuery.error ? (
         <div className="p-4">
-          <ErrorView message="Could not load brain pages." onRetry={() => pagesQuery.refetch()} />
+          <ErrorView message={t('brainPagesCouldNotLoad')} onRetry={() => pagesQuery.refetch()} />
         </div>
       ) : pages.length === 0 ? (
         <p className="text-ink3 text-sm p-5">
-          No brain pages yet — upload content above and they&apos;ll appear once it compiles.
+          {t('brainPagesEmpty')}
         </p>
       ) : (
         <ul>
@@ -79,7 +79,7 @@ export function BrainPagesSection({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-ink truncate">{p.title || p.slug}</p>
                 {typeof p.qualityScore === 'number' && (
-                  <p className="text-[11px] text-ink3 mt-0.5">Quality {p.qualityScore}/100</p>
+                  <p className="text-[11px] text-ink3 mt-0.5">{tp.brainPagesQuality(p.qualityScore)}</p>
                 )}
               </div>
               {p.hasConflict && <ConflictMarker />}
@@ -89,7 +89,7 @@ export function BrainPagesSection({
                 onClick={() => setEditingSlug(p.slug)}
                 className="shrink-0 text-xs font-semibold text-accent hover:underline"
               >
-                {mutable ? 'View / Edit' : 'View'}
+                {mutable ? t('brainPagesViewEdit') : t('brainPagesView')}
               </button>
             </li>
           ))}
@@ -112,12 +112,13 @@ export function BrainPagesSection({
 }
 
 function ConflictMarker() {
+  const { t } = useTranslation();
   return (
     <span
       className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-bad/20 text-bad"
-      title="Sources disagree — correcting or regenerating this page will resolve it"
+      title={t('brainPagesConflictTitle')}
     >
-      Conflict
+      {t('brainPagesConflict')}
     </span>
   );
 }
@@ -125,23 +126,24 @@ function ConflictMarker() {
 /** Server-derived confidence label. A human-corrected/verified page reuses the
  *  shipped "Teacher-reviewed" trust marker (don't invent a new label). */
 function ReviewStateBadge({ page }: { page: WikiPage }) {
+  const { t } = useTranslation();
   const verified = page.humanVerified || page.reviewState === 'VERIFIED';
   if (verified) {
     return (
       <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-ok/20 text-ok">
-        Teacher-reviewed
+        {t('brainPagesTeacherReviewed')}
       </span>
     );
   }
-  const map: Record<string, { label: string; cls: string }> = {
-    FLAGGED: { label: 'Flagged', cls: 'bg-bad/20 text-bad' },
-    LOW_CONFIDENCE: { label: 'Low confidence', cls: 'bg-warn/20 text-warn' },
-    UNVERIFIED: { label: 'Unverified', cls: 'bg-panel2 text-ink3' },
+  const map: Record<string, { labelKey: MessageKey; cls: string }> = {
+    FLAGGED: { labelKey: 'brainPagesFlagged', cls: 'bg-bad/20 text-bad' },
+    LOW_CONFIDENCE: { labelKey: 'brainPagesLowConfidence', cls: 'bg-warn/20 text-warn' },
+    UNVERIFIED: { labelKey: 'brainPagesUnverified', cls: 'bg-panel2 text-ink3' },
   };
   const s = map[page.reviewState ?? 'UNVERIFIED'] ?? map.UNVERIFIED;
   return (
     <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${s.cls}`}>
-      {s.label}
+      {t(s.labelKey)}
     </span>
   );
 }
@@ -163,6 +165,7 @@ function WikiPageModal({
   canRegenerate: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   // Freshest full page on open (the list row can be stale vs another teacher's edit).
@@ -196,7 +199,7 @@ function WikiPageModal({
     if (saving || readOnly) return; // re-entry + read-only guard
     const text = value.trim();
     if (!text) {
-      setError('Content cannot be empty.');
+      setError(t('brainPagesEmptyContentError'));
       return;
     }
     setSaving(true);
@@ -212,9 +215,9 @@ function WikiPageModal({
     } catch (e) {
       if (e instanceof ApiError && e.status === 403) {
         // Material is centre-locked — degrade to read-only with the reason.
-        setLockedReason(e.userMessage || 'This material is read-only.');
+        setLockedReason(e.userMessage || t('brainPagesReadOnlyFallback'));
       } else {
-        setError(e instanceof ApiError ? e.userMessage : 'Could not save your changes. Please try again.');
+        setError(e instanceof ApiError ? e.userMessage : t('brainPagesSaveErrorFallback'));
       }
     } finally {
       setSaving(false);
@@ -229,7 +232,7 @@ function WikiPageModal({
       await api.regenerateContent(orgId, classId, page.slug, guidance.trim() || undefined);
       setRegenDone(true);
     } catch (e) {
-      setRegenError(e instanceof ApiError ? e.userMessage : 'Could not regenerate. Please try again.');
+      setRegenError(e instanceof ApiError ? e.userMessage : t('brainPagesRegenErrorFallback'));
     } finally {
       setRegenerating(false);
     }
@@ -251,11 +254,11 @@ function WikiPageModal({
             <h3 className="text-base font-bold text-ink truncate">{page.title || page.slug}</h3>
             <p className="text-xs text-ink3 mt-0.5">
               {readOnly
-                ? 'Read-only — regenerate to create a reviewable draft.'
-                : 'Edits are saved as your verified version and override the AI draft.'}
+                ? t('brainPagesReadOnlyModalSubtitle')
+                : t('brainPagesEditableModalSubtitle')}
             </p>
           </div>
-          <button onClick={onClose} className="text-ink3 hover:text-ink text-xl leading-none shrink-0" aria-label="Close">
+          <button onClick={onClose} className="text-ink3 hover:text-ink text-xl leading-none shrink-0" aria-label={t('brainPagesClose')}>
             &times;
           </button>
         </div>
@@ -270,7 +273,7 @@ function WikiPageModal({
         )}
 
         {full.isLoading ? (
-          <p className="text-ink3 text-sm py-8">Loading page…</p>
+          <p className="text-ink3 text-sm py-8">{t('brainPagesLoadingPage')}</p>
         ) : (
           <textarea
             value={value}
@@ -288,8 +291,7 @@ function WikiPageModal({
         {/* Propagation notice after a successful correction (mutable case) */}
         {savedVerified && (
           <div className="bg-ok/10 border border-ok/30 rounded-xl px-4 py-3 text-sm text-ok">
-            Correction saved and the page is now teacher-reviewed. Students still see the previously
-            generated lessons until you regenerate.
+            {t('brainPagesSavedNotice')}
           </div>
         )}
 
@@ -298,8 +300,7 @@ function WikiPageModal({
           <div className="border-t border-line pt-4 space-y-2">
             {regenDone ? (
               <div className="bg-accent/10 border border-accent/30 rounded-xl px-4 py-3 text-sm text-ink2">
-                Draft created — review &amp; approve it in the <span className="font-semibold text-ink">Review</span> tab.
-                Student-facing lessons are unchanged until you approve it.
+                {t('brainPagesDraftCreatedPrefix')}<span className="font-semibold text-ink">{t('classIdSubtabReview')}</span>{t('brainPagesDraftCreatedSuffix')}
               </div>
             ) : (
               <>
@@ -307,7 +308,7 @@ function WikiPageModal({
                   <input
                     value={guidance}
                     onChange={(e) => setGuidance(e.target.value)}
-                    placeholder="Optional guidance for the regeneration (e.g. 'use simpler examples')"
+                    placeholder={t('brainPagesGuidancePlaceholder')}
                     className="w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
                   />
                 )}
@@ -317,14 +318,14 @@ function WikiPageModal({
                     onClick={() => setShowGuidance((s) => !s)}
                     className="text-xs text-ink3 hover:text-ink2"
                   >
-                    {showGuidance ? 'Hide guidance' : 'Add guidance'}
+                    {showGuidance ? t('brainPagesHideGuidance') : t('brainPagesAddGuidance')}
                   </button>
                   <button
                     onClick={regenerate}
                     disabled={regenerating}
                     className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent hover:opacity-90 transition disabled:opacity-50"
                   >
-                    {regenerating ? 'Regenerating…' : 'Regenerate lessons from this page'}
+                    {regenerating ? t('brainPagesRegenerating') : t('brainPagesRegenerateLessons')}
                   </button>
                 </div>
               </>
@@ -337,7 +338,7 @@ function WikiPageModal({
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-sm font-medium text-ink2 hover:text-ink border border-line bg-panel2 transition"
           >
-            Close
+            {t('brainPagesClose')}
           </button>
           {!readOnly && !savedVerified && (
             <button
@@ -345,7 +346,7 @@ function WikiPageModal({
               disabled={saving || full.isLoading}
               className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent hover:opacity-90 transition disabled:opacity-50"
             >
-              {saving ? 'Saving…' : 'Save correction'}
+              {saving ? t('brainPagesSaving') : t('brainPagesSaveCorrection')}
             </button>
           )}
         </div>
@@ -356,21 +357,22 @@ function WikiPageModal({
 
 /** Read-only context the backend already derives — sources, confidence, prereqs. */
 function PageContext({ page }: { page: WikiPage }) {
+  const { t, tp } = useTranslation();
   const sources = page.sourceFileNames ?? [];
   const prereqs = page.prerequisiteSlugs ?? [];
   const note = page.conflictNote || page.flagNote;
   return (
     <div className="space-y-1.5 text-xs">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-ink3">
-        {page.certainty && <span>Certainty: <span className="text-ink2">{String(page.certainty).toLowerCase()}</span></span>}
-        {typeof page.qualityScore === 'number' && <span>Quality: <span className="text-ink2">{page.qualityScore}/100</span></span>}
-        {typeof page.quizUseCount === 'number' && <span>Used in {page.quizUseCount} quiz item(s)</span>}
+        {page.certainty && <span>{t('brainPagesCertainty')} <span className="text-ink2">{String(page.certainty).toLowerCase()}</span></span>}
+        {typeof page.qualityScore === 'number' && <span>{t('brainPagesQualityColon')} <span className="text-ink2">{page.qualityScore}/100</span></span>}
+        {typeof page.quizUseCount === 'number' && <span>{tp.brainPagesQuizUseCount(page.quizUseCount)}</span>}
       </div>
       {sources.length > 0 && (
-        <p className="text-ink3">From: <span className="text-ink2">{sources.join(', ')}</span></p>
+        <p className="text-ink3">{t('brainPagesFrom')} <span className="text-ink2">{sources.join(', ')}</span></p>
       )}
       {prereqs.length > 0 && (
-        <p className="text-ink3">Prerequisites: <span className="text-ink2">{prereqs.join(', ')}</span></p>
+        <p className="text-ink3">{t('brainPagesPrerequisites')} <span className="text-ink2">{prereqs.join(', ')}</span></p>
       )}
       {note && (
         <p className="text-bad bg-bad/10 border border-bad/20 rounded-lg px-3 py-2">{note}</p>

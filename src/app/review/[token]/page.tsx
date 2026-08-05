@@ -15,6 +15,7 @@ import { ReviewBody } from './_components/ReviewBody';
 import { SuccessCard } from './_components/SuccessCard';
 import { GoneCard } from './_components/GoneCard';
 import { MessageCard } from './_components/MessageCard';
+import { useTranslation } from '@/lib/messages';
 
 type View =
   | { state: 'loading' }
@@ -30,6 +31,7 @@ export default function ReviewPage({
 }: {
   params: Promise<{ token: string }>;
 }) {
+  const { t } = useTranslation();
   const { token } = use(params);
   const [view, setView] = useState<View>({ state: 'loading' });
 
@@ -80,22 +82,22 @@ export default function ReviewPage({
         {view.state === 'notfound' && (
           <MessageCard
             emoji="🔍"
-            title="Review link not found"
-            body="We couldn't find this review. Double-check the link, or ask the student to send it again."
+            title={t('reviewPageNotFoundTitle')}
+            body={t('reviewPageNotFoundBody')}
           />
         )}
         {view.state === 'network' && (
           <MessageCard
             emoji="📶"
-            title="Couldn't connect"
-            body="You appear to be offline. Check your connection and try again."
+            title={t('reviewPageOfflineTitle')}
+            body={t('reviewPageOfflineBody')}
           />
         )}
         {view.state === 'error' && (
           <MessageCard
             emoji="⚠️"
-            title="Something went wrong"
-            body="We hit a snag loading this review. Please try again in a moment."
+            title={t('acceptInviteSomethingWrong')}
+            body={t('reviewPageErrorBody')}
           />
         )}
       </div>

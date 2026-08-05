@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { api, type NarrationData } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
+import { useTranslation } from '@/lib/messages';
 
 // Narration is NOT implemented on the backend yet — the generate/status endpoints
 // (POST/GET /centre/.../modules/{moduleId}/narration[/generate]) have NO controller in
@@ -20,6 +21,7 @@ function formatDuration(ms: number): string {
 }
 
 export function NarrationAction({ orgId, classId, moduleId }: { orgId: string; classId: string; moduleId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -57,7 +59,7 @@ export function NarrationAction({ orgId, classId, moduleId }: { orgId: string; c
         {generate.isPending && (
           <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
         )}
-        {generate.isPending ? 'Starting...' : 'Generate narration'}
+        {generate.isPending ? t('narrationStarting') : t('narrationGenerate')}
       </button>
     );
   }
@@ -66,7 +68,7 @@ export function NarrationAction({ orgId, classId, moduleId }: { orgId: string; c
     return (
       <span className="inline-flex items-center gap-1.5 text-xs text-ink3">
         <span className="w-3 h-3 border-2 border-ink3 border-t-transparent rounded-full animate-spin" />
-        Generating...
+        {t('narrationGenerating')}
       </span>
     );
   }
@@ -78,7 +80,7 @@ export function NarrationAction({ orgId, classId, moduleId }: { orgId: string; c
         disabled={generate.isPending}
         className="text-xs font-semibold text-bad hover:underline disabled:opacity-40"
       >
-        {generate.isPending ? 'Retrying...' : 'Retry'}
+        {generate.isPending ? t('narrationRetrying') : t('narrationRetry')}
       </button>
     );
   }
@@ -91,7 +93,7 @@ export function NarrationAction({ orgId, classId, moduleId }: { orgId: string; c
           onClick={() => setPreviewOpen(true)}
           className="text-xs font-semibold text-accent hover:underline"
         >
-          Preview
+          {t('narrationPreview')}
         </button>
         <span className="text-xs text-ink3 tabular-nums">{formatDuration(narration.totalDurationMs)}</span>
       </div>
@@ -118,6 +120,7 @@ function NarrationPreviewModal({
   onClose: () => void;
   onRegenerate: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -182,9 +185,9 @@ function NarrationPreviewModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div>
-            <h2 className="text-sm font-bold text-ink">Narration Preview</h2>
+            <h2 className="text-sm font-bold text-ink">{t('narrationPreviewTitle')}</h2>
             <p className="text-xs text-ink3 mt-0.5">
-              {segments.length} cards &middot; {formatDuration(narration.totalDurationMs)} total
+              {tp.narrationCardsDuration(segments.length, formatDuration(narration.totalDurationMs))}
             </p>
           </div>
           <button onClick={onClose} className="text-ink3 hover:text-ink text-lg leading-none">&times;</button>
@@ -211,7 +214,7 @@ function NarrationPreviewModal({
         <div className="px-5 py-5 space-y-4">
           <div className="bg-panel2 rounded-xl p-4">
             <p className="text-[10px] uppercase tracking-wider text-ink3 mb-2">
-              Card {segment.cardIndex + 1} &middot; {formatDuration(segment.durationMs)}
+              {tp.narrationCardDuration(segment.cardIndex + 1, formatDuration(segment.durationMs))}
             </p>
             <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{segment.scriptText}</p>
           </div>
@@ -237,14 +240,14 @@ function NarrationPreviewModal({
                 disabled={currentIndex === 0}
                 className="px-2 py-1 text-xs text-ink3 hover:text-ink disabled:opacity-30"
               >
-                Prev
+                {t('narrationPrev')}
               </button>
               <button
                 onClick={() => goToSegment(Math.min(segments.length - 1, currentIndex + 1))}
                 disabled={currentIndex === segments.length - 1}
                 className="px-2 py-1 text-xs text-ink3 hover:text-ink disabled:opacity-30"
               >
-                Next
+                {t('narrationNext')}
               </button>
             </div>
           </div>
@@ -266,13 +269,13 @@ function NarrationPreviewModal({
             onClick={onRegenerate}
             className="text-xs font-semibold text-bad hover:underline"
           >
-            Re-generate
+            {t('narrationRegenerate')}
           </button>
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold bg-panel2 hover:bg-panel2/80 rounded-lg text-ink transition"
           >
-            Close
+            {t('narrationCloseButton')}
           </button>
         </div>
       </div>

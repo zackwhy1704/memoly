@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, type ReviewItem, type ContentVerification } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
 
 function parseVerification(raw?: string | null): ContentVerification | null {
   if (!raw) return null;
@@ -31,27 +33,28 @@ function WarningIcon({ className }: { className?: string }) {
 }
 
 function VerificationFlags({ verification }: { verification: ContentVerification }) {
+  const { t, tp } = useTranslation();
   const contradicts = verification.flags.some((f) => /contradict/i.test(f.reason));
   const sev = contradicts
-    ? { wrap: 'border-bad/30 bg-bad/10', text: 'text-bad', label: 'Contradicts your notes' }
-    : { wrap: 'border-warn/30 bg-warn/10', text: 'text-warn', label: 'Needs your review' };
+    ? { wrap: 'border-bad/30 bg-bad/10', text: 'text-bad', label: t('contentReviewContradicts') }
+    : { wrap: 'border-warn/30 bg-warn/10', text: 'text-warn', label: t('contentReviewNeedsReview') };
 
   return (
     <div className={`rounded-xl border ${sev.wrap} px-3 py-2.5`} role="alert">
       <div className="flex items-center gap-2">
         <WarningIcon className={`w-4 h-4 shrink-0 ${sev.text}`} />
         <span className={`text-xs font-semibold ${sev.text}`}>
-          {sev.label} · {verification.flags.length} claim{verification.flags.length !== 1 ? 's' : ''}
+          {sev.label} · {tp.contentReviewClaimCount(verification.flags.length)}
         </span>
         <span className="ml-auto text-[10px] font-medium text-ink3">
-          source: {verification.sourcePageVerified ? 'teacher-verified' : 'unverified'}
+          {t('contentReviewSourceLabel')}{verification.sourcePageVerified ? t('contentReviewSourceVerified') : t('contentReviewSourceUnverified')}
         </span>
       </div>
       <ul className="mt-2 space-y-2">
         {verification.flags.map((f, i) => (
           <li key={i} className="text-xs">
             <p className="text-ink">
-              <span className="text-ink3">Claim: </span>{f.claim}
+              <span className="text-ink3">{t('contentReviewClaimLabel')}</span>{f.claim}
             </p>
             {f.sourceQuote ? (
               <p className="mt-1 rounded-md bg-panel2 border border-line px-2 py-1 font-mono text-[11px] text-ink2">
@@ -68,20 +71,28 @@ function VerificationFlags({ verification }: { verification: ContentVerification
 }
 
 function ContentTypeBadge({ type }: { type: string }) {
+  const { t } = useTranslation();
   const styles: Record<string, string> = {
     LEARN: 'bg-blue-900/40 text-blue-300',
     HOT_TAKE: 'bg-amber-900/40 text-amber-300',
     QUIZ: 'bg-purple-900/40 text-purple-300',
     FLASHCARD: 'bg-teal-900/40 text-teal-300',
   };
+  const labelKey: Record<string, MessageKey> = {
+    LEARN: 'contentReviewTypeLearn',
+    HOT_TAKE: 'contentReviewTypeHotTake',
+    QUIZ: 'contentReviewTypeQuiz',
+    FLASHCARD: 'contentReviewTypeFlashcard',
+  };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[type] ?? 'bg-panel2 text-ink3'}`}>
-      {type.replace('_', ' ')}
+      {labelKey[type] ? t(labelKey[type]) : type.replace('_', ' ')}
     </span>
   );
 }
 
 function ContentPreview({ item }: { item: ReviewItem }) {
+  const { t } = useTranslation();
   try {
     const content = JSON.parse(item.contentJson);
     if (item.type === 'HOT_TAKE') {
@@ -89,7 +100,7 @@ function ContentPreview({ item }: { item: ReviewItem }) {
         <div className="bg-panel2 rounded-lg px-3 py-2 text-sm text-ink">
           <p className="font-medium">{content.statement ?? content.question ?? JSON.stringify(content)}</p>
           {content.answer != null && (
-            <p className="text-xs text-ink3 mt-1">Answer: {String(content.answer)}</p>
+            <p className="text-xs text-ink3 mt-1">{t('contentReviewAnswerLabel')}{String(content.answer)}</p>
           )}
         </div>
       );
@@ -97,7 +108,7 @@ function ContentPreview({ item }: { item: ReviewItem }) {
     if (item.type === 'LEARN') {
       return (
         <div className="bg-panel2 rounded-lg px-3 py-2 text-sm text-ink">
-          <p className="font-medium">{content.title ?? 'Untitled'}</p>
+          <p className="font-medium">{content.title ?? t('contentReviewUntitled')}</p>
           <p className="text-xs text-ink3 mt-1 line-clamp-2">{content.body ?? content.text ?? JSON.stringify(content)}</p>
         </div>
       );
@@ -127,6 +138,7 @@ function ModuleRegenSection({
   pageSlug: string;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [guidance, setGuidance] = useState('');
 
@@ -145,7 +157,7 @@ function ModuleRegenSection({
         onClick={() => setOpen(true)}
         className="text-xs text-ink3 hover:text-ink2 underline underline-offset-2 transition"
       >
-        Regenerate with feedback
+        {t('contentReviewRegenerateWithFeedback')}
       </button>
     );
   }
@@ -155,15 +167,15 @@ function ModuleRegenSection({
       <textarea
         value={guidance}
         onChange={(e) => setGuidance(e.target.value)}
-        placeholder="Optional: tell Mochi what to focus on, fix, or change…"
+        placeholder={t('contentReviewGuidancePlaceholder')}
         rows={2}
         className="w-full rounded-lg bg-panel2 border border-line px-3 py-2 text-sm text-ink placeholder-ink3 resize-none focus:outline-none focus:ring-1 focus:ring-accent/60"
       />
       {mut.isError && (
         <p className="text-xs text-bad">
-          {(mut.error as Error)?.message || 'Regeneration failed — please try again.'}
+          {(mut.error as Error)?.message || t('contentReviewRegenFailedFallback')}
           {' '}
-          <button className="underline" onClick={() => mut.mutate()}>Retry</button>
+          <button className="underline" onClick={() => mut.mutate()}>{t('contentReviewRetry')}</button>
         </p>
       )}
       <div className="flex gap-2">
@@ -172,14 +184,14 @@ function ModuleRegenSection({
           disabled={mut.isPending}
           className="px-3 py-1.5 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
         >
-          {mut.isPending ? 'Regenerating…' : 'Regenerate'}
+          {mut.isPending ? t('contentReviewRegenerating') : t('contentReviewRegenerate')}
         </button>
         <button
           onClick={() => { setOpen(false); setGuidance(''); mut.reset(); }}
           disabled={mut.isPending}
           className="px-3 py-1.5 text-xs text-ink3 hover:text-ink transition"
         >
-          Cancel
+          {t('contentReviewCancel')}
         </button>
       </div>
     </div>
@@ -200,6 +212,7 @@ export function ContentReviewPanel({
   classId: string;
   onAllReviewed?: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -234,8 +247,8 @@ export function ContentReviewPanel({
     }
   }, [query.isLoading, query.isError, draftItems.length, onAllReviewed]);
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading content for review…</p>;
-  if (query.error) return <ErrorView message="Could not load content review items." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('contentReviewLoading')}</p>;
+  if (query.error) return <ErrorView message={t('contentReviewCouldNotLoad')} onRetry={() => query.refetch()} />;
 
   const grouped = new Map<string, { items: ReviewItem[]; pageSlug: string | null }>();
   for (const item of draftItems) {
@@ -248,8 +261,8 @@ export function ContentReviewPanel({
     return (
       <EmptyState
         icon="✅"
-        title="All content reviewed"
-        description="No draft items pending review. New content will appear here after upload and compilation."
+        title={t('contentReviewAllDoneTitle')}
+        description={t('contentReviewAllDoneDescription')}
       />
     );
   }
@@ -257,19 +270,19 @@ export function ContentReviewPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-ink2">{draftItems.length} item{draftItems.length !== 1 ? 's' : ''} pending review</p>
+        <p className="text-sm text-ink2">{tp.contentReviewItemsPendingReview(draftItems.length)}</p>
         <button
           onClick={() => approveAllMut.mutate()}
           disabled={approveAllMut.isPending}
           className="px-4 py-2 text-xs font-semibold bg-ok text-white rounded-lg hover:bg-ok/90 transition disabled:opacity-40"
         >
-          {approveAllMut.isPending ? 'Approving…' : `Approve all (${draftItems.length})`}
+          {approveAllMut.isPending ? t('contentReviewApproving') : tp.contentReviewApproveAllButton(draftItems.length)}
         </button>
       </div>
 
       {approveAllMut.isSuccess && (
         <div className="bg-ok/10 border border-ok/30 rounded-xl px-4 py-3 text-sm text-ok">
-          Approved {approveAllMut.data.data.approvedCount} items.
+          {t('contentReviewApprovedNoticePrefix')}{approveAllMut.data.data.approvedCount}{t('contentReviewApprovedNoticeSuffix')}
         </div>
       )}
 
@@ -307,14 +320,14 @@ export function ContentReviewPanel({
                         disabled={approveMut.isPending}
                         className="px-3 py-1.5 text-xs font-semibold bg-ok text-white rounded-lg hover:bg-ok/90 transition disabled:opacity-40"
                       >
-                        Approve
+                        {t('contentReviewApprove')}
                       </button>
                       <button
                         onClick={() => rejectMut.mutate(item.itemId)}
                         disabled={rejectMut.isPending}
                         className="px-3 py-1.5 text-xs font-semibold bg-bad/20 text-bad rounded-lg hover:bg-bad/30 transition disabled:opacity-40"
                       >
-                        Reject
+                        {t('contentReviewReject')}
                       </button>
                     </div>
                   </div>

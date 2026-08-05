@@ -8,23 +8,23 @@ import { api, ApiError } from '@/lib/api';
 import { getToken, logout } from '@/lib/auth';
 import { CONSUMER_PLANS } from '@/lib/plans';
 import { derivePlanState } from '@/lib/planState';
-
-const PAYMENTS_UNAVAILABLE =
-  "Payments aren't available right now. Please try again later or contact support.";
-
-// Prices come from the canonical USD source of truth (src/lib/plans.ts) — the
-// same list the marketing page + Stripe use. checkoutId is the EXACT plan key the
-// backend's POST /subscription/checkout accepts (it rejects bare 'pro'/'max'/'family').
-const PLANS = CONSUMER_PLANS.map((p) => ({
-  id: p.id,
-  checkoutId: p.checkoutId,
-  name: p.name,
-  price: `${p.priceMonthly} / month`,
-  annual: `${p.priceAnnual} / year`,
-  features: p.features,
-}));
+import { useTranslation } from '@/lib/messages';
 
 export default function BillingPage() {
+  const { t, tp } = useTranslation();
+  // Prices come from the canonical USD source of truth (src/lib/plans.ts) — the
+  // same list the marketing page + Stripe use. checkoutId is the EXACT plan key the
+  // backend's POST /subscription/checkout accepts (it rejects bare 'pro'/'max'/'family').
+  // Unit suffixes (" / month") are UI chrome and translate; the price numbers
+  // themselves are untouched, same PR-F precedent as pally's price-display gate.
+  const PLANS = CONSUMER_PLANS.map((p) => ({
+    id: p.id,
+    checkoutId: p.checkoutId,
+    name: p.name,
+    price: tp.billingPagePriceMonthly(p.priceMonthly),
+    annual: tp.billingPagePriceAnnual(p.priceAnnual),
+    features: p.features,
+  }));
   const router = useRouter();
   const [checkoutError, setCheckoutError] = useState('');
   const [portalError, setPortalError]     = useState('');
@@ -60,13 +60,13 @@ export default function BillingPage() {
         !url ||
         url.includes('/mock-checkout');
       if (notLive) {
-        setCheckoutError(PAYMENTS_UNAVAILABLE);
+        setCheckoutError(t('billingPageUnavailable'));
         return;
       }
       window.location.href = url;
     },
     onError: (err) => {
-      setCheckoutError(err instanceof ApiError ? err.userMessage : 'Could not start checkout.');
+      setCheckoutError(err instanceof ApiError ? err.userMessage : t('billingPageCheckoutErrorFallback'));
     },
   });
 
@@ -79,11 +79,11 @@ export default function BillingPage() {
       if (url) {
         window.location.href = url;
       } else {
-        setPortalError('Could not open billing portal.');
+        setPortalError(t('billingPagePortalErrorFallback'));
       }
     },
     onError: (err) => {
-      setPortalError(err instanceof ApiError ? err.userMessage : 'Could not open billing portal.');
+      setPortalError(err instanceof ApiError ? err.userMessage : t('billingPagePortalErrorFallback'));
     },
   });
 
@@ -128,7 +128,7 @@ export default function BillingPage() {
   if (!isAuthed) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <p className="text-ink3 text-sm">Redirecting to sign in…</p>
+        <p className="text-ink3 text-sm">{t('accountPageRedirecting')}</p>
       </div>
     );
   }
@@ -142,25 +142,25 @@ export default function BillingPage() {
             href="/account"
             className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"
           >
-            ← Account
+            {t('billingPageBackToAccount')}
           </Link>
           <button
             onClick={logout}
             className="text-sm text-ink3 hover:text-ink font-semibold transition-colors"
           >
-            Sign out
+            {t('accountPageSignOut')}
           </button>
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-ink">Billing & Subscription</h1>
-          <p className="text-ink3 text-sm mt-1">Manage your Apalchi plan.</p>
+          <h1 className="text-2xl font-bold text-ink">{t('billingPageHeading')}</h1>
+          <p className="text-ink3 text-sm mt-1">{t('billingPageSubtitle')}</p>
         </div>
 
         {/* Current plan */}
         <div className="bg-panel border border-line rounded-2xl p-6">
-          <p className="text-xs font-semibold text-ink3 uppercase tracking-wide mb-1">Current plan</p>
+          <p className="text-xs font-semibold text-ink3 uppercase tracking-wide mb-1">{t('accountPageCurrentPlan')}</p>
           {statusQuery.isLoading ? (
-            <p className="text-ink3 text-sm animate-pulse">Loading…</p>
+            <p className="text-ink3 text-sm animate-pulse">{t('accountPageLoading')}</p>
           ) : (
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
@@ -184,7 +184,7 @@ export default function BillingPage() {
                   disabled={portalMut.isPending}
                   className="px-4 py-2 rounded-lg border border-line text-ink text-sm font-semibold hover:bg-panel2 transition-colors disabled:opacity-50"
                 >
-                  {portalMut.isPending ? 'Opening…' : 'Manage billing'}
+                  {portalMut.isPending ? t('billingPageOpening') : t('billingPageManageBilling')}
                 </button>
               )}
             </div>
@@ -198,7 +198,7 @@ export default function BillingPage() {
         {!hasStripeBilling && (
           <div className="space-y-4">
             <p className="text-sm font-semibold text-ink">
-              {onTrial ? 'Subscribe to keep premium' : 'Upgrade to unlock more'}
+              {onTrial ? t('billingPageSubscribeToKeepPremium') : t('billingPageUpgradeToUnlockMore')}
             </p>
             {PLANS.map((plan) => {
               const isActive = currentPlan.toLowerCase() === plan.id;
@@ -214,12 +214,12 @@ export default function BillingPage() {
                       <p className="font-bold text-ink">{plan.name}</p>
                       {isActive && (
                         <span className="text-xs font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-                          Current
+                          {t('billingPageCurrent')}
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-ink2 mb-0.5">{plan.price}</p>
-                    <p className="text-xs text-ink3 mb-2">or {plan.annual} (save ~17%)</p>
+                    <p className="text-xs text-ink3 mb-2">{t('billingPageOrPrefix')}{plan.annual}{t('billingPageSaveSuffix')}</p>
                     <ul className="space-y-1">
                       {plan.features.map((f) => (
                         <li key={f} className="text-xs text-ink3 flex gap-1.5">
@@ -237,7 +237,7 @@ export default function BillingPage() {
                       disabled={checkoutMut.isPending}
                       className="shrink-0 px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent/80 transition-colors disabled:opacity-50"
                     >
-                      {checkoutMut.isPending ? 'Loading…' : 'Upgrade'}
+                      {checkoutMut.isPending ? t('accountPageLoading') : t('billingPageUpgrade')}
                     </button>
                   )}
                 </div>

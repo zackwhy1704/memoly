@@ -9,8 +9,10 @@ import { api, ApiError } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
 import { identify, trackEvent } from '@/lib/analytics';
 import { isGoogleEnabled } from '@/lib/google';
+import { useTranslation } from '@/lib/messages';
 
 export default function SignupPage() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   // Centre profile — collected from everyone (Google and email paths alike)
@@ -27,9 +29,9 @@ export default function SignupPage() {
   const [error, setError]       = useState('');
 
   function validateProfile(): boolean {
-    if (!contactName.trim()) { setError('Please enter your name.'); return false; }
-    if (!orgName.trim())     { setError('Please enter your centre or organisation name.'); return false; }
-    if (!phone.trim())       { setError('Please enter a contact number.'); return false; }
+    if (!contactName.trim()) { setError(t('signupNameRequired')); return false; }
+    if (!orgName.trim())     { setError(t('signupOrgRequired')); return false; }
+    if (!phone.trim())       { setError(t('signupPhoneRequired')); return false; }
     return true;
   }
 
@@ -56,7 +58,7 @@ export default function SignupPage() {
       const res = await api.google(response.credential);
       await finishSetup(res.data.token, res.data.userId, 'signup_google');
     } catch (err) {
-      setError(err instanceof ApiError ? err.userMessage : 'Google sign-in failed. Please try again.');
+      setError(err instanceof ApiError ? err.userMessage : t('signupGoogleFailedFallback'));
       setLoading(false);
     }
   }
@@ -66,8 +68,8 @@ export default function SignupPage() {
     if (loading) return;
     setError('');
     if (!validateProfile()) return;
-    if (!email.trim())         { setError('Please enter your work email.'); return; }
-    if (password.length < 8)   { setError('Password must be at least 8 characters.'); return; }
+    if (!email.trim())         { setError(t('signupEmailRequired')); return; }
+    if (password.length < 8)   { setError(t('signupPasswordTooShort')); return; }
     setLoading(true);
     try {
       const res = await api.register({
@@ -80,9 +82,9 @@ export default function SignupPage() {
       setError(
         err instanceof ApiError
           ? (err.status === 409
-              ? 'An account with this email already exists. Try logging in.'
+              ? t('signupEmailExistsError')
               : err.userMessage)
-          : 'Could not create account. Please try again.'
+          : t('signupCreateAccountErrorFallback')
       );
       setLoading(false);
     }
@@ -121,7 +123,7 @@ export default function SignupPage() {
       >
         <Image src="/mochi-base-transparent.png" alt="" aria-hidden="true"
           width={28} height={28} style={{ objectFit: 'contain' }} />
-        <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733' }}>Apalchi</span>
+        <span style={{ fontWeight: 800, fontSize: 16, color: '#1F1733' }}>{t('appName')}</span>
       </a>
 
       <div style={{ width: '100%', maxWidth: 420 }}>
@@ -134,32 +136,32 @@ export default function SignupPage() {
         />
 
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', textAlign: 'center', marginBottom: 6 }}>
-          Set up your centre on Apalchi
+          {t('signupHeading')}
         </h1>
         <p style={{ fontSize: 14, color: '#6B618A', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
-          30-day pilot, no card required. Takes two minutes.
+          {t('signupSubtitle')}
         </p>
 
         {/* ── Centre profile fields (mandatory for all auth paths) ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
           <div style={fieldStyle}>
-            <label htmlFor="su-name" style={labelStyle}>Your name</label>
+            <label htmlFor="su-name" style={labelStyle}>{t('signupYourName')}</label>
             <input
-              id="su-name" type="text" required placeholder="Jane Smith"
+              id="su-name" type="text" required placeholder={t('signupNamePlaceholder')}
               value={contactName} onChange={(e) => setContactName(e.target.value)}
               style={inputStyle} autoComplete="name"
             />
           </div>
           <div style={fieldStyle}>
-            <label htmlFor="su-org" style={labelStyle}>Centre / organisation name</label>
+            <label htmlFor="su-org" style={labelStyle}>{t('signupOrgLabel')}</label>
             <input
-              id="su-org" type="text" required placeholder="Bright Stars Tuition"
+              id="su-org" type="text" required placeholder={t('signupOrgPlaceholder')}
               value={orgName} onChange={(e) => setOrgName(e.target.value)}
               style={inputStyle} autoComplete="organization"
             />
           </div>
           <div style={fieldStyle}>
-            <label htmlFor="su-phone" style={labelStyle}>Contact number</label>
+            <label htmlFor="su-phone" style={labelStyle}>{t('signupContactNumber')}</label>
             <input
               id="su-phone" type="tel" required placeholder="+65 9123 4567"
               value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -174,7 +176,7 @@ export default function SignupPage() {
             <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
               <GoogleLogin
                 onSuccess={handleGoogle}
-                onError={() => setError('Google sign-in failed. Please try again.')}
+                onError={() => setError(t('signupGoogleFailedFallback'))}
                 text="continue_with"
                 shape="rectangular"
                 size="large"
@@ -185,7 +187,7 @@ export default function SignupPage() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
-              <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or</span>
+              <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>{t('signupOr')}</span>
               <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
             </div>
             <button
@@ -197,7 +199,7 @@ export default function SignupPage() {
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
               }}
             >
-              Continue with email
+              {t('signupContinueWithEmail')}
             </button>
           </>
         )}
@@ -205,7 +207,7 @@ export default function SignupPage() {
         {(!isGoogleEnabled || showEmail) && (
           <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={fieldStyle}>
-              <label htmlFor="su-email" style={labelStyle}>Work email</label>
+              <label htmlFor="su-email" style={labelStyle}>{t('signupWorkEmail')}</label>
               <input
                 id="su-email" type="email" required placeholder="jane@brightstar.edu"
                 value={email} onChange={(e) => setEmail(e.target.value)}
@@ -214,8 +216,8 @@ export default function SignupPage() {
             </div>
             <div style={fieldStyle}>
               <label htmlFor="su-pw" style={labelStyle}>
-                Password{' '}
-                <span style={{ fontWeight: 400, color: '#A8A0BD' }}>(min 8 characters)</span>
+                {t('signupPasswordLabel')}{' '}
+                <span style={{ fontWeight: 400, color: '#A8A0BD' }}>{t('signupPasswordHint')}</span>
               </label>
               <input
                 id="su-pw" type="password" required placeholder="••••••••"
@@ -234,7 +236,7 @@ export default function SignupPage() {
                 opacity: loading ? 0.65 : 1,
               }}
             >
-              {loading ? 'Creating account…' : 'Create account →'}
+              {loading ? t('signupCreatingAccount') : t('signupCreateAccount')}
             </button>
             {isGoogleEnabled && (
               <button
@@ -245,7 +247,7 @@ export default function SignupPage() {
                   fontSize: 13, cursor: 'pointer', textAlign: 'center',
                 }}
               >
-                ← Back to sign-in options
+                {t('signupBackToSignIn')}
               </button>
             )}
           </form>
@@ -267,8 +269,8 @@ export default function SignupPage() {
         )}
 
         <p style={{ textAlign: 'center', fontSize: 13, color: '#A8A0BD', marginTop: 24 }}>
-          Already have an account?{' '}
-          <Link href="/login" style={{ color: '#4C6FFF', fontWeight: 700 }}>Sign in</Link>
+          {t('signupAlreadyHaveAccount')}{' '}
+          <Link href="/login" style={{ color: '#4C6FFF', fontWeight: 700 }}>{t('signupSignIn')}</Link>
         </p>
       </div>
     </div>

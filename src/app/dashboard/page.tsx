@@ -8,17 +8,20 @@ import Link from 'next/link';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import EmptyState from '@/components/EmptyState';
 import PilotTrialCountdown from '@/components/PilotTrialCountdown';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
+import type { Templates } from '@/lib/messages/templates';
 
 function pct(v: number) {
   return `${Math.round(v * 100)}%`;
 }
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, t: (key: MessageKey) => string, tp: Templates) {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  return `${Math.floor(m / 60)}h ago`;
+  if (m < 1) return t('dashboardPageJustNow');
+  if (m < 60) return tp.dashboardPageMinutesAgo(m);
+  return tp.dashboardPageHoursAgo(Math.floor(m / 60));
 }
 
 // Extended org info that may include pilot fields returned by the backend.
@@ -28,6 +31,7 @@ interface OrgWithPilot {
 }
 
 export default function DashboardPage() {
+  const { t, tp } = useTranslation();
   const org = useOrg();
 
   const query = useQuery({
@@ -69,27 +73,27 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Overview</h1>
-          <p className="text-ink3 text-sm mt-1">Centre performance at a glance</p>
+          <h1 className="text-2xl font-bold text-ink">{t('dashboardPageHeading')}</h1>
+          <p className="text-ink3 text-sm mt-1">{t('dashboardPageSubtitle')}</p>
         </div>
         <Link
           href="/dashboard/classes"
           className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent/80 transition-colors shrink-0"
         >
-          + New class
+          {t('classesPageNewClass')}
         </Link>
       </div>
 
       <AsyncBoundary
         query={query}
         loadingIcon="📊"
-        loadingLabel="Loading overview..."
-        errorMessage="Could not load overview data."
+        loadingLabel={t('dashboardPageLoading')}
+        errorMessage={t('dashboardPageCouldNotLoad')}
         empty={
           <EmptyState
             icon="📊"
-            title="No data yet"
-            description="Once students start using the app, their progress will appear here."
+            title={t('dashboardPageEmptyTitle')}
+            description={t('dashboardPageEmptyDescription')}
           />
         }
       >
@@ -103,15 +107,15 @@ export default function DashboardPage() {
               {/* KPI cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: 'Active this week', value: d.activeThisWeek, sub: `of ${d.totalStudents} students` },
+                  { label: t('dashboardPageKpiActiveThisWeek'), value: d.activeThisWeek, sub: tp.dashboardPageOfStudents(d.totalStudents) },
                   {
-                    label: 'Avg Grasp',
+                    label: t('dashboardPageKpiAvgGrasp'),
                     value: pct(d.avgGrasp),
-                    sub: d.graspDelta >= 0 ? `+${pct(d.graspDelta)} vs last week` : `${pct(d.graspDelta)} vs last week`,
+                    sub: tp.dashboardPageVsLastWeek(d.graspDelta >= 0 ? `+${pct(d.graspDelta)}` : pct(d.graspDelta)),
                     subColor: d.graspDelta >= 0 ? 'text-ok' : 'text-bad',
                   },
-                  { label: 'At-risk students', value: d.atRiskCount, sub: 'need attention', subColor: d.atRiskCount > 0 ? 'text-bad' : 'text-ok' },
-                  { label: 'Topics live', value: d.topicsLive, sub: 'in knowledge base' },
+                  { label: t('dashboardPageKpiAtRisk'), value: d.atRiskCount, sub: t('dashboardPageNeedAttention'), subColor: d.atRiskCount > 0 ? 'text-bad' : 'text-ok' },
+                  { label: t('dashboardPageKpiTopicsLive'), value: d.topicsLive, sub: t('dashboardPageInKnowledgeBase') },
                 ].map((kpi) => (
                   <div key={kpi.label} className="bg-panel border border-line rounded-2xl p-5">
                     <p className="text-3xl font-bold tabular-nums text-ink">{kpi.value}</p>
@@ -125,7 +129,7 @@ export default function DashboardPage() {
 
               {/* Grasp trend chart */}
               <div className="bg-panel border border-line rounded-2xl p-5">
-                <p className="text-sm font-semibold text-ink mb-4">Class Grasp Trend (12 weeks)</p>
+                <p className="text-sm font-semibold text-ink mb-4">{t('dashboardPageGraspTrendHeading')}</p>
                 {d.graspTrend.length > 0 ? (
                   <ResponsiveContainer width="100%" height={180}>
                     <AreaChart data={d.graspTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -151,7 +155,7 @@ export default function DashboardPage() {
                       />
                       <Tooltip
                         contentStyle={{ background: '#141418', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#ECECEF', fontSize: 12 }}
-                        formatter={(v) => [`${Math.round((v as number) * 100)}%`, 'Grasp']}
+                        formatter={(v) => [`${Math.round((v as number) * 100)}%`, t('studentDetailGraspTooltipLabel')]}
                       />
                       <Area
                         type="monotone"
@@ -164,7 +168,7 @@ export default function DashboardPage() {
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-ink3 text-sm text-center py-8">No quiz activity yet — students need to take quizzes first.</p>
+                  <p className="text-ink3 text-sm text-center py-8">{t('dashboardPageNoQuizActivity')}</p>
                 )}
               </div>
 
@@ -172,7 +176,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Class grasp */}
                 <div className="bg-panel border border-line rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-ink mb-4">Class Grasp (quiz accuracy)</p>
+                  <p className="text-sm font-semibold text-ink mb-4">{t('dashboardPageClassGraspHeading')}</p>
                   <div className="space-y-4">
                     {classes.map((cls) => (
                       <div key={cls.cohort}>
@@ -186,18 +190,18 @@ export default function DashboardPage() {
                             style={{ width: pct(cls.avgGrasp) }}
                           />
                         </div>
-                        <p className="text-xs text-ink3 mt-1">{cls.studentCount} students</p>
+                        <p className="text-xs text-ink3 mt-1">{tp.classesPageStudentCount(cls.studentCount)}</p>
                       </div>
                     ))}
                     {classes.length === 0 && (
-                      <p className="text-ink3 text-sm text-center py-4">No classes yet.</p>
+                      <p className="text-ink3 text-sm text-center py-4">{t('dashboardPageNoClassesYet')}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Needs attention */}
                 <div className="bg-panel border border-line rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-ink mb-4">Needs Attention</p>
+                  <p className="text-sm font-semibold text-ink mb-4">{t('dashboardPageNeedsAttentionHeading')}</p>
                   <div className="space-y-3">
                     {atRisk.map((s) => (
                       <Link
@@ -219,7 +223,7 @@ export default function DashboardPage() {
                       </Link>
                     ))}
                     {atRisk.length === 0 && (
-                      <p className="text-ink3 text-sm text-center py-4">All students on track</p>
+                      <p className="text-ink3 text-sm text-center py-4">{t('dashboardPageAllOnTrack')}</p>
                     )}
                   </div>
                 </div>
@@ -227,7 +231,7 @@ export default function DashboardPage() {
 
               {/* Recent activity */}
               <div className="bg-panel border border-line rounded-2xl p-5">
-                <p className="text-sm font-semibold text-ink mb-4">Recent Activity</p>
+                <p className="text-sm font-semibold text-ink mb-4">{t('dashboardPageRecentActivityHeading')}</p>
                 {recentActivity.length > 0 ? (
                   <div className="space-y-2">
                     {recentActivity.map((act, i) => (
@@ -240,12 +244,12 @@ export default function DashboardPage() {
                           <span className="text-ink3 text-sm"> · </span>
                           <span className="text-sm text-ink2">{act.topic}</span>
                         </div>
-                        <span className="text-xs text-ink3 shrink-0">{timeAgo(act.at)}</span>
+                        <span className="text-xs text-ink3 shrink-0">{timeAgo(act.at, t, tp)}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-ink3 text-sm text-center py-4">No activity yet.</p>
+                  <p className="text-ink3 text-sm text-center py-4">{t('dashboardPageNoActivityYet')}</p>
                 )}
               </div>
             </>

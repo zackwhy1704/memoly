@@ -11,41 +11,46 @@ import AvatarPickerModal from '@/components/AvatarPickerModal';
 import MochiUploader from '@/components/MochiUploader';
 import type { UploadStatus } from '@/lib/upload-pipeline';
 import { ContentReviewPanel } from '../[classId]/components/ContentReviewPanel';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
 
 // ── Friendly compile messages — rotate while the brain compiles ──────────────
-const COMPILE_MESSAGES = [
-  'Mochi is reading your notes carefully… 📚',
-  'Building lessons from your content… ✏️',
-  'Crafting quiz questions for your students… 🧠',
-  'Organising everything into chapters… 📖',
-  'Distilling your notes into the best study material… 🌟',
-  'Nearly done — Mochi is a very fast learner! ⚡',
-  'This usually takes 1–3 minutes. Worth the wait! ☕',
-  'Great notes make great lessons — almost there… 🎓',
+// Keys only at module scope (t() needs the hook, which only exists inside a
+// component) — resolved to text via t() in useRotatingMessage.
+const COMPILE_MESSAGE_KEYS: MessageKey[] = [
+  'createClassModalCompile1',
+  'createClassModalCompile2',
+  'createClassModalCompile3',
+  'createClassModalCompile4',
+  'createClassModalCompile5',
+  'createClassModalCompile6',
+  'createClassModalCompile7',
+  'createClassModalCompile8',
 ];
 
-function useRotatingMessage(active: boolean, intervalMs = 5000) {
+function useRotatingMessage(active: boolean, t: (key: MessageKey) => string, intervalMs = 5000) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     if (!active) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % COMPILE_MESSAGES.length), intervalMs);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIdx((i) => (i + 1) % COMPILE_MESSAGE_KEYS.length), intervalMs);
+    return () => clearInterval(timer);
   }, [active, intervalMs]);
-  return COMPILE_MESSAGES[idx];
+  return t(COMPILE_MESSAGE_KEYS[idx]);
 }
 
 // ── Wizard step types ─────────────────────────────────────────────────────────
 type WizardStep = 'identity' | 'avatar' | 'upload' | 'review' | 'done';
 const STEP_ORDER: WizardStep[] = ['identity', 'avatar', 'upload', 'review', 'done'];
-const STEP_LABELS: Record<WizardStep, string> = {
-  identity: 'Class',
-  avatar: 'Mochi',
-  upload: 'Upload',
-  review: 'Review',
-  done: 'Share',
+const STEP_LABEL_KEY: Record<WizardStep, MessageKey> = {
+  identity: 'createClassModalStepClass',
+  avatar: 'createClassModalStepMochi',
+  upload: 'createClassModalStepUpload',
+  review: 'createClassModalStepReview',
+  done: 'createClassModalStepShare',
 };
 
 function Stepper({ current }: { current: WizardStep }) {
+  const { t } = useTranslation();
   const idx = STEP_ORDER.indexOf(current);
   return (
     <div className="flex items-center gap-0 mb-6">
@@ -67,7 +72,7 @@ function Stepper({ current }: { current: WizardStep }) {
                 {done ? '✓' : i + 1}
               </div>
               <span className={`text-[10px] font-medium whitespace-nowrap ${active ? 'text-ink' : 'text-ink3'}`}>
-                {STEP_LABELS[step]}
+                {t(STEP_LABEL_KEY[step])}
               </span>
             </div>
             {i < STEP_ORDER.length - 1 && (
@@ -83,13 +88,14 @@ function Stepper({ current }: { current: WizardStep }) {
 // Hoisted to module scope so it isn't re-created every render (react-hooks
 // static-components). Takes the text as a prop; no parent-scope dependencies.
 function CopyButton({ text }: { text: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition whitespace-nowrap"
     >
-      {copied ? 'Copied!' : 'Copy code'}
+      {copied ? t('createClassModalCopied') : t('createClassModalCopyCode')}
     </button>
   );
 }
@@ -104,6 +110,7 @@ export default function CreateClassModal({
   onClose: () => void;
   onCreated: (cls: OrgClass) => void;
 }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
 
   // ── Shared state ─────────────────────────────────────────────────────────
@@ -179,7 +186,8 @@ export default function CreateClassModal({
   }, [step, brainReady, compileTimedOut]);
 
   const compilingMessage = useRotatingMessage(
-    step === 'review' && !brainReady && !compileTimedOut && !compileFailureReason && !awaitingChapters
+    step === 'review' && !brainReady && !compileTimedOut && !compileFailureReason && !awaitingChapters,
+    t
   );
 
   // Step-4 header is STATE-MATCHED: the "Review… / Approve or reject…" framing appears
@@ -188,14 +196,14 @@ export default function CreateClassModal({
   // by omission (claiming a review is happening above a banner saying nothing exists),
   // so each state gets its own honest title; the banners below carry the detail.
   const reviewHeader = brainReady
-    ? { title: "Review Mochi's lessons", subtitle: 'Approve or reject what Mochi generated from your notes.' }
+    ? { title: t('createClassModalReviewReadyTitle'), subtitle: t('createClassModalReviewReadySubtitle') }
     : compileFailureReason
-      ? { title: 'Compiling failed', subtitle: null }
+      ? { title: t('createClassModalCompileFailedTitle'), subtitle: null }
       : awaitingChapters
-        ? { title: 'Chapters ready to pick', subtitle: null }
+        ? { title: t('createClassModalChaptersReadyTitle'), subtitle: null }
         : compileTimedOut
-          ? { title: 'Still working on it', subtitle: null }
-          : { title: 'Compiling your notes…', subtitle: null };
+          ? { title: t('createClassModalStillWorkingTitle'), subtitle: null }
+          : { title: t('createClassModalCompilingTitle'), subtitle: null };
 
   // ── Step 2 — class creation mutation ─────────────────────────────────────
   const createMut = useMutation({
@@ -225,7 +233,7 @@ export default function CreateClassModal({
           setLangError(
             e instanceof ApiError
               ? e.userMessage
-              : 'Could not set the teaching language — retry before uploading, or this class will generate English content.'
+              : t('createClassModalLangErrorFallback')
           );
           return; // stay on the avatar step; do NOT present the class as configured
         }
@@ -246,7 +254,7 @@ export default function CreateClassModal({
       setStep('upload');
     } catch (e) {
       setLangError(
-        e instanceof ApiError ? e.userMessage : 'Could not set the teaching language — please try again.'
+        e instanceof ApiError ? e.userMessage : t('createClassModalLangRetryErrorFallback')
       );
     } finally {
       setLangRetrying(false);
@@ -299,22 +307,22 @@ export default function CreateClassModal({
           {step === 'identity' && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-bold text-ink">Name your class</h2>
-                <p className="text-ink3 text-xs mt-1">You&apos;ll design the Mochi in the next step.</p>
+                <h2 className="text-lg font-bold text-ink">{t('createClassModalNameYourClass')}</h2>
+                <p className="text-ink3 text-xs mt-1">{t('createClassModalDesignNextStep')}</p>
               </div>
               <div className="bg-panel border border-line rounded-2xl p-4 space-y-3">
                 <label className="block">
-                  <span className="text-xs text-ink2 font-medium">Class name *</span>
+                  <span className="text-xs text-ink2 font-medium">{t('classFormNameLabel')}</span>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="P4 Math"
+                    placeholder={t('classFormNamePlaceholder')}
                     className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                   />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="text-xs text-ink2 font-medium">Subject</span>
+                    <span className="text-xs text-ink2 font-medium">{t('classFormSubjectLabel')}</span>
                     <select
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
@@ -326,17 +334,17 @@ export default function CreateClassModal({
                     </select>
                   </label>
                   <label className="block">
-                    <span className="text-xs text-ink2 font-medium">Level</span>
+                    <span className="text-xs text-ink2 font-medium">{t('classFormLevelLabel')}</span>
                     <input
                       value={level}
                       onChange={(e) => setLevel(e.target.value)}
-                      placeholder="P4"
+                      placeholder={t('classFormLevelPlaceholder')}
                       className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                     />
                   </label>
                 </div>
                 <label className="block">
-                  <span className="text-xs text-ink2 font-medium">Teaching language</span>
+                  <span className="text-xs text-ink2 font-medium">{t('classFormTeachingLanguageLabel')}</span>
                   <select
                     value={contentLanguage}
                     onChange={(e) => setContentLanguage(e.target.value as ContentLanguageCode)}
@@ -347,7 +355,7 @@ export default function CreateClassModal({
                     ))}
                   </select>
                   <span className="mt-1 block text-xs text-ink3">
-                    The Mochi generates lessons, quizzes and chat in this language for material compiled from now on. Changing it later affects only new material.
+                    {t('createClassModalTeachingLanguageHelper')}
                   </span>
                 </label>
               </div>
@@ -358,8 +366,8 @@ export default function CreateClassModal({
           {step === 'avatar' && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-bold text-ink">Design your class Mochi</h2>
-                <p className="text-ink3 text-xs mt-1">Students will learn from this Mochi — make it theirs.</p>
+                <h2 className="text-lg font-bold text-ink">{t('createClassModalDesignMochi')}</h2>
+                <p className="text-ink3 text-xs mt-1">{t('createClassModalStudentsLearnFrom')}</p>
               </div>
               <div className="bg-panel border border-line rounded-2xl p-6 flex flex-col items-center gap-4">
                 <div className="rounded-2xl bg-[#0d0d0d] p-6">
@@ -369,19 +377,19 @@ export default function CreateClassModal({
                   onClick={() => setPickerOpen(true)}
                   className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm font-medium hover:bg-panel2 transition"
                 >
-                  Choose a style or customise ↗
+                  {t('createClassModalChooseStyle')}
                 </button>
               </div>
               {createMut.isError && (
                 <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">
                   {createMut.error instanceof ApiError
                     ? createMut.error.userMessage
-                    : 'Could not create the class. Please try again.'}
+                    : t('createClassModalCreateFailedFallback')}
                 </div>
               )}
               {langError && (
                 <div role="alert" className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">
-                  {langError} The class was created, but its teaching language isn’t set yet — use “Retry &amp; continue” below before uploading.
+                  {langError} {t('createClassModalLangErrorSuffix')}
                 </div>
               )}
             </div>
@@ -395,23 +403,23 @@ export default function CreateClassModal({
                   <MochiAvatar config={mochiConfig} size={40} animate={false} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-ink">{created.name} is ready!</h2>
+                  <h2 className="text-lg font-bold text-ink">{tp.createClassModalReady(created.name)}</h2>
                   <p className="text-ink3 text-xs mt-0.5">
-                    Join code: <span className="font-mono text-accent">{created.joinCode}</span>
+                    {t('createClassModalJoinCodeLabel')} <span className="font-mono text-accent">{created.joinCode}</span>
                   </p>
                 </div>
                 <button
                   onClick={() => setPickerOpen(true)}
                   className="ml-auto px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-panel2 transition whitespace-nowrap shrink-0"
                 >
-                  Customise Mochi ↗
+                  {t('createClassModalCustomiseMochi')}
                 </button>
               </div>
 
               <div className="bg-accent/5 border border-accent/20 rounded-xl px-4 py-3 text-xs text-ink2 leading-relaxed">
-                Upload your teaching notes, worksheets, or PDFs below. Mochi will compile them into
-                lessons and quiz questions — this typically takes <strong className="text-ink">1–3 minutes</strong>.
-                Larger files may occasionally take longer.
+                {t('createClassModalUploadInstructionsPrefix')}
+                <strong className="text-ink">{t('createClassModalUploadInstructionsBold')}</strong>
+                {t('createClassModalUploadInstructionsSuffix')}
               </div>
 
               {created.corpusAvatarId && (
@@ -455,10 +463,9 @@ export default function CreateClassModal({
                   timeout: this compile is NOT going to finish on its own. */}
               {!brainReady && compileFailureReason && (
                 <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-4 space-y-2">
-                  <p className="text-sm font-semibold text-bad">⚠ Compiling failed</p>
+                  <p className="text-sm font-semibold text-bad">⚠ {t('createClassModalCompileFailedTitle')}</p>
                   <p className="text-xs text-ink2">
-                    {compileFailureReason} Your files are saved — reopen this class from the
-                    dashboard to recompile, or skip to finish setup for now.
+                    {compileFailureReason} {t('createClassModalCompileFailedBodySuffix')}
                   </p>
                 </div>
               )}
@@ -469,11 +476,10 @@ export default function CreateClassModal({
               {!brainReady && !compileFailureReason && awaitingChapters && (
                 <div className="bg-accent/5 border border-accent/20 rounded-xl px-4 py-4 space-y-2">
                   <p className="text-sm font-semibold text-accent">
-                    📖 {pendingChapterCount > 0 ? `${pendingChapterCount} chapters` : 'Chapters'} ready to pick
+                    📖 {tp.createClassModalChaptersReady(pendingChapterCount)}
                   </p>
                   <p className="text-xs text-ink2">
-                    Your upload was large, so Mochi split it into chapters. Open this class from
-                    the dashboard to choose which chapters to compile into lessons.
+                    {t('createClassModalChaptersBody')}
                   </p>
                 </div>
               )}
@@ -489,11 +495,11 @@ export default function CreateClassModal({
                     <p className="text-sm font-medium text-ink">{compilingMessage}</p>
                     {pagesTotal != null && pagesTotal > 0 && (
                       <p className="text-xs text-ink3">
-                        {pagesCompiled ?? 0} / {pagesTotal} pages compiled
+                        {tp.createClassModalPagesCompiled(pagesCompiled ?? 0, pagesTotal)}
                       </p>
                     )}
                     <p className="text-[11px] text-ink3 mt-2">
-                      Compilation usually takes 1–3 minutes. This tab will update automatically.
+                      {t('createClassModalCompilingSubtext')}
                     </p>
                   </div>
                 </div>
@@ -502,10 +508,9 @@ export default function CreateClassModal({
               {/* Timeout fallback */}
               {!brainReady && !compileFailureReason && !awaitingChapters && compileTimedOut && (
                 <div className="bg-warn/10 border border-warn/30 rounded-xl px-4 py-4 space-y-2">
-                  <p className="text-sm font-semibold text-warn">⏱ This is taking longer than usual</p>
+                  <p className="text-sm font-semibold text-warn">{t('createClassModalTimeoutHeading')}</p>
                   <p className="text-xs text-ink2">
-                    The brain is still compiling in the background — it may be processing a large file.
-                    You can skip to finish setup now and check the Review tab from the class page once it&apos;s done.
+                    {t('createClassModalTimeoutBody')}
                   </p>
                 </div>
               )}
@@ -530,12 +535,12 @@ export default function CreateClassModal({
                     <MochiAvatar config={mochiConfig} size={100} />
                   </div>
                 </div>
-                <h2 className="text-xl font-bold text-ink">Your class is live! 🎉</h2>
-                <p className="text-ink3 text-sm">{created.name} is ready for students to join.</p>
+                <h2 className="text-xl font-bold text-ink">{t('createClassModalClassLive')}</h2>
+                <p className="text-ink3 text-sm">{tp.createClassModalReadyForStudents(created.name)}</p>
               </div>
 
               <div className="bg-accent/5 border border-accent/20 rounded-2xl p-5 text-center space-y-3">
-                <p className="text-xs font-semibold text-ink2 uppercase tracking-wider">Join code</p>
+                <p className="text-xs font-semibold text-ink2 uppercase tracking-wider">{t('createClassModalJoinCodeHeading')}</p>
                 <p className="text-4xl font-bold font-mono text-ink tracking-widest">{created.joinCode}</p>
                 <CopyButton text={created.joinCode} />
               </div>
@@ -543,9 +548,9 @@ export default function CreateClassModal({
               <div className="bg-panel border border-line rounded-xl px-4 py-3 flex items-start gap-3 text-sm text-ink2">
                 <span className="text-lg shrink-0">🎓</span>
                 <p>
-                  Students open the Apalchi app → Home →{' '}
-                  <span className="font-semibold text-ink">&ldquo;Got a class code?&rdquo;</span>{' '}
-                  and enter the code above to join instantly.
+                  {t('createClassModalStudentsJoinPrefix')}
+                  <span className="font-semibold text-ink">{t('createClassModalStudentsJoinBold')}</span>
+                  {t('createClassModalStudentsJoinSuffix')}
                 </p>
               </div>
             </div>
@@ -561,7 +566,7 @@ export default function CreateClassModal({
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition"
               >
-                Cancel
+                {t('classFormCancel')}
               </button>
             )}
             {step === 'avatar' && (
@@ -569,12 +574,12 @@ export default function CreateClassModal({
                 onClick={() => setStep('identity')}
                 className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition"
               >
-                ← Back
+                {t('createClassModalBack')}
               </button>
             )}
             {(step === 'upload' || step === 'review') && (
               <p className="text-xs text-ink3">
-                Class created · join code{' '}
+                {t('createClassModalClassCreatedPrefix')}{' '}
                 <span className="font-mono text-accent">{created?.joinCode}</span>
               </p>
             )}
@@ -588,7 +593,7 @@ export default function CreateClassModal({
                 onClick={() => setStep('done')}
                 className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition"
               >
-                Skip for now
+                {t('createClassModalSkipForNow')}
               </button>
             )}
 
@@ -598,7 +603,7 @@ export default function CreateClassModal({
                 disabled={!name.trim()}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
               >
-                Next →
+                {t('createClassModalNext')}
               </button>
             )}
 
@@ -609,10 +614,10 @@ export default function CreateClassModal({
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
               >
                 {createMut.isPending || langRetrying
-                  ? 'Working…'
+                  ? t('createClassModalWorking')
                   : created
-                    ? 'Retry & continue →'
-                    : 'Create class & continue →'}
+                    ? t('createClassModalRetryContinue')
+                    : t('createClassModalCreateContinue')}
               </button>
             )}
 
@@ -625,9 +630,9 @@ export default function CreateClassModal({
                 onClick={() => advance()}
                 disabled={!canContinue}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
-                title={!canContinue ? 'Upload at least one file first' : undefined}
+                title={!canContinue ? t('createClassModalUploadFirstTitle') : undefined}
               >
-                Continue to review →
+                {t('createClassModalContinueToReview')}
               </button>
             )}
 
@@ -636,7 +641,7 @@ export default function CreateClassModal({
                 onClick={() => setStep('done')}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
               >
-                Looks good — continue →
+                {t('createClassModalLooksGoodContinue')}
               </button>
             )}
 
@@ -645,7 +650,7 @@ export default function CreateClassModal({
                 onClick={() => created && onCreated(created)}
                 className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
               >
-                Done
+                {t('createClassModalDone')}
               </button>
             )}
           </div>

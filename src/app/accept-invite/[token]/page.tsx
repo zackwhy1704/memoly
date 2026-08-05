@@ -5,11 +5,13 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { getToken } from '@/lib/auth';
+import { useTranslation } from '@/lib/messages';
 
 type Phase = 'loading' | 'preview' | 'confirming' | 'done' | 'error';
 type InviteRole = 'OWNER' | 'STAFF';
 
 export default function AcceptInvitePage() {
+  const { t, tp } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const router = useRouter();
 
@@ -18,6 +20,11 @@ export default function AcceptInvitePage() {
   const [role, setRole]           = useState<InviteRole>('OWNER');
   const [orgId, setOrgId]         = useState('');
   const [errorMsg, setErrorMsg]   = useState('');
+  // Primitive string, not the `t` function itself — stable across renders
+  // unless the locale actually changes, so it's a safe, correct effect dep
+  // (unlike `t`, which is a fresh closure every render and would re-fire
+  // this fetch on every unrelated re-render if listed directly).
+  const loadErrorFallback = t('acceptInviteLoadErrorFallback');
 
   useEffect(() => {
     if (!token) return;
@@ -31,11 +38,11 @@ export default function AcceptInvitePage() {
         setErrorMsg(
           err instanceof ApiError
             ? err.userMessage
-            : 'Could not load invite details.'
+            : loadErrorFallback
         );
         setPhase('error');
       });
-  }, [token]);
+  }, [token, loadErrorFallback]);
 
   async function handleAccept() {
     if (phase === 'confirming') return;
@@ -50,7 +57,7 @@ export default function AcceptInvitePage() {
       setPhase('done');
     } catch (err) {
       setErrorMsg(
-        err instanceof ApiError ? err.userMessage : 'Could not accept invite.'
+        err instanceof ApiError ? err.userMessage : t('acceptInviteAcceptErrorFallback')
       );
       setPhase('error');
     }
@@ -81,25 +88,25 @@ export default function AcceptInvitePage() {
       />
 
       {phase === 'loading' && (
-        <p style={{ color: '#6B618A', fontSize: 15 }}>Loading invite…</p>
+        <p style={{ color: '#6B618A', fontSize: 15 }}>{t('acceptInviteLoading')}</p>
       )}
 
       {phase === 'preview' && (
         <>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-            {isOwner ? "You're invited to join Apalchi" : `Join ${centreName} as a teacher`}
+            {isOwner ? t('acceptInviteOwnerTitle') : tp.acceptInviteStaffTitle(centreName)}
           </h1>
           <p style={{ color: '#6B618A', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 8 }}>
             {isOwner ? (
-              <>Set up{' '}<strong style={{ color: '#1F1733' }}>{centreName}</strong>{' '}as your centre on Apalchi.</>
+              <>{t('acceptInviteOwnerBodyPrefix')}<strong style={{ color: '#1F1733' }}>{centreName}</strong>{t('acceptInviteOwnerBodySuffix')}</>
             ) : (
-              <>You&apos;ve been invited to teach at{' '}<strong style={{ color: '#1F1733' }}>{centreName}</strong>.</>
+              <>{t('acceptInviteStaffBodyPrefix')}<strong style={{ color: '#1F1733' }}>{centreName}</strong>{t('acceptInviteStaffBodySuffix')}</>
             )}
           </p>
           <p style={{ color: '#A8A0BD', fontSize: 13, marginBottom: 32 }}>
             {getToken()
-              ? (isOwner ? 'Click below to create your centre.' : 'Click below to join the centre.')
-              : 'Sign in first, then come back to this link.'}
+              ? (isOwner ? t('acceptInviteClickCreateCentre') : t('acceptInviteClickJoinCentre'))
+              : t('acceptInviteSignInFirst')}
           </p>
           <button
             onClick={handleAccept}
@@ -115,33 +122,33 @@ export default function AcceptInvitePage() {
             }}
           >
             {getToken()
-              ? (isOwner ? 'Accept & create centre' : 'Accept & join centre')
-              : 'Sign in to accept'}
+              ? (isOwner ? t('acceptInviteAcceptCreateCentre') : t('acceptInviteAcceptJoinCentre'))
+              : t('acceptInviteSignInToAccept')}
           </button>
         </>
       )}
 
       {phase === 'confirming' && (
         <p style={{ color: '#6B618A', fontSize: 15 }}>
-          {isOwner ? 'Creating your centre…' : 'Joining centre…'}
+          {isOwner ? t('acceptInviteCreatingCentre') : t('acceptInviteJoiningCentre')}
         </p>
       )}
 
       {phase === 'done' && (
         <>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-            {isOwner ? 'Centre created!' : 'You\'re in!'}
+            {isOwner ? t('acceptInviteCentreCreated') : t('acceptInviteYoureIn')}
           </h1>
           <p style={{ color: '#6B618A', fontSize: 15, maxWidth: 360, lineHeight: 1.6, marginBottom: 32 }}>
             {isOwner ? (
-              <>Your centre <strong>{centreName}</strong> is live — set up classes and invite students.</>
+              <>{t('acceptInviteOwnerDonePrefix')}<strong>{centreName}</strong>{t('acceptInviteOwnerDoneSuffix')}</>
             ) : (
-              <>You&apos;ve joined <strong>{centreName}</strong> as a teacher. Head to your dashboard to get started.</>
+              <>{t('acceptInviteStaffDonePrefix')}<strong>{centreName}</strong>{t('acceptInviteStaffDoneSuffix')}</>
             )}
           </p>
           {isOwner && (
             <p style={{ color: '#A8A0BD', fontSize: 11, marginBottom: 24, fontFamily: 'monospace' }}>
-              org id: {orgId}
+              {t('acceptInviteOrgIdLabel')}{orgId}
             </p>
           )}
           <button
@@ -157,7 +164,7 @@ export default function AcceptInvitePage() {
               cursor: 'pointer',
             }}
           >
-            Go to dashboard
+            {t('acceptInviteGoToDashboard')}
           </button>
         </>
       )}
@@ -165,7 +172,7 @@ export default function AcceptInvitePage() {
       {phase === 'error' && (
         <>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1F1733', marginBottom: 8 }}>
-            Something went wrong
+            {t('acceptInviteSomethingWrong')}
           </h1>
           <p style={{ color: '#FF6660', fontSize: 14, maxWidth: 360, marginBottom: 24 }}>
             {errorMsg}
@@ -174,7 +181,7 @@ export default function AcceptInvitePage() {
             href="/"
             style={{ color: '#4C6FFF', fontWeight: 700, fontSize: 14 }}
           >
-            Go home
+            {t('acceptInviteGoHome')}
           </a>
         </>
       )}

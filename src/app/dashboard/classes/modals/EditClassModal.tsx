@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { api, type OrgClass } from '@/lib/api';
 import { CENTRE_SUBJECTS } from '@/lib/centre-mochis';
 import { CONTENT_LANGUAGES, type ContentLanguageCode } from '@/lib/content-languages';
+import { useTranslation } from '@/lib/messages';
 
 export default function EditClassModal({
   orgId,
@@ -17,6 +18,7 @@ export default function EditClassModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [name, setName] = useState(cls.name);
   const [subject, setSubject] = useState(cls.subject ?? 'GENERAL');
@@ -64,22 +66,22 @@ export default function EditClassModal({
         className="bg-panel border border-line rounded-2xl w-full max-w-md p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-ink">Edit class</h2>
+        <h2 className="text-lg font-bold text-ink">{t('editClassModalHeading')}</h2>
 
         <div className="space-y-3">
           <label className="block">
-            <span className="text-xs text-ink2 font-medium">Class name *</span>
+            <span className="text-xs text-ink2 font-medium">{t('classFormNameLabel')}</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="P4 Math"
+              placeholder={t('classFormNamePlaceholder')}
               className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs text-ink2 font-medium">Subject</span>
+              <span className="text-xs text-ink2 font-medium">{t('classFormSubjectLabel')}</span>
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
@@ -94,17 +96,17 @@ export default function EditClassModal({
             </label>
 
             <label className="block">
-              <span className="text-xs text-ink2 font-medium">Level</span>
+              <span className="text-xs text-ink2 font-medium">{t('classFormLevelLabel')}</span>
               <input
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                placeholder="P4"
+                placeholder={t('classFormLevelPlaceholder')}
                 className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
               />
             </label>
           </div>
           <label className="block">
-            <span className="text-xs text-ink2 font-medium">Teaching language</span>
+            <span className="text-xs text-ink2 font-medium">{t('classFormTeachingLanguageLabel')}</span>
             <select
               value={contentLanguage}
               onChange={(e) => setLanguageOverride(e.target.value as ContentLanguageCode)}
@@ -116,16 +118,16 @@ export default function EditClassModal({
               ))}
             </select>
             <span className="mt-1 block text-xs text-ink3">
-              Changing this affects only material compiled from now on — existing lessons and quizzes keep the language they were created in.
+              {t('editClassModalTeachingLanguageHelper')}
             </span>
           </label>
         </div>
 
         {mut.isError && (
           <p className="text-xs text-bad">
-            {(mut.error as Error)?.message || 'Could not save. Please try again.'}
+            {(mut.error as Error)?.message || t('editClassModalSaveError')}
             {' '}
-            <button className="underline" onClick={() => mut.mutate()}>Retry</button>
+            <button className="underline" onClick={() => mut.mutate()}>{t('editClassModalRetry')}</button>
           </p>
         )}
 
@@ -134,14 +136,14 @@ export default function EditClassModal({
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition"
           >
-            Cancel
+            {t('classFormCancel')}
           </button>
           <button
             onClick={() => mut.mutate()}
             disabled={!name.trim() || mut.isPending}
             className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
           >
-            {mut.isPending ? 'Saving…' : 'Save changes'}
+            {mut.isPending ? t('editClassModalSaving') : t('editClassModalSaveChanges')}
           </button>
         </div>
       </div>

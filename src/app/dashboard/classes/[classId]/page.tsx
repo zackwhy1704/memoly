@@ -5,12 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   SECTIONS,
-  SUBTAB_LABEL,
+  SUBTAB_LABEL_KEY,
   DEFAULT_TAB,
   isTab,
   sectionOf,
   type Tab,
 } from './sections';
+import { useTranslation } from '@/lib/messages';
 import { TourOverlay } from './TourOverlay';
 import { firstRunLandingTab } from './tourSteps';
 import { isTourSeen, markTourSeen } from './tourStorage';
@@ -34,6 +35,7 @@ import TabErrorBoundary from '@/components/TabErrorBoundary';
 import { TeachFlow } from './teach/TeachFlow';
 
 export default function ClassDetailPage() {
+  const { t, tp } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const org = useOrg();
@@ -128,10 +130,10 @@ export default function ClassDetailPage() {
     return (
       <div className="max-w-3xl space-y-4">
         <button onClick={() => router.push('/dashboard/classes')} className="text-ink3 text-sm hover:text-ink">
-          ← Back to classes
+          {t('classDetailBackToClasses')}
         </button>
         <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">
-          Class not found.
+          {t('classDetailNotFound')}
         </div>
       </div>
     );
@@ -142,7 +144,7 @@ export default function ClassDetailPage() {
   return (
     <div className="max-w-5xl space-y-6">
       <button onClick={() => router.push('/dashboard/classes')} className="text-ink3 text-sm hover:text-ink transition">
-        ← Back to classes
+        {t('classDetailBackToClasses')}
       </button>
 
       {/* Header */}
@@ -165,20 +167,20 @@ export default function ClassDetailPage() {
             <button
               onClick={() => setEditingClass(true)}
               className="text-ink3 hover:text-ink transition shrink-0 text-sm leading-none"
-              title="Edit class"
+              title={t('classDetailEditClass')}
             >
               ✏️
             </button>
             <button
               onClick={() => setDeletingClass(true)}
               className="text-ink3 hover:text-bad transition shrink-0 text-sm leading-none"
-              title="Delete class"
+              title={t('classDetailDeleteClass')}
             >
               🗑
             </button>
           </div>
           <p className="text-ink3 text-sm">
-            {[cls.subject, cls.level].filter(Boolean).join(' · ') || 'No subject set'} · {cls.studentCount} students
+            {[cls.subject, cls.level].filter(Boolean).join(' · ') || t('classesPageNoSubjectSet')} · {tp.classesPageStudentCount(cls.studentCount)}
           </p>
         </div>
         <ClassCodeBox code={cls.joinCode} />
@@ -188,9 +190,7 @@ export default function ClassDetailPage() {
       <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 flex items-start gap-3">
         <span className="text-xl leading-none">🎓</span>
         <p className="text-ink2 text-sm leading-relaxed">
-          Share the <span className="font-semibold text-ink">join code</span> above. Students open the
-          Apalchi app → Home → <span className="font-semibold text-ink">&ldquo;Got a class code?&rdquo;</span>{' '}
-          and enter it. They join this class instantly and get its Mochi — no separate centre code needed.
+          {t('classDetailJoinInstructionsPrefix')}<span className="font-semibold text-ink">{t('classDetailJoinCodeBold')}</span>{t('classDetailJoinInstructionsMid')}<span className="font-semibold text-ink">{t('classDetailGotClassCodeBold')}</span>{t('classDetailJoinInstructionsSuffix')}
         </p>
       </div>
 
@@ -207,7 +207,7 @@ export default function ClassDetailPage() {
                 active ? 'border-accent text-ink' : 'border-transparent text-ink3 hover:text-ink2'
               }`}
             >
-              {s.label}
+              {t(s.labelKey)}
             </button>
           );
         })}
@@ -220,18 +220,18 @@ export default function ClassDetailPage() {
         if (!section || section.subtabs.length <= 1 || section.key === 'teach') return null;
         return (
           <div className="flex gap-1.5 flex-wrap">
-            {section.subtabs.map((t) => (
+            {section.subtabs.map((subtab) => (
               <button
-                key={t}
-                data-tour={`subtab-${t}`}
-                onClick={() => selectTab(t)}
+                key={subtab}
+                data-tour={`subtab-${subtab}`}
+                onClick={() => selectTab(subtab)}
                 className={`px-3 py-1.5 text-sm rounded-full transition ${
-                  tab === t
+                  tab === subtab
                     ? 'bg-accent text-white'
                     : 'bg-panel2 text-ink3 hover:text-ink2'
                 }`}
               >
-                {SUBTAB_LABEL[t]}
+                {t(SUBTAB_LABEL_KEY[subtab])}
               </button>
             ))}
           </div>
@@ -244,8 +244,8 @@ export default function ClassDetailPage() {
           onClick={() => selectTab('content')}
           className="w-full text-left px-4 py-3 rounded-xl bg-warn/10 border border-warn/30 text-sm text-warn font-medium hover:bg-warn/15 transition"
         >
-          This class has no content yet — upload notes so the Mochi can teach.{' '}
-          <span className="underline">Open Brain →</span>
+          {t('classDetailEmptyBrainBannerPrefix')}{' '}
+          <span className="underline">{t('classDetailOpenBrain')}</span>
         </button>
       )}
 
@@ -286,14 +286,13 @@ export default function ClassDetailPage() {
             className="bg-panel border border-line rounded-2xl w-full max-w-sm p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-ink">Delete &ldquo;{cls.name}&rdquo;?</h2>
+            <h2 className="text-lg font-bold text-ink">{tp.classesPageDeleteConfirmHeading(cls.name)}</h2>
             <p className="text-sm text-ink2">
-              This permanently deletes the class, its brain, all modules, and all student memberships.
-              Students lose access immediately.{' '}
-              <strong className="text-bad">This cannot be undone.</strong>
+              {t('classDetailDeleteWarningBody')}{' '}
+              <strong className="text-bad">{t('classesPageDeleteWarningBold')}</strong>
             </p>
             {deleteMut.isError && (
-              <p className="text-xs text-bad">Could not delete. Please try again.</p>
+              <p className="text-xs text-bad">{t('classesPageDeleteError')}</p>
             )}
             <div className="flex justify-end gap-3">
               <button
@@ -301,14 +300,14 @@ export default function ClassDetailPage() {
                 disabled={deleteMut.isPending}
                 className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition disabled:opacity-40"
               >
-                Cancel
+                {t('classesPageCancel')}
               </button>
               <button
                 onClick={() => deleteMut.mutate()}
                 disabled={deleteMut.isPending}
                 className="px-4 py-2 rounded-lg bg-bad text-white text-sm font-semibold hover:bg-bad/90 transition disabled:opacity-40"
               >
-                {deleteMut.isPending ? 'Deleting…' : 'Delete class'}
+                {deleteMut.isPending ? t('classesPageDeleting') : t('classesPageDeleteClassButton')}
               </button>
             </div>
           </div>

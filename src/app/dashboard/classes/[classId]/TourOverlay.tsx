@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { trackEvent } from '@/lib/analytics';
 import { TOUR_STEPS, type TourStep } from './tourSteps';
 import type { Tab } from './sections';
+import { useTranslation } from '@/lib/messages';
 
 interface Rect { top: number; left: number; width: number; height: number }
 
@@ -23,6 +24,7 @@ export function TourOverlay({
   onClose: (reason: 'completed' | 'skipped') => void;
   steps?: TourStep[];
 }) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -100,12 +102,12 @@ export function TourOverlay({
       className="fixed inset-0 z-[100]"
       role="dialog"
       aria-modal="true"
-      aria-label="Feature tour"
+      aria-label={t('tourAriaLabel')}
       onKeyDown={onKeyDown}
     >
       {/* Dimmed backdrop — click to skip */}
       <button
-        aria-label="Skip tour"
+        aria-label={t('tourSkipAriaLabel')}
         className="absolute inset-0 h-full w-full cursor-default bg-black/60"
         onClick={skip}
       />
@@ -142,15 +144,15 @@ export function TourOverlay({
             />
           ))}
         </div>
-        <h3 className="text-base font-semibold text-ink">{step.title}</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-ink2">{step.body}</p>
+        <h3 className="text-base font-semibold text-ink">{t(step.titleKey)}</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink2">{t(step.bodyKey)}</p>
         <div className="mt-4 flex items-center justify-between">
           {!isLast ? (
             <button
               onClick={skip}
               className="text-xs font-medium text-ink3 hover:text-ink2"
             >
-              Skip
+              {t('tourSkip')}
             </button>
           ) : (
             <span />
@@ -159,7 +161,7 @@ export function TourOverlay({
             onClick={next}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
           >
-            {step.cta ?? (isLast ? 'Done' : 'Next')}
+            {step.ctaKey ? t(step.ctaKey) : t(isLast ? 'tourDone' : 'tourNext')}
           </button>
         </div>
       </div>

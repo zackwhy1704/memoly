@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useTranslation } from '@/lib/messages';
 
 type View =
   | { state: 'email_entry' }
@@ -30,6 +31,7 @@ function formatDate(iso: string | null): string | null {
 }
 
 function DeleteAccountBody() {
+  const { t, tp } = useTranslation();
   const params = useSearchParams();
   const token = params.get('token');
   const [email, setEmail] = useState('');
@@ -56,7 +58,7 @@ function DeleteAccountBody() {
           setView({ state: 'rate_limited' });
         } else {
           // Still don't reveal existence — a generic failure, retryable.
-          setView({ state: 'error', message: 'Please try again in a moment.' });
+          setView({ state: 'error', message: t('deleteAccountGenericErrorFallback') });
         }
       });
   }
@@ -84,7 +86,7 @@ function DeleteAccountBody() {
           const message =
             err instanceof ApiError
               ? err.userMessage
-              : 'An unexpected error occurred.';
+              : t('deleteAccountUnexpectedErrorFallback');
           setView({ state: 'error', message });
         }
       });
@@ -95,45 +97,43 @@ function DeleteAccountBody() {
       {view.state === 'email_entry' && (
         <form onSubmit={requestByEmail} className={CARD}>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">
-            Delete your Apalchi account
+            {t('deleteAccountEmailEntryHeading')}
           </h2>
           <p className="text-[#6B618A] text-sm mb-5">
-            Enter your account email and we&apos;ll send you a link to confirm.
-            Deleting is permanent after a 14-day restore window.
+            {t('deleteAccountEmailEntryBody')}
           </p>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@email.com"
-            aria-label="Email address"
+            placeholder={t('deleteAccountEmailPlaceholder')}
+            aria-label={t('deleteAccountEmailAriaLabel')}
             className="w-full border border-[#E0DAF0] rounded-xl px-4 py-3 text-sm text-[#1F1733] mb-4 focus:outline-none focus:border-[#4C6FFF]"
           />
           <button
             type="submit"
             className="w-full bg-[#E5484D] hover:bg-[#cf3f43] text-white font-semibold rounded-xl py-3 transition"
           >
-            Email me a deletion link
+            {t('deleteAccountEmailMeButton')}
           </button>
         </form>
       )}
 
       {view.state === 'email_sent' && (
         <div className={CARD}>
-          <h2 className="text-lg font-bold text-[#1F1733] mb-2">Check your email</h2>
+          <h2 className="text-lg font-bold text-[#1F1733] mb-2">{t('deleteAccountCheckEmailHeading')}</h2>
           <p className="text-[#6B618A] text-sm">
-            If an account exists for that email, we&apos;ve sent a link to confirm
-            deletion. The link expires in 1 hour.
+            {t('deleteAccountCheckEmailBody')}
           </p>
         </div>
       )}
 
       {view.state === 'rate_limited' && (
         <div className={CARD}>
-          <h2 className="text-lg font-bold text-[#1F1733] mb-2">Too many requests</h2>
+          <h2 className="text-lg font-bold text-[#1F1733] mb-2">{t('deleteAccountRateLimitedHeading')}</h2>
           <p className="text-[#6B618A] text-sm">
-            You&apos;ve tried a few times — please wait a little while and try again.
+            {t('deleteAccountRateLimitedBody')}
           </p>
         </div>
       )}
@@ -141,18 +141,16 @@ function DeleteAccountBody() {
       {view.state === 'confirm' && (
         <div className={CARD}>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">
-            Confirm account deletion
+            {t('deleteAccountConfirmHeading')}
           </h2>
           <p className="text-[#6B618A] text-sm mb-5">
-            This permanently deletes your Apalchi account and all your data. You
-            have 14 days to restore it by signing back in; after that it is gone
-            for good.
+            {t('deleteAccountConfirmBody')}
           </p>
           <button
             onClick={confirmDeletion}
             className="w-full bg-[#E5484D] hover:bg-[#cf3f43] text-white font-semibold rounded-xl py-3 transition"
           >
-            Delete my account
+            {t('deleteAccountDeleteButton')}
           </button>
         </div>
       )}
@@ -160,7 +158,7 @@ function DeleteAccountBody() {
       {view.state === 'loading' && (
         <div className="mt-8 flex flex-col items-center gap-4">
           <span className="w-8 h-8 border-4 border-[#4C6FFF] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#6B618A] text-sm">Working…</p>
+          <p className="text-[#6B618A] text-sm">{t('createClassModalWorking')}</p>
         </div>
       )}
 
@@ -168,13 +166,13 @@ function DeleteAccountBody() {
         <div className={CARD}>
           <div className="text-4xl mb-4">🗓️</div>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">
-            Your account is scheduled for deletion
+            {t('deleteAccountScheduledHeading')}
           </h2>
           <p className="text-[#6B618A] text-sm">
             {formatDate(view.graceEndsAt)
-              ? `It will be permanently deleted on ${formatDate(view.graceEndsAt)}. `
-              : 'It will be permanently deleted after the 14-day restore window. '}
-            Changed your mind? Sign back in before then to restore it.
+              ? tp.deleteAccountScheduledBodyWithDate(formatDate(view.graceEndsAt)!)
+              : t('deleteAccountScheduledBodyNoDate')}
+            {t('deleteAccountScheduledSuffix')}
           </p>
         </div>
       )}
@@ -183,11 +181,10 @@ function DeleteAccountBody() {
         <div className={CARD}>
           <div className="text-4xl mb-4">🏫</div>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">
-            Close your centre first
+            {t('deleteAccountCentreFirstHeading')}
           </h2>
           <p className="text-[#6B618A] text-sm">
-            This account owns a centre that still has classes, students, or staff.
-            Please transfer or close your centre before deleting your account.
+            {t('deleteAccountCentreFirstBody')}
           </p>
         </div>
       )}
@@ -195,10 +192,9 @@ function DeleteAccountBody() {
       {view.state === 'invalid_or_expired' && (
         <div className={CARD}>
           <div className="text-4xl mb-4">🔍</div>
-          <h2 className="text-lg font-bold text-[#1F1733] mb-2">Link expired</h2>
+          <h2 className="text-lg font-bold text-[#1F1733] mb-2">{t('deleteAccountLinkExpiredHeading')}</h2>
           <p className="text-[#6B618A] text-sm">
-            This deletion link is invalid or has expired. Request a new one from
-            the delete-account page.
+            {t('deleteAccountLinkExpiredBody')}
           </p>
         </div>
       )}
@@ -207,7 +203,7 @@ function DeleteAccountBody() {
         <div className={CARD}>
           <div className="text-4xl mb-4">⚠️</div>
           <h2 className="text-lg font-bold text-[#1F1733] mb-2">
-            Something went wrong
+            {t('acceptInviteSomethingWrong')}
           </h2>
           <p className="text-[#6B618A] text-sm">{view.message}</p>
         </div>
@@ -216,27 +212,31 @@ function DeleteAccountBody() {
   );
 }
 
+function DeleteAccountSuspenseFallback() {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-8 flex flex-col items-center gap-4">
+      <span className="w-8 h-8 border-4 border-[#4C6FFF] border-t-transparent rounded-full animate-spin" />
+      <p className="text-[#6B618A] text-sm">{t('accountPageLoading')}</p>
+    </div>
+  );
+}
+
 export default function DeleteAccountPage() {
+  const { t } = useTranslation();
   return (
     <main className="min-h-screen bg-[#FAFAFF] flex items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
         <Image
           src="/mochi-base.png"
-          alt="Mochi, the Apalchi mascot"
+          alt={t('deleteAccountMascotAlt')}
           width={128}
           height={128}
           priority
           className="mx-auto mb-4 h-28 w-28 object-contain"
         />
-        <h1 className="text-2xl font-extrabold text-[#1F1733] mb-2">Apalchi</h1>
-        <Suspense
-          fallback={
-            <div className="mt-8 flex flex-col items-center gap-4">
-              <span className="w-8 h-8 border-4 border-[#4C6FFF] border-t-transparent rounded-full animate-spin" />
-              <p className="text-[#6B618A] text-sm">Loading…</p>
-            </div>
-          }
-        >
+        <h1 className="text-2xl font-extrabold text-[#1F1733] mb-2">{t('appName')}</h1>
+        <Suspense fallback={<DeleteAccountSuspenseFallback />}>
           <DeleteAccountBody />
         </Suspense>
       </div>

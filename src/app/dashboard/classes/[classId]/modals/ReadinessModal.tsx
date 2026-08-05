@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { api } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
+import { useTranslation } from '@/lib/messages';
 
 /**
  * Pre-class readiness view (Phase 2 payoff): a per-student weak-concept map over
@@ -21,6 +22,7 @@ export function ReadinessModal({
   assignmentId: string;
   onClose: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const query = useQuery({
     queryKey: ['assignmentReadiness', orgId, classId, assignmentId],
     queryFn: () => api.assignmentReadiness(orgId, classId, assignmentId),
@@ -45,9 +47,9 @@ export function ReadinessModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div>
-            <h2 className="text-sm font-bold text-ink">Pre-class readiness</h2>
+            <h2 className="text-sm font-bold text-ink">{t('readinessModalHeading')}</h2>
             <p className="text-[11px] text-ink3 mt-0.5">
-              Where each student is shaky on the prerequisites — teach to the gaps.
+              {t('readinessModalSubtitle')}
             </p>
           </div>
           <button onClick={onClose} className="text-ink3 hover:text-ink text-lg leading-none">
@@ -57,12 +59,12 @@ export function ReadinessModal({
 
         <div className="px-5 py-5">
           {query.isLoading ? (
-            <p className="text-ink3 text-xs">Loading readiness…</p>
+            <p className="text-ink3 text-xs">{t('readinessModalLoading')}</p>
           ) : query.error ? (
-            <ErrorView message="Could not load readiness." onRetry={() => query.refetch()} />
+            <ErrorView message={t('readinessModalCouldNotLoad')} onRetry={() => query.refetch()} />
           ) : students.length === 0 ? (
             <p className="text-ink3 text-xs">
-              No prerequisite data yet — students need attempted modules on the selected prior topics.
+              {t('readinessModalEmpty')}
             </p>
           ) : (
             <div className="space-y-3">
@@ -73,14 +75,14 @@ export function ReadinessModal({
                   <div key={s.userId} className="border border-line rounded-xl px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-ink">
-                        {s.displayName || `Student ${s.userId.slice(0, 8)}`}
+                        {s.displayName || tp.readinessModalStudentFallback(s.userId.slice(0, 8))}
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           s.weakCount > 0 ? 'bg-bad/20 text-bad' : 'bg-ok/20 text-ok'
                         }`}
                       >
-                        {s.weakCount > 0 ? `${s.weakCount} weak` : 'ready'}
+                        {s.weakCount > 0 ? tp.readinessModalWeakCount(s.weakCount) : t('readinessModalReady')}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -88,7 +90,7 @@ export function ReadinessModal({
                         <span
                           key={c.slug}
                           className="px-2 py-0.5 rounded-md text-[11px] bg-bad/15 text-bad"
-                          title={c.masteryPct != null ? `${Math.round(c.masteryPct)}% mastery` : undefined}
+                          title={c.masteryPct != null ? tp.readinessModalMasteryTitle(Math.round(c.masteryPct)) : undefined}
                         >
                           {c.title}
                           {c.masteryPct != null ? ` · ${Math.round(c.masteryPct)}%` : ''}
@@ -103,7 +105,7 @@ export function ReadinessModal({
                         </span>
                       ))}
                       {weak.length === 0 && strong.length === 0 && (
-                        <span className="text-[11px] text-ink3">No attempted prerequisites yet.</span>
+                        <span className="text-[11px] text-ink3">{t('readinessModalNoAttempted')}</span>
                       )}
                     </div>
                   </div>

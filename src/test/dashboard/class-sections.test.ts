@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   SECTIONS,
-  SUBTAB_LABEL,
+  SUBTAB_LABEL_KEY,
   sectionOf,
   isTab,
   type Tab,
@@ -13,7 +13,7 @@ import {
  * correctly and no view is dropped or double-listed when the nav changes).
  */
 describe('class detail information architecture', () => {
-  const ALL_TABS = Object.keys(SUBTAB_LABEL) as Tab[];
+  const ALL_TABS = Object.keys(SUBTAB_LABEL_KEY) as Tab[];
 
   it('nav order is daily-jobs-first: Teach · Mark · Insights · Students', () => {
     expect(SECTIONS.map((s) => s.key)).toEqual(['teach', 'mark', 'insights', 'students']);
@@ -39,9 +39,9 @@ describe('class detail information architecture', () => {
     }
   });
 
-  it('every tab has a label', () => {
+  it('every tab has a label key', () => {
     for (const t of ALL_TABS) {
-      expect(SUBTAB_LABEL[t]).toBeTruthy();
+      expect(SUBTAB_LABEL_KEY[t]).toBeTruthy();
     }
   });
 
