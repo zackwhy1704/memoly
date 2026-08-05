@@ -14,6 +14,7 @@ function me(partial: Partial<MeResponse['data']>): MeResponse {
       isOwner: false,
       accountStatus: 'ACTIVE',
       defaultAnswerMode: 'DEFAULT',
+      preferredLocale: 'en',
       ...partial,
     },
   };

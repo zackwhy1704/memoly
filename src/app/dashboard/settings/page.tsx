@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { logout } from '@/lib/auth';
 import { apiFetch, ApiError } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
+import { useLocale } from '@/lib/locale';
+import { useTranslation } from '@/lib/messages';
+import { APP_LANGUAGES } from '@/lib/app-languages';
 import { resetTour } from '@/app/dashboard/classes/[classId]/tourStorage';
 
 export default function SettingsPage() {
@@ -36,6 +39,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <LanguagePanel />
+
       {/* Invite students — one code per class, shown on the Classes page */}
       <InvitePanel />
 
@@ -54,6 +59,36 @@ export default function SettingsPage() {
       </div>
 
       <DeleteAccountPanel />
+    </div>
+  );
+}
+
+function LanguagePanel() {
+  const { language, setLanguage } = useLocale();
+  const t = useTranslation();
+
+  return (
+    <div className="bg-panel border border-line rounded-2xl p-6 space-y-3">
+      <label className="block text-xs font-medium uppercase tracking-wider text-ink3 mb-2">
+        {t('settingsLanguageLabel')}
+      </label>
+      <div className="flex gap-2" role="group" aria-label={t('settingsLanguageLabel')}>
+        {APP_LANGUAGES.map((lang) => (
+          <button
+            key={lang.code}
+            type="button"
+            onClick={() => setLanguage(lang.code)}
+            aria-pressed={language.code === lang.code}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
+              language.code === lang.code
+                ? 'bg-accent text-white border-accent'
+                : 'bg-panel2 text-ink2 border-line hover:border-accent'
+            }`}
+          >
+            {lang.endonym}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -112,6 +112,7 @@ export const mockMe = {
   isOwner: true,
   accountStatus: 'ACTIVE',
   defaultAnswerMode: 'GUIDED',
+  preferredLocale: 'en',
 };
 
 export const mockCentreMe = {
