@@ -6,6 +6,7 @@ import { api, asArray, type Challenge, type CreateChallengeBody } from '@/lib/ap
 import { trackEvent } from '@/lib/analytics';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
 
 // ── Challenges (A4): teacher poster + list ────────────────────────────────────
 function ChallengePoster({
@@ -17,6 +18,7 @@ function ChallengePoster({
   classId: string;
   onPosted: () => void;
 }) {
+  const { t } = useTranslation();
   const [question, setQuestion] = useState('');
   // MCQ is optional: empty array = free-text/open challenge. Two starter rows.
   const [options, setOptions] = useState<string[]>(['', '']);
@@ -54,16 +56,16 @@ function ChallengePoster({
 
   return (
     <div className="bg-panel border border-line rounded-2xl p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-ink">Post a challenge</h3>
+      <h3 className="text-sm font-semibold text-ink">{t('challengesTabPost')}</h3>
 
       {/* Question */}
       <div>
-        <label className="block text-xs font-medium text-ink2 mb-1.5">Question</label>
+        <label className="block text-xs font-medium text-ink2 mb-1.5">{t('challengesTabQuestion')}</label>
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           rows={2}
-          placeholder="e.g. What gas do plants release during photosynthesis?"
+          placeholder={t('challengesTabQuestionPlaceholder')}
           className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-accent/40 resize-y"
         />
       </div>
@@ -71,13 +73,13 @@ function ChallengePoster({
       {/* Optional MCQ options */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs font-medium text-ink2">Options (optional — leave blank for open answer)</label>
+          <label className="block text-xs font-medium text-ink2">{t('challengesTabOptionsLabel')}</label>
           <button
             onClick={addOption}
             type="button"
             className="text-xs font-semibold text-accent hover:underline"
           >
-            + Add option
+            {t('challengesTabAddOption')}
           </button>
         </div>
         <div className="space-y-2">
@@ -87,7 +89,7 @@ function ChallengePoster({
                 type="text"
                 value={opt}
                 onChange={(e) => setOption(i, e.target.value)}
-                placeholder={`Option ${i + 1}`}
+                placeholder={`${t('challengesTabOptionLabel')} ${i + 1}`}
                 className="flex-1 px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
               <button
@@ -95,7 +97,7 @@ function ChallengePoster({
                 type="button"
                 disabled={options.length <= 1}
                 className="text-ink3 hover:text-bad text-lg leading-none px-1 disabled:opacity-30"
-                title="Remove option"
+                title={t('challengesTabRemoveOption')}
               >
                 &times;
               </button>
@@ -106,19 +108,19 @@ function ChallengePoster({
 
       {/* Correct answer */}
       <div>
-        <label className="block text-xs font-medium text-ink2 mb-1.5">Correct answer</label>
+        <label className="block text-xs font-medium text-ink2 mb-1.5">{t('challengesTabCorrectAnswer')}</label>
         <input
           type="text"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          placeholder="The answer students see after reveal"
+          placeholder={t('challengesTabAnswerPlaceholder')}
           className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-accent/40"
         />
       </div>
 
       {/* Reveal time */}
       <div>
-        <label className="block text-xs font-medium text-ink2 mb-1.5">Reveal at</label>
+        <label className="block text-xs font-medium text-ink2 mb-1.5">{t('challengesTabRevealAt')}</label>
         <input
           type="datetime-local"
           value={revealAt}
@@ -130,7 +132,7 @@ function ChallengePoster({
       <div className="flex items-center justify-end gap-3">
         {post.error && (
           <p className="text-xs text-bad flex-1">
-            {post.error instanceof Error ? post.error.message : 'Could not post the challenge.'}
+            {post.error instanceof Error ? post.error.message : t('challengesTabPostFailed')}
           </p>
         )}
         <button
@@ -138,7 +140,7 @@ function ChallengePoster({
           disabled={!canPost}
           className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
         >
-          {post.isPending ? 'Posting…' : 'Post challenge'}
+          {post.isPending ? t('challengesTabPosting') : t('challengesTabPostButton')}
         </button>
       </div>
     </div>
@@ -154,6 +156,7 @@ function ChallengeCard({
   onDelete: () => void;
   isDeleting: boolean;
 }) {
+  const { t } = useTranslation();
   const revealDate = new Date(challenge.revealAt);
   const revealed = challenge.answer != null && challenge.answer !== '';
   const dist = challenge.distribution ?? null;
@@ -168,20 +171,20 @@ function ChallengeCard({
             revealed ? 'bg-ok/20 text-ok' : 'bg-panel2 text-ink3'
           }`}
         >
-          {revealed ? 'Revealed' : 'Scheduled'}
+          {revealed ? t('challengesTabRevealed') : t('challengesTabScheduled')}
         </span>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           disabled={isDeleting}
           className="text-ink3 hover:text-bad transition text-xl leading-none px-1 shrink-0 disabled:opacity-40"
-          title="Delete challenge"
+          title={t('challengesTabDeleteChallenge')}
         >
           &times;
         </button>
       </div>
 
       <p className="text-xs text-ink3">
-        {revealed ? 'Revealed' : 'Reveals'} {revealDate.toLocaleString()}
+        {revealed ? t('challengesTabRevealed') : t('challengesTabReveals')} {revealDate.toLocaleString()}
       </p>
 
       {challenge.options && challenge.options.length > 0 && (
@@ -203,14 +206,14 @@ function ChallengeCard({
 
       {revealed && (
         <div className="bg-panel2 rounded-lg px-3 py-2">
-          <p className="text-xs text-ink3">Answer</p>
+          <p className="text-xs text-ink3">{t('challengesTabAnswer')}</p>
           <p className="text-sm font-semibold text-ok">{challenge.answer}</p>
         </div>
       )}
 
       {revealed && dist && dist.length > 0 && (
         <div className="space-y-1.5 pt-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink3">Responses</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink3">{t('challengesTabResponses')}</p>
           {dist.map((d, i) => {
             const pct = distTotal > 0 ? Math.round((d.count / distTotal) * 100) : 0;
             const correct = d.option === challenge.answer;
@@ -239,6 +242,7 @@ function ChallengeCard({
 }
 
 export function ChallengesTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -251,8 +255,8 @@ export function ChallengesTab({ orgId, classId }: { orgId: string; classId: stri
     onSuccess: () => qc.invalidateQueries({ queryKey: ['challenges', classId] }),
   });
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading challenges...</p>;
-  if (query.error) return <ErrorView message="Could not load challenges." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('challengesTabLoading')}</p>;
+  if (query.error) return <ErrorView message={t('challengesTabCouldNotLoad')} onRetry={() => query.refetch()} />;
 
   const challenges = asArray<Challenge>(query.data);
 
@@ -267,8 +271,8 @@ export function ChallengesTab({ orgId, classId }: { orgId: string; classId: stri
       {challenges.length === 0 ? (
         <EmptyState
           icon="🎯"
-          title="No challenges yet"
-          description="Post a challenge above. Students answer it, and the correct answer reveals at the time you set."
+          title={t('challengesTabEmptyTitle')}
+          description={t('challengesTabEmptyDescription')}
         />
       ) : (
         <div className="space-y-3">

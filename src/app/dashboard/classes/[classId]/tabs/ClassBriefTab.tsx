@@ -4,8 +4,10 @@ import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type ClassBriefData } from '@/lib/api';
 import AsyncBoundary from '@/components/AsyncBoundary';
+import { useTranslation } from '@/lib/messages';
 
 export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -25,8 +27,8 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
     <AsyncBoundary
       query={query}
       loadingIcon="📋"
-      loadingLabel="Generating class brief…"
-      errorMessage="Could not load class brief."
+      loadingLabel={t('classBriefTabLoading')}
+      errorMessage={t('classBriefTabCouldNotLoad')}
     >
       {(res) => {
         const brief: ClassBriefData | null =
@@ -51,9 +53,9 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
                   style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
                 />
                 <div>
-                  <h2 className="text-base font-bold text-ink">Mochi&apos;s class brief</h2>
+                  <h2 className="text-base font-bold text-ink">{t('classBriefTabHeading')}</h2>
                   <p className="text-xs text-ink3 mt-0.5">
-                    Here&apos;s what Mochi noticed about your class
+                    {t('classBriefTabSubheading')}
                   </p>
                 </div>
               </div>
@@ -62,21 +64,21 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
                 disabled={refreshMut.isPending}
                 className="px-3 py-1.5 text-xs font-semibold bg-panel border border-line rounded-lg text-ink2 hover:text-ink hover:border-accent transition disabled:opacity-40 shrink-0"
               >
-                {refreshMut.isPending ? 'Regenerating…' : 'Regenerate'}
+                {refreshMut.isPending ? t('classBriefTabRegenerating') : t('classBriefTabRegenerate')}
               </button>
             </div>
 
             {refreshMut.error && (
               <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad">
                 {(refreshMut.error as { message?: string })?.message ??
-                  'Regeneration failed — try again.'}
+                  t('classBriefTabRegenerateFailed')}
               </div>
             )}
 
             {/* Open with */}
             <div className="bg-accent/5 border border-accent/20 rounded-2xl p-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-accent mb-1.5">
-                Open your lesson with
+                {t('classBriefTabOpenWith')}
               </p>
               <p className="text-sm font-semibold text-ink leading-snug">{brief.openWith}</p>
             </div>
@@ -92,7 +94,7 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             {focusConcepts.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
                 <p className="text-sm font-semibold text-ink">
-                  Mochi noticed these need attention
+                  {t('classBriefTabNeedsAttention')}
                 </p>
                 {focusConcepts.map((c) => {
                   const failPct = Math.round(c.failRate * 100);
@@ -107,7 +109,7 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
                           {c.name.replace(/-/g, ' ')}
                         </span>
                         <span className={`text-xs font-mono tabular-nums ${textColor}`}>
-                          {failPct}% failed
+                          {tp.classBriefTabFailedPct(failPct)}
                         </span>
                       </div>
                       <div className="h-1.5 bg-panel2 rounded-full overflow-hidden">
@@ -118,7 +120,7 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
                       </div>
                       {c.failingStudents.length > 0 && (
                         <p className="text-xs text-ink3 leading-relaxed">
-                          Struggling: {c.failingStudents.join(', ')}
+                          {tp.classBriefTabStruggling(c.failingStudents.join(', '))}
                         </p>
                       )}
                     </div>
@@ -131,7 +133,7 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             {checkOn.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5">
                 <p className="text-sm font-semibold text-ink mb-2">
-                  Mochi suggests checking in with
+                  {t('classBriefTabCheckIn')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {checkOn.map((name) => (
@@ -149,7 +151,7 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
             {/* Suggested groups */}
             {suggestedGroups.length > 0 && (
               <div className="bg-panel border border-line rounded-2xl p-5">
-                <p className="text-sm font-semibold text-ink mb-3">Suggested peer groups</p>
+                <p className="text-sm font-semibold text-ink mb-3">{t('classBriefTabSuggestedGroups')}</p>
                 <div className="space-y-2">
                   {suggestedGroups.map((group, i) => (
                     <div key={i} className="flex items-center gap-2 flex-wrap">
@@ -174,9 +176,9 @@ export function ClassBriefTab({ orgId, classId }: { orgId: string; classId: stri
               checkOn.length === 0 &&
               !brief.skipLine && (
                 <div className="text-center py-8 text-ink3 text-sm">
-                  Mochi hasn&apos;t spotted any patterns yet.
+                  {t('classBriefTabEmptyLine1')}
                   <br />
-                  Assign modules and wait for students to complete them.
+                  {t('classBriefTabEmptyLine2')}
                 </div>
               )}
           </div>

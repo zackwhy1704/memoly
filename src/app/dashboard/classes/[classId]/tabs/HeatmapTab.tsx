@@ -4,15 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
 import { HeatCell } from '../components/HeatCell';
 
 export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t } = useTranslation();
   const query = useQuery({
     queryKey: ['classHeatmap', orgId, classId],
     queryFn: () => api.classHeatmap(orgId, classId),
   });
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading heatmap...</p>;
-  if (query.error) return <ErrorView message="Could not load heatmap data." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('heatmapTabLoading')}</p>;
+  if (query.error) return <ErrorView message={t('heatmapTabCouldNotLoad')} onRetry={() => query.refetch()} />;
 
   // Coerce every array defensively — a fresh class / zero students / partial
   // backend shape can leave these null/absent, and the raw `.map`/`.length`
@@ -27,8 +29,8 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
     return (
       <EmptyState
         icon="📊"
-        title="No quiz activity yet"
-        description="Students need to take quizzes first before the heatmap can show topic mastery."
+        title={t('heatmapTabEmptyTitle')}
+        description={t('heatmapTabEmptyDescription')}
       />
     );
   }
@@ -72,7 +74,7 @@ export function HeatmapTab({ orgId, classId }: { orgId: string; classId: string 
       </div>
 
       <div className="bg-panel border border-line rounded-2xl p-5">
-        <p className="text-sm font-semibold text-ink mb-4">Reteach First — Weakest Topics</p>
+        <p className="text-sm font-semibold text-ink mb-4">{t('heatmapTabReteachFirst')}</p>
         <div className="space-y-3">
           {weakest.map((w, i) => (
             <div key={w.topic} className="flex items-center gap-3">

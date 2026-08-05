@@ -5,31 +5,42 @@ import { useState } from 'react';
 import { api, asArray, type AssignmentType, type AssignmentStudentStatus, type AssignmentSummary, type AssignmentStudentRow } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
 import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { AnswerReleasePanel } from '../modals/AnswerReleasePanel';
 import { ReadinessModal } from '../modals/ReadinessModal';
 
+const TYPE_LABEL_KEY: Record<AssignmentType, MessageKey> = {
+  PRE_CLASS: 'assignmentTypePreClass',
+  POST_CLASS: 'assignmentTypePostClass',
+  REVISION: 'assignmentTypeRevision',
+  CUSTOM: 'assignmentTypeCustom',
+};
+const STATUS_LABEL_KEY: Record<AssignmentStudentStatus, MessageKey> = {
+  PENDING: 'studentStatusPending',
+  IN_PROGRESS: 'studentStatusInProgress',
+  COMPLETED: 'studentStatusCompleted',
+  OVERDUE: 'studentStatusOverdue',
+};
+
 function AssignmentTypeBadge({ type }: { type: AssignmentType }) {
+  const { t } = useTranslation();
   const styles: Record<AssignmentType, string> = {
     PRE_CLASS: 'bg-teal-900/40 text-teal-300',
     POST_CLASS: 'bg-amber-900/40 text-amber-300',
     REVISION: 'bg-purple-900/40 text-purple-300',
     CUSTOM: 'bg-pink-900/40 text-pink-300',
   };
-  const labels: Record<AssignmentType, string> = {
-    PRE_CLASS: 'Pre-class',
-    POST_CLASS: 'Post-class',
-    REVISION: 'Revision',
-    CUSTOM: 'Custom',
-  };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[type] ?? 'bg-panel2 text-ink3'}`}>
-      {labels[type] ?? type}
+      {TYPE_LABEL_KEY[type] ? t(TYPE_LABEL_KEY[type]) : type}
     </span>
   );
 }
 
 function StudentStatusBadge({ status }: { status: AssignmentStudentStatus }) {
+  const { t } = useTranslation();
   const styles: Record<AssignmentStudentStatus, string> = {
     PENDING: 'bg-panel2 text-ink3',
     IN_PROGRESS: 'bg-blue-900/40 text-blue-300',
@@ -38,12 +49,13 @@ function StudentStatusBadge({ status }: { status: AssignmentStudentStatus }) {
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${styles[status] ?? 'bg-panel2 text-ink3'}`}>
-      {status.replace('_', ' ')}
+      {STATUS_LABEL_KEY[status] ? t(STATUS_LABEL_KEY[status]) : status.replace('_', ' ')}
     </span>
   );
 }
 
 export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -68,29 +80,29 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
     },
   });
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading assignments...</p>;
-  if (query.error) return <ErrorView message="Could not load assignments." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('assignmentsTabLoading')}</p>;
+  if (query.error) return <ErrorView message={t('assignmentsTabCouldNotLoad')} onRetry={() => query.refetch()} />;
 
   const assignments = asArray<AssignmentSummary>(query.data);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-ink2">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-ink2">{tp.assignmentsTabCount(assignments.length)}</p>
         <button
           onClick={() => setShowCreate(true)}
           className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition"
         >
-          + Create assignment
+          {t('assignmentsTabCreate')}
         </button>
       </div>
 
       {assignments.length === 0 ? (
         <EmptyState
           icon="📋"
-          title="No assignments yet"
-          description="Create an assignment to track student progress on specific modules."
-          actionLabel="Create assignment"
+          title={t('assignmentsTabEmptyTitle')}
+          description={t('assignmentsTabEmptyDescription')}
+          actionLabel={t('assignmentsTabCreate')}
           onAction={() => setShowCreate(true)}
         />
       ) : (
@@ -107,12 +119,12 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                     <AssignmentTypeBadge type={a.type} />
                   </div>
                   <div className="flex items-center gap-3 text-xs text-ink3">
-                    <span>{a.completedCount}/{a.totalStudents} completed</span>
+                    <span>{tp.assignmentsTabCompletedCount(a.completedCount, a.totalStudents)}</span>
                     {a.overdueCount > 0 && (
-                      <span className="text-bad">{a.overdueCount} overdue</span>
+                      <span className="text-bad">{tp.assignmentsTabOverdueCount(a.overdueCount)}</span>
                     )}
                     {a.dueDate && (
-                      <span>Due {new Date(a.dueDate).toLocaleDateString()}</span>
+                      <span>{tp.assignmentsTabDue(new Date(a.dueDate).toLocaleDateString())}</span>
                     )}
                   </div>
                 </div>
@@ -122,19 +134,19 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
               {expandedId === a.id && (
                 <div className="border-t border-line">
                   {detailQuery.isLoading ? (
-                    <p className="px-5 py-4 text-ink3 text-xs">Loading details...</p>
+                    <p className="px-5 py-4 text-ink3 text-xs">{t('assignmentsTabLoadingDetails')}</p>
                   ) : detailQuery.error ? (
                     <div className="px-5 py-4">
-                      <ErrorView message="Could not load assignment details." onRetry={() => detailQuery.refetch()} />
+                      <ErrorView message={t('assignmentsTabCouldNotLoadDetails')} onRetry={() => detailQuery.refetch()} />
                     </div>
                   ) : (
                     <>
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-line text-xs uppercase tracking-wider text-ink3">
-                            <th className="text-left px-5 py-2.5 font-medium">Student</th>
-                            <th className="text-left px-5 py-2.5 font-medium">Status</th>
-                            <th className="text-left px-5 py-2.5 font-medium">Targeted topics</th>
+                            <th className="text-left px-5 py-2.5 font-medium">{t('assignmentsTabStudentColumn')}</th>
+                            <th className="text-left px-5 py-2.5 font-medium">{t('assignmentsTabStatusColumn')}</th>
+                            <th className="text-left px-5 py-2.5 font-medium">{t('assignmentsTabTargetedTopicsColumn')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -143,15 +155,15 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                             return (
                               <tr key={s.userId} className="border-b border-line last:border-0">
                                 <td className="px-5 py-2.5 text-ink">
-                                  {s.displayName || `Student ${s.userId.slice(0, 8)}`}
+                                  {s.displayName || `${t('assignmentsTabStudentColumn')} ${s.userId.slice(0, 8)}`}
                                 </td>
                                 <td className="px-5 py-2.5"><StudentStatusBadge status={s.status} /></td>
                                 <td className="px-5 py-2.5 text-ink2">
                                   {topics.length > 0 ? (
                                     <span className="flex flex-wrap gap-1">
-                                      {topics.map((t, i) => (
+                                      {topics.map((t2, i) => (
                                         <span key={i} className="px-2 py-0.5 rounded-md text-[11px] bg-panel2 text-ink2">
-                                          {t}
+                                          {t2}
                                         </span>
                                       ))}
                                     </span>
@@ -165,7 +177,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                           {asArray<AssignmentStudentRow>(detailQuery.data?.data?.students).length === 0 && (
                             <tr>
                               <td colSpan={3} className="px-5 py-4 text-ink3 text-xs">
-                                No students have this assignment yet.
+                                {t('assignmentsTabNoStudents')}
                               </td>
                             </tr>
                           )}
@@ -183,7 +195,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                             onClick={() => setReadinessId(a.id)}
                             className="text-xs font-semibold text-accent hover:underline"
                           >
-                            View pre-class readiness
+                            {t('assignmentsTabViewReadiness')}
                           </button>
                         ) : (
                           <span />
@@ -193,7 +205,7 @@ export function AssignmentsTab({ orgId, classId }: { orgId: string; classId: str
                           disabled={deleteMut.isPending}
                           className="text-xs text-bad hover:underline disabled:opacity-40"
                         >
-                          {deleteMut.isPending ? 'Deleting...' : 'Delete assignment'}
+                          {deleteMut.isPending ? t('assignmentsTabDeleting') : t('assignmentsTabDeleteAssignment')}
                         </button>
                       </div>
                     </>

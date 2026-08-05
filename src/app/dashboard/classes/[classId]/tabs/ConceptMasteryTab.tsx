@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
 import { HeatCell } from '../components/HeatCell';
 
 function ConceptHeatCell({ value }: { value: number | null }) {
@@ -24,6 +25,7 @@ function ConceptHeatCell({ value }: { value: number | null }) {
 }
 
 export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t } = useTranslation();
   const conceptQuery = useQuery({
     queryKey: ['classConceptMastery', orgId, classId],
     queryFn: () => api.classConceptMastery(orgId, classId),
@@ -45,13 +47,13 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
     enabled: !conceptQuery.isLoading && !hasConceptGrid,
   });
 
-  if (conceptQuery.isLoading) return <p className="text-ink3 text-sm py-8">Loading concept mastery...</p>;
-  if (conceptQuery.error) return <ErrorView message="Could not load concept mastery data." onRetry={() => conceptQuery.refetch()} />;
+  if (conceptQuery.isLoading) return <p className="text-ink3 text-sm py-8">{t('conceptMasteryTabLoading')}</p>;
+  if (conceptQuery.error) return <ErrorView message={t('conceptMasteryTabCouldNotLoad')} onRetry={() => conceptQuery.refetch()} />;
 
   // ── Fallback: quiz heatmap (no concept grid available) ───────────────────
   if (!hasConceptGrid) {
-    if (heatmapQuery.isLoading) return <p className="text-ink3 text-sm py-8">Loading heatmap...</p>;
-    if (heatmapQuery.error) return <ErrorView message="Could not load heatmap data." onRetry={() => heatmapQuery.refetch()} />;
+    if (heatmapQuery.isLoading) return <p className="text-ink3 text-sm py-8">{t('conceptMasteryTabLoadingHeatmap')}</p>;
+    if (heatmapQuery.error) return <ErrorView message={t('conceptMasteryTabCouldNotLoadHeatmap')} onRetry={() => heatmapQuery.refetch()} />;
 
     const hd = heatmapQuery.data?.data;
     const hdStudents = Array.isArray(hd?.students) ? hd.students : [];
@@ -63,8 +65,8 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
       return (
         <EmptyState
           icon="🧩"
-          title="No concept mastery data yet"
-          description="Concept mastery will appear after students complete PROVE stages. Quiz data will show here as a fallback once students take quizzes."
+          title={t('conceptMasteryTabEmptyTitle')}
+          description={t('conceptMasteryTabEmptyDescription')}
         />
       );
     }
@@ -72,7 +74,7 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
     return (
       <div className="space-y-6">
         <div className="bg-warn/10 border border-warn/30 rounded-xl px-4 py-3 text-sm text-warn">
-          Concept mastery will appear after students complete PROVE stages. Showing quiz topic mastery as a fallback.
+          {t('conceptMasteryTabFallbackNotice')}
         </div>
         <div className="bg-panel border border-line rounded-2xl p-5">
           <div className="overflow-x-auto">
@@ -111,7 +113,7 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
         </div>
         {hdWeakest.length > 0 && (
           <div className="bg-panel border border-line rounded-2xl p-5">
-            <p className="text-sm font-semibold text-ink mb-4">Weakest Topics</p>
+            <p className="text-sm font-semibold text-ink mb-4">{t('conceptMasteryTabWeakestTopics')}</p>
             <div className="space-y-3">
               {hdWeakest.map((w, i) => (
                 <div key={w.topic} className="flex items-center gap-3">
@@ -175,7 +177,7 @@ export function ConceptMasteryTab({ orgId, classId }: { orgId: string; classId: 
 
       {conceptWeakest.length > 0 && (
         <div className="bg-panel border border-line rounded-2xl p-5">
-          <p className="text-sm font-semibold text-ink mb-4">Reteach First &mdash; Weakest Concepts</p>
+          <p className="text-sm font-semibold text-ink mb-4">{t('conceptMasteryTabReteachFirst')}</p>
           <div className="space-y-3">
             {conceptWeakest.map((w, i) => (
               <div key={w.concept} className="flex items-center gap-3">

@@ -3,8 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, type ClassRosterAnalyticsRow } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
+import { useTranslation } from '@/lib/messages';
 
 export function RosterTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ['classRosterAnalytics', orgId, classId],
@@ -18,8 +20,8 @@ export function RosterTab({ orgId, classId }: { orgId: string; classId: string }
     },
   });
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading roster...</p>;
-  if (query.error) return <ErrorView message="Could not load class roster." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('rosterTabLoading')}</p>;
+  if (query.error) return <ErrorView message={t('rosterTabCouldNotLoad')} onRetry={() => query.refetch()} />;
 
   const rows = asArray<ClassRosterAnalyticsRow>(query.data);
 
@@ -28,10 +30,10 @@ export function RosterTab({ orgId, classId }: { orgId: string; classId: string }
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-line text-xs uppercase tracking-wider text-ink3">
-            <th className="text-left px-5 py-3 font-medium">Student</th>
-            <th className="text-left px-5 py-3 font-medium">Grasp</th>
-            <th className="text-left px-5 py-3 font-medium">Attempts</th>
-            <th className="text-left px-5 py-3 font-medium">Last active</th>
+            <th className="text-left px-5 py-3 font-medium">{t('rosterTabStudentColumn')}</th>
+            <th className="text-left px-5 py-3 font-medium">{t('rosterTabGraspColumn')}</th>
+            <th className="text-left px-5 py-3 font-medium">{t('rosterTabAttemptsColumn')}</th>
+            <th className="text-left px-5 py-3 font-medium">{t('rosterTabLastActiveColumn')}</th>
             <th className="px-5 py-3" />
           </tr>
         </thead>
@@ -42,7 +44,7 @@ export function RosterTab({ orgId, classId }: { orgId: string; classId: string }
               <td className="px-5 py-3.5 tabular-nums text-ink2">{Math.round(r.grasp * 100)}%</td>
               <td className="px-5 py-3.5 tabular-nums text-ink2">{r.attempts}</td>
               <td className="px-5 py-3.5 text-ink3 text-xs">
-                {r.lastActive ? new Date(r.lastActive).toLocaleDateString() : 'never'}
+                {r.lastActive ? new Date(r.lastActive).toLocaleDateString() : t('rosterTabNever')}
               </td>
               <td className="px-5 py-3.5 text-right">
                 <button
@@ -50,7 +52,7 @@ export function RosterTab({ orgId, classId }: { orgId: string; classId: string }
                   disabled={remove.isPending}
                   className="text-xs text-bad hover:underline disabled:opacity-40"
                 >
-                  Remove
+                  {t('rosterTabRemove')}
                 </button>
               </td>
             </tr>
@@ -58,7 +60,7 @@ export function RosterTab({ orgId, classId }: { orgId: string; classId: string }
           {rows.length === 0 && (
             <tr>
               <td colSpan={5} className="px-5 py-16 text-center text-ink3">
-                No students assigned yet. Use “Add students”.
+                {t('rosterTabEmpty')}
               </td>
             </tr>
           )}

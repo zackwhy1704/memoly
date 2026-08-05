@@ -3,8 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, type CreateAssignmentBody, type ExamReadinessConcept } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
+import { useTranslation } from '@/lib/messages';
 
 export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -27,8 +29,8 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
     },
   });
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading exam readiness...</p>;
-  if (query.error) return <ErrorView message="Could not load exam readiness data." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('examReadinessTabLoading')}</p>;
+  if (query.error) return <ErrorView message={t('examReadinessTabCouldNotLoad')} onRetry={() => query.refetch()} />;
 
   const data = query.data?.data;
   if (!data) return null;
@@ -48,25 +50,25 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-panel border border-line rounded-2xl p-5 text-center">
-          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Average Readiness</p>
+          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">{t('examReadinessTabAvgReadiness')}</p>
           <p className={`text-3xl font-bold tabular-nums ${readinessColor}`}>{readinessPct}%</p>
         </div>
         <div className="bg-panel border border-line rounded-2xl p-5 text-center">
-          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Students Below 60%</p>
+          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">{t('examReadinessTabStudentsBelow')}</p>
           <p className="text-3xl font-bold tabular-nums text-bad">{data.studentsBelow60}</p>
-          <p className="text-xs text-ink3 mt-0.5">of {data.totalStudents}</p>
+          <p className="text-xs text-ink3 mt-0.5">{t('examReadinessTabOf')} {data.totalStudents}</p>
         </div>
         <div className="bg-panel border border-line rounded-2xl p-5 text-center">
-          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">Concepts Tracked</p>
+          <p className="text-xs uppercase tracking-wider text-ink3 mb-1">{t('examReadinessTabConceptsTracked')}</p>
           <p className="text-3xl font-bold tabular-nums text-ink">{concepts.length}</p>
         </div>
       </div>
 
       {/* Per-concept mastery bars (weakest first) */}
       <div className="bg-panel border border-line rounded-2xl p-5">
-        <p className="text-sm font-semibold text-ink mb-4">Concept Mastery (weakest first)</p>
+        <p className="text-sm font-semibold text-ink mb-4">{t('examReadinessTabConceptMastery')}</p>
         {concepts.length === 0 ? (
-          <p className="text-ink3 text-sm">No concept data available yet.</p>
+          <p className="text-ink3 text-sm">{t('examReadinessTabNoData')}</p>
         ) : (
           <div className="space-y-3">
             {[...concepts].sort((a, b) => a.avgMastery - b.avgMastery).map((c) => {
@@ -95,17 +97,17 @@ export function ExamReadinessTab({ orgId, classId }: { orgId: string; classId: s
       {weakConcepts.length > 0 && (
         <div className="bg-warn/10 border border-warn/30 rounded-2xl p-5">
           <p className="text-sm font-semibold text-ink mb-1">
-            {weakConcepts.length} concept{weakConcepts.length !== 1 ? 's' : ''} below 60%
+            {tp.examReadinessTabConceptsBelow(weakConcepts.length)}
           </p>
           <p className="text-xs text-ink3 mb-3">
-            Create a revision assignment targeting these weak concepts?
+            {t('examReadinessTabCreateRevision')}
           </p>
           <button
             onClick={() => createRevisionMut.mutate(weakConcepts.map((c) => c.concept))}
             disabled={createRevisionMut.isPending}
             className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
           >
-            {createRevisionMut.isPending ? 'Creating...' : createRevisionMut.isSuccess ? 'Created!' : 'Assign revision'}
+            {createRevisionMut.isPending ? t('examReadinessTabCreating') : createRevisionMut.isSuccess ? t('examReadinessTabCreated') : t('examReadinessTabAssignRevision')}
           </button>
         </div>
       )}

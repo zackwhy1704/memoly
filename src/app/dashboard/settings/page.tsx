@@ -65,7 +65,7 @@ export default function SettingsPage() {
 
 function LanguagePanel() {
   const { language, setLanguage } = useLocale();
-  const t = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <div className="bg-panel border border-line rounded-2xl p-6 space-y-3">

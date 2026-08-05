@@ -7,10 +7,12 @@ import { useOrg } from '@/lib/org-context';
 import MochiUploader from '@/components/MochiUploader';
 import ChapterPickerModal from '@/components/ChapterPicker';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
 import { FilesPanel } from '../components/FilesPanel';
 import { BrainPagesSection } from '../components/BrainPagesSection';
 
 export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: string | null; classId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const org = useOrg();
   const [uploaderOpen, setUploaderOpen] = useState(false);
@@ -19,8 +21,8 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
     return (
       <EmptyState
         icon="📚"
-        title="No corpus yet"
-        description="This class has no content corpus. Contact support if this is unexpected."
+        title={t('classBrainTabNoCorpusTitle')}
+        description={t('classBrainTabNoCorpusDescription')}
       />
     );
   }
@@ -29,10 +31,7 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
     <div className="space-y-4">
       {/* Ingestion-quality tips — input quality is the #1 driver of brain quality. */}
       <div className="rounded-2xl bg-accent/5 border border-accent/20 px-4 py-3 text-xs text-ink2 leading-relaxed">
-        <span className="font-semibold text-ink">Tips for a sharper brain:</span> digital or typed copies
-        work best · one topic per upload compiles cleaner than a mixed dump · photographing handwriting?
-        write clearly, fill the frame, flat page, no glare · Mochi reads math as text — for equations a
-        typed copy or a very clear photo helps.
+        <span className="font-semibold text-ink">{t('classBrainTabTipsTitle')}</span> {t('classBrainTabTipsBody')}
       </div>
 
       {/* 1 — Read: compiled brain pages */}
@@ -53,13 +52,13 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
           onClick={() => setUploaderOpen((o) => !o)}
           className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-panel2 transition"
         >
-          <span className="text-sm font-semibold text-ink">Upload more files</span>
-          <span className="text-ink3 text-xs">{uploaderOpen ? '▲ collapse' : '▼ expand'}</span>
+          <span className="text-sm font-semibold text-ink">{t('classBrainTabUploadMore')}</span>
+          <span className="text-ink3 text-xs">{uploaderOpen ? t('classBrainTabCollapse') : t('classBrainTabExpand')}</span>
         </button>
         {uploaderOpen && (
           <div className="px-5 pb-5 border-t border-line pt-4">
             <p className="text-ink3 text-xs mb-4">
-              Upload notes, worksheets or PDFs — every student in this class reads this shared brain.
+              {t('classBrainTabUploadDescription')}
             </p>
             <MochiUploader
               avatarId={corpusAvatarId}
@@ -80,6 +79,7 @@ export function ClassBrainTab({ corpusAvatarId, classId }: { corpusAvatarId: str
 /** The locked-chapter surface (0.7): uploaded-but-uncompiled chapters, tappable →
  *  the SAME ChapterPickerModal the post-upload picker uses. Copy stays honest. */
 function LockedChaptersCard({ avatarId }: { avatarId: string }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const { data } = useQuery({
@@ -94,18 +94,17 @@ function LockedChaptersCard({ avatarId }: { avatarId: string }) {
     <div className="bg-panel border border-line rounded-2xl p-5 flex items-center justify-between gap-4">
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-ink">
-          {locked.length} chapter{locked.length === 1 ? '' : 's'} not compiled yet
+          {tp.classBrainTabChapterNotCompiled(locked.length)}
         </h3>
         <p className="text-ink3 text-xs mt-1">
-          Mochi hasn&apos;t read {locked.length === 1 ? 'this chapter' : 'these chapters'} yet —
-          pick which to compile.
+          {tp.classBrainTabNotRead(locked.length)}
         </p>
       </div>
       <button
         onClick={() => setOpen(true)}
         className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition shrink-0"
       >
-        Choose chapters
+        {t('classBrainTabChooseChapters')}
       </button>
       {open && (
         <ChapterPickerModal
@@ -124,8 +123,21 @@ const TEACHING_PRESETS: Record<string, string> = {
   'Explain simply': 'Explain things as simply as possible.',
   'Exam-focused': 'Focus on exam-style questions and techniques.',
 };
+// UI-chrome labels only (translated below) — the phrase VALUES above stay
+// English: they're free-text teacher-instruction DATA sent to the AI prompt
+// assembler (teacherPreferences), not client-side chrome, so changing their
+// language is a content_language-scoped decision, not a UI-locale one — the
+// same axis distinction PromptLanguage/content_language draws elsewhere in
+// this codebase. Translating only the button caption keeps that boundary.
+const PRESET_LABEL_KEY: Record<string, 'teachingPresetMoreExamples' | 'teachingPresetHarderQuestions' | 'teachingPresetExplainSimply' | 'teachingPresetExamFocused'> = {
+  'More examples': 'teachingPresetMoreExamples',
+  'Harder questions': 'teachingPresetHarderQuestions',
+  'Explain simply': 'teachingPresetExplainSimply',
+  'Exam-focused': 'teachingPresetExamFocused',
+};
 
 function TeachingStyleCard({ orgId, classId, avatarId }: { orgId: string; classId: string; avatarId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ['avatar', avatarId],
@@ -155,9 +167,9 @@ function TeachingStyleCard({ orgId, classId, avatarId }: { orgId: string; classI
   return (
     <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
       <div>
-        <h3 className="text-sm font-semibold text-ink">How should this class&apos;s Mochi teach?</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('classBrainTabTeachingStyleQuestion')}</h3>
         <p className="text-ink3 text-xs mt-1">
-          Tap a style or write your own. Every student&apos;s Mochi follows this in lessons and chat.
+          {t('classBrainTabTeachingStyleHint')}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -174,7 +186,7 @@ function TeachingStyleCard({ orgId, classId, avatarId }: { orgId: string; classI
                   : 'bg-panel2 border-line text-ink2 hover:border-accent/30'
               }`}
             >
-              {on ? '✓ ' : ''}{label}
+              {on ? '✓ ' : ''}{t(PRESET_LABEL_KEY[label])}
             </button>
           );
         })}
@@ -183,20 +195,20 @@ function TeachingStyleCard({ orgId, classId, avatarId }: { orgId: string; classI
         value={value}
         onChange={(e) => setText(e.target.value.slice(0, 500))}
         rows={3}
-        placeholder="e.g. Use the bar model for fractions. Always show full working."
+        placeholder={t('classBrainTabTeachingStylePlaceholder')}
         className="w-full px-3 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm
           focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent resize-none"
       />
       <div className="flex items-center justify-end gap-3">
         {save.isSuccess && text === null && (
-          <span className="text-xs text-ok">Saved ✓</span>
+          <span className="text-xs text-ok">{t('classBrainTabSaved')}</span>
         )}
         <button
           onClick={() => { save.mutate(value.trim()); setText(null); }}
           disabled={save.isPending}
           className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
         >
-          {save.isPending ? 'Saving…' : 'Save teaching style'}
+          {save.isPending ? t('classBrainTabSaving') : t('classBrainTabSaveTeachingStyle')}
         </button>
       </div>
     </div>
