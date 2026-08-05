@@ -340,6 +340,72 @@ export const en = {
   submissionsTabEmptyFilterTitle: 'Nothing in this view',
   submissionsTabEmptyNoneDescription: 'When a student uploads homework — or you upload it for them — it lands here to mark.',
   submissionsTabEmptyFilterDescription: 'Try a different filter.',
+
+  // ── StudentsPage (org-wide roster) ────────────────────────────────────
+  studentsPageHeading: 'Students',
+  studentsPageSubtitle: 'All enrolled students and their progress',
+  studentsPageSuspenseLoading: 'Loading...',
+  studentsPageLoading: 'Loading students...',
+  studentsPageCouldNotLoad: 'Could not load students.',
+  studentsPageEmptyTitle: 'No students yet',
+  studentsPageEmptyDescription: 'Share your class join code to get students started.',
+  studentsPageGoToClasses: 'Go to classes',
+  studentsPageSearchPlaceholder: 'Search students...',
+  studentsPageAllCohorts: 'All cohorts',
+  studentsPageNameColumn: 'Name',
+  studentsPageCohortColumn: 'Cohort',
+  studentsPageLevelColumn: 'Level',
+  studentsPageXpColumn: 'XP',
+  studentsPageStreakColumn: 'Streak',
+  studentsPageStatusColumn: 'Status',
+  studentsPageActive: 'Active',
+  studentsPageInactive: 'Inactive',
+  studentsPageNoneFound: 'No students found',
+  // Split around the bolded "all classes" span — English needs the
+  // surrounding spaces baked in, Chinese needs none (see prefix/suffix).
+  studentsPageRemoveWarningPrefix: 'This removes them from ',
+  studentsPageAllClassesBold: 'all classes',
+  studentsPageRemoveWarningSuffix:
+    ' in this centre. Their progress data is preserved — they can rejoin with a class code.',
+  studentsPageRemoveError: 'Could not remove student. Please try again.',
+  studentsPageCancel: 'Cancel',
+  studentsPageRemoving: 'Removing…',
+  studentsPageRemoveFromCentre: 'Remove from centre',
+
+  // ── StudentDetail page (dashboard/students/[studentId]) ───────────────
+  studentDetailBackLink: '← Back to students',
+  studentDetailLoading: 'Loading student profile...',
+  studentDetailCouldNotLoad: 'Could not load student data.',
+  studentDetailPrintReport: 'Print report',
+  studentDetailOverallGraspLabel: 'Overall grasp: ',
+  studentDetailGraspOverTime: 'Grasp Over Time',
+  studentDetailGraspTooltipLabel: 'Grasp',
+  studentDetailTopicGraspHeading: 'Topic Grasp (quiz accuracy)',
+  studentDetailEngagementHeading: 'Engagement',
+  studentDetailQuestionsAsked: 'Questions asked',
+  studentDetailQuizDays: 'Quiz days',
+  studentDetailLastActive: 'Last active',
+
+  // ── TeachersPage (staff roster) ───────────────────────────────────────
+  teachersPageHeading: 'Teachers',
+  teachersPageSubtitle: "Manage staff who can access this centre's dashboard.",
+  teachersPageCurrentStaff: 'Current staff',
+  teachersPageLoading: 'Loading…',
+  teachersPageCouldNotLoad: 'Could not load staff.',
+  teachersPageEmpty: 'No staff yet — invite a teacher below.',
+  teachersPageOwnerBadge: 'Owner',
+  teachersPageOwnerOnlyNotice: 'Only the centre owner can invite or remove teachers.',
+  teachersPageInviteHeading: 'Invite a teacher',
+  teachersPageInvitePlaceholder: 'teacher@school.com',
+  teachersPageSending: 'Sending…',
+  teachersPageInviteButton: 'Invite',
+  teachersPageShareLink: 'Share this accept link with them:',
+  teachersPageExpiresIn7Days: 'Expires in 7 days.',
+  teachersPageInviteFailedFallback: 'Could not send invite.',
+  teachersPageRemoveFailedFallback: 'Could not remove staff member.',
+  teachersPageInviteExplainer:
+    "If the email belongs to an existing Apalchi user, they're added immediately. Otherwise an " +
+    'invite link is generated — they click it after signing up to join your centre.',
 };
 
 export type MessageKey = keyof typeof en;

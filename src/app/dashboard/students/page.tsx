@@ -7,8 +7,10 @@ import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
 
 function StudentsContent() {
+  const { t, tp } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const cohortFilter = searchParams.get('cohort') ?? '';
@@ -33,21 +35,21 @@ function StudentsContent() {
   return (
     <div className="max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink">Students</h1>
-        <p className="text-ink3 text-sm mt-1">All enrolled students and their progress</p>
+        <h1 className="text-2xl font-bold text-ink">{t('studentsPageHeading')}</h1>
+        <p className="text-ink3 text-sm mt-1">{t('studentsPageSubtitle')}</p>
       </div>
 
       <AsyncBoundary
         query={query}
         loadingIcon="👥"
-        loadingLabel="Loading students..."
-        errorMessage="Could not load students."
+        loadingLabel={t('studentsPageLoading')}
+        errorMessage={t('studentsPageCouldNotLoad')}
         empty={
           <EmptyState
             icon="👥"
-            title="No students yet"
-            description="Share your class join code to get students started."
-            actionLabel="Go to classes"
+            title={t('studentsPageEmptyTitle')}
+            description={t('studentsPageEmptyDescription')}
+            actionLabel={t('studentsPageGoToClasses')}
             actionHref="/dashboard/classes"
           />
         }
@@ -79,7 +81,7 @@ function StudentsContent() {
               <div className="flex flex-wrap gap-3">
                 <input
                   type="text"
-                  placeholder="Search students..."
+                  placeholder={t('studentsPageSearchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="px-3.5 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm
@@ -92,7 +94,7 @@ function StudentsContent() {
                   className="px-3.5 py-2 rounded-lg border border-line bg-panel2 text-ink text-sm
                     focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 >
-                  <option value="">All cohorts</option>
+                  <option value="">{t('studentsPageAllCohorts')}</option>
                   {cohorts.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -104,12 +106,12 @@ function StudentsContent() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-line">
-                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Name</th>
-                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Cohort</th>
-                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Level</th>
-                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">XP</th>
-                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Streak</th>
-                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">Status</th>
+                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">{t('studentsPageNameColumn')}</th>
+                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">{t('studentsPageCohortColumn')}</th>
+                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">{t('studentsPageLevelColumn')}</th>
+                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">{t('studentsPageXpColumn')}</th>
+                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">{t('studentsPageStreakColumn')}</th>
+                        <th className="text-left px-5 py-3.5 text-xs uppercase tracking-wider text-ink3 font-medium">{t('studentsPageStatusColumn')}</th>
                         <th className="px-5 py-3.5" />
                       </tr>
                     </thead>
@@ -124,10 +126,10 @@ function StudentsContent() {
                           >
                             <td className="px-5 py-4 font-medium text-ink">{s.displayName}</td>
                             <td className="px-5 py-4 text-ink2">{s.cohortLabel}</td>
-                            <td className="px-5 py-4 text-ink2">Lv {s.level}</td>
+                            <td className="px-5 py-4 text-ink2">{tp.rosterLevelBadge(s.level)}</td>
                             <td className="px-5 py-4 text-ink2 tabular-nums">{s.xp.toLocaleString()}</td>
                             <td className="px-5 py-4 text-ink2">
-                              {s.streakDays > 0 ? `🔥 ${s.streakDays}d` : '—'}
+                              {s.streakDays > 0 ? tp.rosterStreakBadge(s.streakDays) : '—'}
                             </td>
                             <td className="px-5 py-4">
                               <span
@@ -135,7 +137,7 @@ function StudentsContent() {
                                   active ? 'bg-ok/20 text-ok' : 'bg-panel2 text-ink3'
                                 }`}
                               >
-                                {active ? 'Active' : 'Inactive'}
+                                {active ? t('studentsPageActive') : t('studentsPageInactive')}
                               </span>
                             </td>
                             <td
@@ -146,7 +148,7 @@ function StudentsContent() {
                                 onClick={() => setConfirmRemoveId(s.userId)}
                                 className="text-xs text-bad hover:underline"
                               >
-                                Remove
+                                {t('rosterTabRemove')}
                               </button>
                             </td>
                           </tr>
@@ -155,7 +157,7 @@ function StudentsContent() {
                       {filtered.length === 0 && (
                         <tr>
                           <td colSpan={7} className="px-5 py-16 text-center text-ink3">
-                            No students found
+                            {t('studentsPageNoneFound')}
                           </td>
                         </tr>
                       )}
@@ -164,7 +166,7 @@ function StudentsContent() {
                 </div>
                 {roster && (
                   <div className="px-5 py-3 border-t border-line text-xs text-ink3">
-                    Showing {filtered.length} of {roster.totalElements} students
+                    {tp.studentsPageShowingCount(filtered.length, roster.totalElements)}
                   </div>
                 )}
               </div>
@@ -180,14 +182,15 @@ function StudentsContent() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <h2 className="text-lg font-bold text-ink">
-                      Remove {confirmStudent.displayName}?
+                      {tp.studentsPageRemoveConfirmHeading(confirmStudent.displayName)}
                     </h2>
                     <p className="text-sm text-ink2">
-                      This removes them from <strong>all classes</strong> in this centre.
-                      Their progress data is preserved — they can rejoin with a class code.
+                      {t('studentsPageRemoveWarningPrefix')}
+                      <strong>{t('studentsPageAllClassesBold')}</strong>
+                      {t('studentsPageRemoveWarningSuffix')}
                     </p>
                     {removeMut.isError && (
-                      <p className="text-xs text-bad">Could not remove student. Please try again.</p>
+                      <p className="text-xs text-bad">{t('studentsPageRemoveError')}</p>
                     )}
                     <div className="flex justify-end gap-3">
                       <button
@@ -195,7 +198,7 @@ function StudentsContent() {
                         disabled={removeMut.isPending}
                         className="px-4 py-2 rounded-lg border border-line text-ink2 text-sm hover:bg-panel2 transition disabled:opacity-40"
                       >
-                        Cancel
+                        {t('studentsPageCancel')}
                       </button>
                       <button
                         onClick={() => {
@@ -206,7 +209,7 @@ function StudentsContent() {
                         disabled={removeMut.isPending}
                         className="px-4 py-2 rounded-lg bg-bad text-white text-sm font-semibold hover:bg-bad/90 transition disabled:opacity-40"
                       >
-                        {removeMut.isPending ? 'Removing…' : 'Remove from centre'}
+                        {removeMut.isPending ? t('studentsPageRemoving') : t('studentsPageRemoveFromCentre')}
                       </button>
                     </div>
                   </div>
@@ -220,9 +223,14 @@ function StudentsContent() {
   );
 }
 
+function StudentsSuspenseFallback() {
+  const { t } = useTranslation();
+  return <div className="py-24 text-center text-ink3">{t('studentsPageSuspenseLoading')}</div>;
+}
+
 export default function StudentsPage() {
   return (
-    <Suspense fallback={<div className="py-24 text-center text-ink3">Loading...</div>}>
+    <Suspense fallback={<StudentsSuspenseFallback />}>
       <StudentsContent />
     </Suspense>
   );

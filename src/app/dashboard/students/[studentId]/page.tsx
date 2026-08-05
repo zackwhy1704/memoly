@@ -6,6 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { api } from '@/lib/api';
 import { useOrg } from '@/lib/org-context';
 import AsyncBoundary from '@/components/AsyncBoundary';
+import { useTranslation } from '@/lib/messages';
 
 function GraspRing({ value, size = 56 }: { value: number; size?: number }) {
   const r = (size - 8) / 2;
@@ -35,6 +36,7 @@ function barColor(grasp: number) {
 }
 
 export default function StudentPage() {
+  const { t, tp } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const studentId = params.studentId as string;
@@ -57,14 +59,14 @@ export default function StudentPage() {
           onClick={() => router.back()}
           className="text-ink3 text-sm hover:text-ink transition-colors no-print"
         >
-          ← Back to students
+          {t('studentDetailBackLink')}
         </button>
 
         <AsyncBoundary
           query={query}
           loadingIcon="📈"
-          loadingLabel="Loading student profile..."
-          errorMessage="Could not load student data."
+          loadingLabel={t('studentDetailLoading')}
+          errorMessage={t('studentDetailCouldNotLoad')}
         >
           {(data) => {
             const d = data.data;
@@ -83,30 +85,33 @@ export default function StudentPage() {
                           <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full font-medium">
                             {d.cohortLabel}
                           </span>
-                          <span className="text-xs text-ink3">Lv {d.level}</span>
+                          <span className="text-xs text-ink3">{tp.rosterLevelBadge(d.level)}</span>
                           <span className="text-xs text-ink3">·</span>
-                          <span className="text-xs text-ink3">{d.xp} XP</span>
+                          <span className="text-xs text-ink3">{tp.rosterXp(d.xp)}</span>
                           {d.streakDays > 0 && (
                             <>
                               <span className="text-xs text-ink3">·</span>
-                              <span className="text-xs text-warn">🔥 {d.streakDays}d streak</span>
+                              <span className="text-xs text-warn">🔥 {tp.rosterStreakDays(d.streakDays)}</span>
                             </>
                           )}
                         </div>
-                        <p className="text-sm text-ink2 mt-1">Overall grasp: <span className="font-semibold text-ink">{Math.round(d.grasp * 100)}%</span></p>
+                        <p className="text-sm text-ink2 mt-1">
+                          {t('studentDetailOverallGraspLabel')}
+                          <span className="font-semibold text-ink">{Math.round(d.grasp * 100)}%</span>
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 no-print">
                       {d.examInDays > 0 && (
                         <span className="text-xs bg-warn/20 text-warn px-3 py-1.5 rounded-full font-medium">
-                          Exam in {d.examInDays}d
+                          {tp.studentDetailExamInDays(d.examInDays)}
                         </span>
                       )}
                       <button
                         onClick={() => window.print()}
                         className="text-xs bg-panel2 border border-line text-ink2 px-3 py-1.5 rounded-lg hover:text-ink transition-colors"
                       >
-                        Print report
+                        {t('studentDetailPrintReport')}
                       </button>
                     </div>
                   </div>
@@ -114,7 +119,7 @@ export default function StudentPage() {
 
                 {/* Grasp trend */}
                 <div className="bg-panel border border-line rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-ink mb-4">Grasp Over Time</p>
+                  <p className="text-sm font-semibold text-ink mb-4">{t('studentDetailGraspOverTime')}</p>
                   <ResponsiveContainer width="100%" height={160}>
                     <AreaChart data={d.graspOverTime} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                       <defs>
@@ -139,7 +144,7 @@ export default function StudentPage() {
                       />
                       <Tooltip
                         contentStyle={{ background: '#141418', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#ECECEF', fontSize: 12 }}
-                        formatter={(v) => [`${Math.round((v as number) * 100)}%`, 'Grasp']}
+                        formatter={(v) => [`${Math.round((v as number) * 100)}%`, t('studentDetailGraspTooltipLabel')]}
                       />
                       <Area type="monotone" dataKey="value" stroke="#4C6FFF" strokeWidth={2} fill="url(#sGraspGrad)" dot={false} />
                     </AreaChart>
@@ -148,21 +153,23 @@ export default function StudentPage() {
 
                 {/* Topic grasp */}
                 <div className="bg-panel border border-line rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-ink mb-4">Topic Grasp (quiz accuracy)</p>
+                  <p className="text-sm font-semibold text-ink mb-4">{t('studentDetailTopicGraspHeading')}</p>
                   <div className="space-y-3">
-                    {sortedTopics.map((t) => (
-                      <div key={t.topic}>
+                    {sortedTopics.map((topic) => (
+                      <div key={topic.topic}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-ink capitalize">{t.topic.replace(/-/g, ' ')}</span>
-                          <span className="text-sm font-mono text-ink2">{Math.round(t.grasp * 100)}%</span>
+                          {/* topic.topic is a backend-generated slug (data, not UI chrome) — left as-is,
+                              same content-vs-chrome boundary as ClassBrainTab's TEACHING_PRESETS. */}
+                          <span className="text-sm text-ink capitalize">{topic.topic.replace(/-/g, ' ')}</span>
+                          <span className="text-sm font-mono text-ink2">{Math.round(topic.grasp * 100)}%</span>
                         </div>
                         <div className="h-2 bg-panel2 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${barColor(t.grasp)}`}
-                            style={{ width: `${Math.round(t.grasp * 100)}%`, opacity: 0.8 }}
+                            className={`h-full rounded-full ${barColor(topic.grasp)}`}
+                            style={{ width: `${Math.round(topic.grasp * 100)}%`, opacity: 0.8 }}
                           />
                         </div>
-                        <p className="text-xs text-ink3 mt-0.5">{t.attempts} attempts</p>
+                        <p className="text-xs text-ink3 mt-0.5">{tp.studentDetailAttemptsCount(topic.attempts)}</p>
                       </div>
                     ))}
                   </div>
@@ -170,12 +177,12 @@ export default function StudentPage() {
 
                 {/* Engagement */}
                 <div className="bg-panel border border-line rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-ink mb-4">Engagement</p>
+                  <p className="text-sm font-semibold text-ink mb-4">{t('studentDetailEngagementHeading')}</p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { label: 'Questions asked', value: d.engagement.questions },
-                      { label: 'Quiz days', value: d.engagement.quizDays },
-                      { label: 'Last active', value: d.engagement.lastActive },
+                      { label: t('studentDetailQuestionsAsked'), value: d.engagement.questions },
+                      { label: t('studentDetailQuizDays'), value: d.engagement.quizDays },
+                      { label: t('studentDetailLastActive'), value: d.engagement.lastActive },
                     ].map((stat) => (
                       <div key={stat.label} className="bg-panel2 rounded-xl p-4 text-center">
                         <p className="text-xl font-bold text-ink tabular-nums">{stat.value}</p>
