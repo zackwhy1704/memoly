@@ -6,6 +6,7 @@ import {
 import { useEffect, useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ThemeProvider } from '@/lib/theme';
+import { LocaleProvider } from '@/lib/locale';
 import { ToastProvider } from '@/components/Toast';
 import { initAnalytics } from '@/lib/analytics';
 import { GOOGLE_CLIENT_ID, isGoogleEnabled } from '@/lib/google';
@@ -40,9 +41,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <ThemeProvider>
         <QueryClientProvider client={qc}>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          {/* Inside QueryClientProvider: LocaleProvider reads useMe() (a
+              useQuery) to reconcile from the server when nothing is
+              persisted locally yet. */}
+          <LocaleProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </LocaleProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </GoogleOAuthProvider>

@@ -291,6 +291,11 @@ export interface MeResponse {
     isOwner: boolean;        // true only if owns the org (not just staff)
     accountStatus: string;
     defaultAnswerMode: string;
+    // The SAME preferred_locale field pally reads/writes at PATCH
+    // /auth/settings/locale — UI-chrome language, not content_language (what
+    // an avatar generates in). Already returned by GET /auth/me on the
+    // backend; was just untyped/unread here until the locale switch needed it.
+    preferredLocale: string;
   };
 }
 
@@ -1338,6 +1343,21 @@ export const api = {
     apiFetch<{ data: Avatar }>(
       `/avatars/${avatarId}/content-language`,
       { method: 'PATCH', body: JSON.stringify({ contentLanguage }) }
+    ),
+
+  /**
+   * Sets the teacher's preferred UI language ('en' | 'zh') — PATCH
+   * /auth/settings/locale. This is the SAME preferred_locale field and
+   * endpoint pally's mobile client uses (LocaleController._patchLocale) —
+   * NOT a memoly-local preference, so a teacher's language choice is
+   * consistent across web and mobile. Server validates strictly; 400 on an
+   * unsupported code. UI chrome only — does not touch any avatar's
+   * content_language (what the AI generates in).
+   */
+  setPreferredLocale: (preferredLocale: 'en' | 'zh') =>
+    apiFetch<{ data: { preferredLocale: string } }>(
+      '/auth/settings/locale',
+      { method: 'PATCH', body: JSON.stringify({ preferredLocale }) }
     ),
 
   // All centre members + their class memberships + unassigned flag.
