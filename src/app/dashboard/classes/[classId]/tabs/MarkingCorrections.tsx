@@ -4,28 +4,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, ApiError, type MarkingCorrection } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
-
-// ── Status presentation (the honest pending-vs-applied distinction) ──────────
-const STATUS_LABEL: Record<MarkingCorrection['status'], string> = {
-  pending: 'Pending',
-  applied: 'Applied',
-};
-const STATUS_STYLE: Record<MarkingCorrection['status'], string> = {
-  pending: 'bg-amber-900/40 text-amber-300',
-  applied: 'bg-teal-900/40 text-teal-300',
-};
-// CRITICAL COPY HONESTY: removing an APPLIED correction excludes it from FUTURE
-// updates — it does NOT instantly un-learn (residual influence decays). The copy
-// must match that, never overpromise instant reversal.
-const STATUS_HINT: Record<MarkingCorrection['status'], string> = {
-  pending: 'Remove it now to fully prevent it from ever shaping a draft.',
-  applied: "Removing it excludes it from future updates — it won't instantly un-learn.",
-};
+import { useTranslation } from '@/lib/messages';
 
 function StatusBadge({ status }: { status: MarkingCorrection['status'] }) {
+  const { t } = useTranslation();
+  const STATUS_STYLE: Record<MarkingCorrection['status'], string> = {
+    pending: 'bg-amber-900/40 text-amber-300',
+    applied: 'bg-teal-900/40 text-teal-300',
+  };
+  const label = status === 'pending' ? t('markingCorrectionsPending') : t('markingCorrectionsApplied');
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_STYLE[status]}`}>
-      {STATUS_LABEL[status]}
+      {label}
     </span>
   );
 }
@@ -46,6 +36,7 @@ function Delta({ label, from, to }: { label: string; from: string | null; to: st
 function CorrectionCard({ orgId, classId, correction }: {
   orgId: string; classId: string; correction: MarkingCorrection;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const delMut = useMutation({
@@ -59,10 +50,14 @@ function CorrectionCard({ orgId, classId, correction }: {
 
   function confirmRemove() {
     if (delMut.isPending) return;
-    if (window.confirm('Remove this correction so it stops shaping future AI marking drafts?')) {
+    if (window.confirm(t('markingCorrectionsConfirmRemove'))) {
       delMut.mutate();
     }
   }
+
+  const statusHint = correction.status === 'pending'
+    ? t('markingCorrectionsPendingHint')
+    : t('markingCorrectionsAppliedHint');
 
   return (
     <div className="bg-panel border border-line rounded-2xl px-5 py-4 space-y-2">
@@ -75,21 +70,21 @@ function CorrectionCard({ orgId, classId, correction }: {
               <span className="text-xs text-ink3">{new Date(correction.capturedAt).toLocaleDateString()}</span>
             )}
           </div>
-          <Delta label="Grade" from={correction.aiSuggestedGrade} to={correction.teacherGrade} />
-          <Delta label="Feedback" from={correction.aiFeedback} to={correction.teacherFeedback} />
-          <p className="text-[11px] text-ink3">{STATUS_HINT[correction.status]}</p>
+          <Delta label={t('markingCorrectionsGradeLabel')} from={correction.aiSuggestedGrade} to={correction.teacherGrade} />
+          <Delta label={t('markingCorrectionsFeedbackLabel')} from={correction.aiFeedback} to={correction.teacherFeedback} />
+          <p className="text-[11px] text-ink3">{statusHint}</p>
         </div>
         <button
           onClick={confirmRemove}
           disabled={delMut.isPending}
           className="px-3 py-1.5 rounded-lg text-bad text-xs font-semibold hover:bg-bad/10 disabled:opacity-40 shrink-0"
         >
-          {delMut.isPending ? 'Removing…' : 'Remove'}
+          {delMut.isPending ? t('markingCorrectionsRemoving') : t('markingCorrectionsRemove')}
         </button>
       </div>
       {delMut.isError && (
         <p className="text-xs text-bad">
-          {delMut.error instanceof ApiError ? delMut.error.userMessage : 'Could not remove. Please try again.'}
+          {delMut.error instanceof ApiError ? delMut.error.userMessage : t('markingCorrectionsRemoveFailed')}
         </p>
       )}
     </div>
@@ -105,6 +100,7 @@ function CorrectionCard({ orgId, classId, correction }: {
 export function MarkingCorrectionsSection({ orgId, classId }: {
   orgId: string; classId: string;
 }) {
+  const { t } = useTranslation();
   const query = useQuery({
     queryKey: ['markingCorrections', orgId, classId],
     queryFn: () => api.markingCorrections(orgId, classId),
@@ -116,23 +112,22 @@ export function MarkingCorrectionsSection({ orgId, classId }: {
   return (
     <div className="space-y-3" data-tour="mark-corrections">
       <div>
-        <h3 className="text-sm font-semibold text-ink">📝 What the assistant learned from your marking</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('markingCorrectionsHeading')}</h3>
         <p className="text-xs text-ink2 mt-0.5">
-          When you release feedback that differs from the AI&apos;s draft, the assistant learns your
-          correction. Remove any it shouldn&apos;t have learned.
+          {t('markingCorrectionsDescription')}
         </p>
       </div>
 
       {query.isLoading ? (
-        <p className="text-ink3 text-xs py-4">Loading corrections…</p>
+        <p className="text-ink3 text-xs py-4">{t('markingCorrectionsLoading')}</p>
       ) : query.error ? (
-        <ErrorView message="Could not load your marking corrections." onRetry={() => query.refetch()} />
+        <ErrorView message={t('markingCorrectionsCouldNotLoad')} onRetry={() => query.refetch()} />
       ) : corrections.length === 0 ? (
         <div className="bg-panel border border-line rounded-2xl">
           <EmptyState
             icon="📝"
-            title="No corrections learned yet"
-            description="When you adjust the assistant's marking drafts, your corrections adapt it here — so future drafts match how you actually mark."
+            title={t('markingCorrectionsEmptyTitle')}
+            description={t('markingCorrectionsEmptyDescription')}
           />
         </div>
       ) : (

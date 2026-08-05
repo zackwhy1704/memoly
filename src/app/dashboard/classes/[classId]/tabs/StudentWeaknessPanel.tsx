@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api, asArray, type ClassWeakness, type StudentWeakness } from '@/lib/api';
+import { useTranslation } from '@/lib/messages';
 
 /**
  * Teacher view that closes the loop: per-student weak areas for this class's
@@ -9,6 +10,7 @@ import { api, asArray, type ClassWeakness, type StudentWeakness } from '@/lib/ap
  * Renders nothing until the weakness pilot is enabled (backend `enabled` flag).
  */
 export function StudentWeaknessPanel({ classId }: { classId: string }) {
+  const { t } = useTranslation();
   const query = useQuery({
     queryKey: ['classWeakness', classId],
     queryFn: () => api.classWeakness(classId),
@@ -24,23 +26,22 @@ export function StudentWeaknessPanel({ classId }: { classId: string }) {
   return (
     <div className="bg-panel border border-line rounded-2xl p-5 space-y-3">
       <div>
-        <h3 className="text-sm font-semibold text-ink">🎯 Where your students struggle</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('studentWeaknessHeading')}</h3>
         <p className="text-xs text-ink2 mt-0.5">
-          Each student&apos;s weak spots for this class&apos;s subject, learned from their
-          own practice — use it to decide what to reteach.
+          {t('studentWeaknessDescription')}
         </p>
       </div>
 
       {withGaps.length === 0 ? (
         <p className="text-xs text-ink3 py-2">
-          No weak spots surfaced yet — they appear as students complete practice.
+          {t('studentWeaknessEmpty')}
         </p>
       ) : (
         <ul className="divide-y divide-line">
           {withGaps.map((s) => (
             <li key={s.studentId} className="py-2.5 flex items-start gap-3">
               <span className="text-xs font-medium text-ink w-32 shrink-0 truncate">
-                {s.displayName || 'Student'}
+                {s.displayName || t('studentWeaknessDefaultName')}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {s.weakAreas.map((a) => (

@@ -3,8 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, asArray, type CentreMember } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
+import { useTranslation } from '@/lib/messages';
 
 export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ['members', orgId],
@@ -19,8 +21,8 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
     },
   });
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading members...</p>;
-  if (query.error) return <ErrorView message="Could not load centre members." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('addStudentsTabLoading')}</p>;
+  if (query.error) return <ErrorView message={t('addStudentsTabCouldNotLoad')} onRetry={() => query.refetch()} />;
   const members = asArray<CentreMember>(query.data);
 
   return (
@@ -28,8 +30,8 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-line text-xs uppercase tracking-wider text-ink3">
-            <th className="text-left px-5 py-3 font-medium">Member</th>
-            <th className="text-left px-5 py-3 font-medium">Classes</th>
+            <th className="text-left px-5 py-3 font-medium">{t('addStudentsTabMemberColumn')}</th>
+            <th className="text-left px-5 py-3 font-medium">{t('addStudentsTabClassesColumn')}</th>
             <th className="px-5 py-3" />
           </tr>
         </thead>
@@ -41,7 +43,7 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
                 <td className="px-5 py-3.5 font-medium text-ink">
                   {mem.displayName || '—'}
                   {mem.unassigned && (
-                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-warn/20 text-warn">unassigned</span>
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-warn/20 text-warn">{t('addStudentsTabUnassigned')}</span>
                   )}
                 </td>
                 <td className="px-5 py-3.5 text-ink3 text-xs">
@@ -49,14 +51,14 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   {inThisClass ? (
-                    <span className="text-xs text-ok">✓ In class</span>
+                    <span className="text-xs text-ok">{t('addStudentsTabInClass')}</span>
                   ) : (
                     <button
                       onClick={() => assign.mutate(mem.userId)}
                       disabled={assign.isPending}
                       className="text-xs font-semibold text-accent hover:underline disabled:opacity-40"
                     >
-                      Add to class
+                      {t('addStudentsTabAddToClass')}
                     </button>
                   )}
                 </td>
@@ -66,7 +68,7 @@ export function AddStudentsTab({ orgId, classId }: { orgId: string; classId: str
           {members.length === 0 && (
             <tr>
               <td colSpan={3} className="px-5 py-16 text-center text-ink3">
-                No centre members yet. Share the centre enroll code so students can join.
+                {t('addStudentsTabEmpty')}
               </td>
             </tr>
           )}

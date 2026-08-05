@@ -9,16 +9,18 @@ import {
 } from '@/lib/api';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
 import { MarkingAssistantPanel } from './MarkingAssistantPanel';
 import { StudentWeaknessPanel } from './StudentWeaknessPanel';
 
 // ── Status presentation ─────────────────────────────────────────────────
-const STATUS_LABEL: Record<SubmissionStatus, string> = {
-  SUBMITTED: 'New',
-  AI_DRAFTED: 'AI drafted',
-  TEACHER_REVIEWING: 'Reviewing',
-  RELEASED: 'Released',
-  RETURNED: 'Returned',
+const STATUS_LABEL_KEY: Record<SubmissionStatus, MessageKey> = {
+  SUBMITTED: 'submissionStatusNew',
+  AI_DRAFTED: 'submissionStatusAiDrafted',
+  TEACHER_REVIEWING: 'submissionStatusReviewing',
+  RELEASED: 'submissionStatusReleased',
+  RETURNED: 'submissionStatusReturned',
 };
 const STATUS_STYLE: Record<SubmissionStatus, string> = {
   SUBMITTED: 'bg-amber-900/40 text-amber-300',
@@ -29,25 +31,31 @@ const STATUS_STYLE: Record<SubmissionStatus, string> = {
 };
 
 function StatusBadge({ status }: { status: SubmissionStatus }) {
+  const { t } = useTranslation();
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_STYLE[status]}`}>
-      {STATUS_LABEL[status]}
+      {t(STATUS_LABEL_KEY[status])}
     </span>
   );
 }
 
 type FilterKey = 'all' | 'to_mark' | 'in_review' | 'released';
-const FILTERS: Array<{ key: FilterKey; label: string; match: (s: SubmissionStatus) => boolean }> = [
-  { key: 'all', label: 'All', match: () => true },
-  { key: 'to_mark', label: 'Needs marking', match: (s) => s === 'SUBMITTED' || s === 'RETURNED' },
-  { key: 'in_review', label: 'In review', match: (s) => s === 'AI_DRAFTED' || s === 'TEACHER_REVIEWING' },
-  { key: 'released', label: 'Released', match: (s) => s === 'RELEASED' },
-];
+
+function useFilters(): Array<{ key: FilterKey; label: string; match: (s: SubmissionStatus) => boolean }> {
+  const { t } = useTranslation();
+  return [
+    { key: 'all', label: t('submissionFilterAll'), match: () => true },
+    { key: 'to_mark', label: t('submissionFilterNeedsMarking'), match: (s) => s === 'SUBMITTED' || s === 'RETURNED' },
+    { key: 'in_review', label: t('submissionFilterInReview'), match: (s) => s === 'AI_DRAFTED' || s === 'TEACHER_REVIEWING' },
+    { key: 'released', label: t('submissionFilterReleased'), match: (s) => s === 'RELEASED' },
+  ];
+}
 
 // ── Bearer-fetched artifact preview ─────────────────────────────────────
 function FilePreview({ orgId, classId, submissionId, file }: {
   orgId: string; classId: string; submissionId: string; file: SubmissionFileMeta;
 }) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -78,14 +86,14 @@ function FilePreview({ orgId, classId, submissionId, file }: {
         <span className="truncate">{file.name}</span>
         {url && (
           <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline shrink-0 ml-2">
-            Open ↗
+            {t('submissionsTabOpen')}
           </a>
         )}
       </div>
       {error ? (
-        <p className="px-3 py-6 text-xs text-bad text-center">Couldn&apos;t load this file.</p>
+        <p className="px-3 py-6 text-xs text-bad text-center">{t('submissionsTabFileLoadFailed')}</p>
       ) : !url ? (
-        <p className="px-3 py-6 text-xs text-ink3 text-center">Loading preview…</p>
+        <p className="px-3 py-6 text-xs text-ink3 text-center">{t('submissionsTabLoadingPreview')}</p>
       ) : isImage ? (
         // Kept as <img>: src is a signed/arbitrary submission-file URL — next/image
         // would need a wildcard remote host (security smell) and can break signed URLs.
@@ -95,7 +103,7 @@ function FilePreview({ orgId, classId, submissionId, file }: {
         <iframe src={url} title={file.name} className="w-full h-[480px] bg-white" />
       ) : (
         <p className="px-3 py-6 text-xs text-ink3 text-center">
-          No inline preview — use Open ↗ to view.
+          {t('submissionsTabNoPreview')}
         </p>
       )}
     </div>
@@ -106,6 +114,7 @@ function FilePreview({ orgId, classId, submissionId, file }: {
 function UploadForm({ orgId, classId, onDone, onCancel }: {
   orgId: string; classId: string; onDone: () => void; onCancel: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const [studentId, setStudentId] = useState('');
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
@@ -133,18 +142,18 @@ function UploadForm({ orgId, classId, onDone, onCancel }: {
   return (
     <div className="bg-panel border border-line rounded-2xl p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-ink">Upload homework</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('submissionsTabUploadHomework')}</h3>
         <button onClick={onCancel} className="text-ink3 hover:text-ink text-sm">✕</button>
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-ink2">Student <span className="text-ink3">(optional)</span></label>
+        <label className="text-xs font-medium text-ink2">{t('submissionsTabStudent')} <span className="text-ink3">{t('markingOptional')}</span></label>
         <select
           value={studentId}
           onChange={(e) => setStudentId(e.target.value)}
           className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink"
         >
-          <option value="">Unassigned</option>
+          <option value="">{t('submissionsTabUnassigned')}</option>
           {students.map((s) => (
             <option key={s.userId} value={s.userId}>{s.displayName || s.userId.slice(0, 8)}</option>
           ))}
@@ -152,27 +161,27 @@ function UploadForm({ orgId, classId, onDone, onCancel }: {
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-ink2">Title <span className="text-bad">*</span></label>
+        <label className="text-xs font-medium text-ink2">{t('submissionsTabTitle')} <span className="text-bad">*</span></label>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Maths Worksheet 3"
+          placeholder={t('submissionsTabTitlePlaceholder')}
           className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3"
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-ink2">Subject <span className="text-ink3">(optional)</span></label>
+        <label className="text-xs font-medium text-ink2">{t('submissionsTabSubject')} <span className="text-ink3">{t('markingOptional')}</span></label>
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          placeholder="e.g. Maths"
+          placeholder={t('submissionsTabSubjectPlaceholder')}
           className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3"
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-ink2">Files <span className="text-bad">*</span></label>
+        <label className="text-xs font-medium text-ink2">{t('submissionsTabFiles')} <span className="text-bad">*</span></label>
         <input
           ref={fileRef}
           type="file"
@@ -182,26 +191,26 @@ function UploadForm({ orgId, classId, onDone, onCancel }: {
           className="block w-full text-xs text-ink2 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-panel2 file:text-ink2 file:text-xs hover:file:bg-line"
         />
         {files.length > 0 && (
-          <p className="text-xs text-ink3">{files.length} file{files.length !== 1 ? 's' : ''} selected</p>
+          <p className="text-xs text-ink3">{tp.fileCount(files.length)}</p>
         )}
       </div>
 
       {mut.isError && (
         <p className="text-xs text-bad">
-          {mut.error instanceof ApiError ? mut.error.userMessage : 'Upload failed. Please try again.'}
+          {mut.error instanceof ApiError ? mut.error.userMessage : t('submissionsTabUploadFailed')}
         </p>
       )}
 
       <div className="flex justify-end gap-2">
         <button onClick={onCancel} disabled={mut.isPending} className="px-4 py-2 rounded-lg border border-line text-ink2 text-xs hover:bg-panel2 disabled:opacity-40">
-          Cancel
+          {t('submissionsTabCancel')}
         </button>
         <button
           onClick={() => mut.mutate()}
           disabled={!canSubmit}
           className="px-4 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 disabled:opacity-40"
         >
-          {mut.isPending ? 'Uploading…' : 'Upload'}
+          {mut.isPending ? t('submissionsTabUploading') : t('submissionsTabUpload')}
         </button>
       </div>
     </div>
@@ -212,6 +221,7 @@ function UploadForm({ orgId, classId, onDone, onCancel }: {
 function DetailPanel({ orgId, classId, submissionId }: {
   orgId: string; classId: string; submissionId: string;
 }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
   const [feedback, setFeedback] = useState('');
   const [grade, setGrade] = useState('');
@@ -269,9 +279,9 @@ function DetailPanel({ orgId, classId, submissionId }: {
     onSuccess: (res) => { setShowReturn(false); setReturnNote(''); refresh(res.data); },
   });
 
-  if (detail.isLoading) return <p className="px-5 py-4 text-ink3 text-xs">Loading submission…</p>;
+  if (detail.isLoading) return <p className="px-5 py-4 text-ink3 text-xs">{t('submissionsTabLoadingSubmission')}</p>;
   if (detail.error || !s) {
-    return <div className="px-5 py-4"><ErrorView message="Could not load this submission." onRetry={() => detail.refetch()} /></div>;
+    return <div className="px-5 py-4"><ErrorView message={t('submissionsTabCouldNotLoadSubmission')} onRetry={() => detail.refetch()} /></div>;
   }
 
   const draft = parseAiDraft(s.aiDraftFeedbackJson);
@@ -292,7 +302,7 @@ function DetailPanel({ orgId, classId, submissionId }: {
       {s.extractedText && s.extractedText.trim() && (
         <div>
           <button onClick={() => setShowOcr((v) => !v)} className="text-xs font-semibold text-ink2 hover:text-ink">
-            {showOcr ? '▼' : '▶'} Extracted text
+            {showOcr ? '▼' : '▶'} {t('submissionsTabExtractedText')}
           </button>
           {showOcr && (
             <pre className="mt-2 max-h-60 overflow-auto rounded-xl bg-panel2 border border-line p-3 text-xs text-ink2 whitespace-pre-wrap font-sans">
@@ -305,7 +315,7 @@ function DetailPanel({ orgId, classId, submissionId }: {
       {/* AI draft */}
       {released ? (
         <div className="rounded-xl bg-ok/10 border border-ok/30 px-4 py-3 text-xs text-ink2">
-          Released to the student{s.releasedAt ? ` on ${new Date(s.releasedAt).toLocaleString()}` : ''}.
+          {tp.submissionsTabReleasedTo(s.releasedAt ? new Date(s.releasedAt).toLocaleString() : null)}
         </div>
       ) : (
         <div className="space-y-3">
@@ -315,23 +325,23 @@ function DetailPanel({ orgId, classId, submissionId }: {
               disabled={busy}
               className="px-4 py-2 rounded-lg bg-panel2 border border-line text-xs font-semibold text-ink hover:bg-line disabled:opacity-40"
             >
-              {draftMut.isPending ? 'Generating…' : draft ? 'Regenerate AI draft' : '✨ Generate AI draft'}
+              {draftMut.isPending ? t('submissionsTabGenerating') : draft ? t('submissionsTabRegenerateDraft') : t('submissionsTabGenerateDraft')}
             </button>
-            <span className="text-[11px] text-ink3">AI suggests — you decide what the student sees.</span>
+            <span className="text-[11px] text-ink3">{t('submissionsTabAiSuggests')}</span>
           </div>
 
           {draftMut.isError && (
             <p className="text-xs text-bad">
-              {draftMut.error instanceof ApiError ? draftMut.error.userMessage : 'Could not generate a draft.'}{' '}
-              You can still mark this manually.
+              {draftMut.error instanceof ApiError ? draftMut.error.userMessage : t('submissionsTabDraftFailed')}{' '}
+              {t('submissionsTabMarkManually')}
             </p>
           )}
 
           {draft && (draft.criteria?.length || draft.suggestedGrade) && (
             <div className="rounded-xl bg-blue-900/15 border border-blue-900/30 px-4 py-3 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">AI first-pass (draft)</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">{t('submissionsTabAiFirstPass')}</p>
               {draft.suggestedGrade && (
-                <p className="text-xs text-ink2">Suggested grade: <span className="font-semibold text-ink">{draft.suggestedGrade}</span></p>
+                <p className="text-xs text-ink2">{t('submissionsTabSuggestedGrade')} <span className="font-semibold text-ink">{draft.suggestedGrade}</span></p>
               )}
               {draft.criteria?.map((c, i) => (
                 <p key={i} className="text-xs text-ink2"><span className="font-medium text-ink">{c.criterion}:</span> {c.comment}</p>
@@ -345,24 +355,24 @@ function DetailPanel({ orgId, classId, submissionId }: {
       <div className="space-y-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-ink2">
-            Feedback to student {!released && <span className="text-bad">*</span>}
+            {t('submissionsTabFeedbackLabel')} {!released && <span className="text-bad">*</span>}
           </label>
           <textarea
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             readOnly={released}
             rows={5}
-            placeholder="Write the feedback the student will read…"
+            placeholder={t('submissionsTabFeedbackPlaceholder')}
             className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 read-only:opacity-70"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-ink2">Grade <span className="text-ink3">(optional)</span></label>
+          <label className="text-xs font-medium text-ink2">{t('submissionsTabGradeLabel')} <span className="text-ink3">{t('markingOptional')}</span></label>
           <input
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
             readOnly={released}
-            placeholder="e.g. B+ or 17/25"
+            placeholder={t('submissionsTabGradePlaceholder')}
             className="w-full max-w-[200px] px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 read-only:opacity-70"
           />
         </div>
@@ -371,7 +381,7 @@ function DetailPanel({ orgId, classId, submissionId }: {
           const err = releaseMut.error ?? saveMut.error;
           return (
             <p className="text-xs text-bad">
-              {err instanceof ApiError ? err.userMessage : 'Something went wrong. Please try again.'}
+              {err instanceof ApiError ? err.userMessage : t('submissionsTabSomethingWrong')}
             </p>
           );
         })()}
@@ -383,22 +393,22 @@ function DetailPanel({ orgId, classId, submissionId }: {
               disabled={busy || feedback.trim().length === 0}
               className="px-4 py-2 rounded-lg border border-line text-ink2 text-xs font-semibold hover:bg-panel2 disabled:opacity-40"
             >
-              {saveMut.isPending ? 'Saving…' : 'Save draft'}
+              {saveMut.isPending ? t('submissionsTabSaving') : t('submissionsTabSaveDraft')}
             </button>
             <button
               onClick={() => releaseMut.mutate()}
               disabled={busy || !canRelease}
-              title={canRelease ? undefined : 'Add feedback before releasing'}
+              title={canRelease ? undefined : t('submissionsTabAddFeedbackBeforeReleasing')}
               className="px-4 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 disabled:opacity-40"
             >
-              {releaseMut.isPending ? 'Releasing…' : 'Release to student'}
+              {releaseMut.isPending ? t('submissionsTabReleasing') : t('submissionsTabRelease')}
             </button>
             <button
               onClick={() => setShowReturn((v) => !v)}
               disabled={busy}
               className="px-4 py-2 rounded-lg text-bad text-xs font-semibold hover:bg-bad/10 disabled:opacity-40"
             >
-              Return for redo
+              {t('submissionsTabReturnForRedo')}
             </button>
           </div>
         )}
@@ -409,17 +419,17 @@ function DetailPanel({ orgId, classId, submissionId }: {
               value={returnNote}
               onChange={(e) => setReturnNote(e.target.value)}
               rows={2}
-              placeholder="Optional note for the student (why it's coming back)…"
+              placeholder={t('submissionsTabReturnPlaceholder')}
               className="w-full px-3 py-2 rounded-lg bg-panel border border-line text-sm text-ink placeholder:text-ink3"
             />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowReturn(false)} className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs hover:bg-panel">Cancel</button>
+              <button onClick={() => setShowReturn(false)} className="px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs hover:bg-panel">{t('submissionsTabCancel')}</button>
               <button
                 onClick={() => returnMut.mutate()}
                 disabled={returnMut.isPending}
                 className="px-3 py-1.5 rounded-lg bg-bad text-white text-xs font-semibold hover:bg-bad/90 disabled:opacity-40"
               >
-                {returnMut.isPending ? 'Returning…' : 'Confirm return'}
+                {returnMut.isPending ? t('submissionsTabReturning') : t('submissionsTabConfirmReturn')}
               </button>
             </div>
           </div>
@@ -433,6 +443,8 @@ function DetailPanel({ orgId, classId, submissionId }: {
 export function SubmissionsTab({ orgId, classId, subject }: {
   orgId: string; classId: string; subject?: string | null;
 }) {
+  const { t, tp } = useTranslation();
+  const FILTERS = useFilters();
   const [filter, setFilter] = useState<FilterKey>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -451,21 +463,21 @@ export function SubmissionsTab({ orgId, classId, subject }: {
   const visible = all.filter((s) => activeFilter.match(s.status));
   const toMarkCount = all.filter((s) => s.status === 'SUBMITTED' || s.status === 'RETURNED').length;
 
-  if (query.isLoading) return <p className="text-ink3 text-sm py-8">Loading submissions…</p>;
-  if (query.error) return <ErrorView message="Could not load submissions." onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <p className="text-ink3 text-sm py-8">{t('submissionsTabLoadingList')}</p>;
+  if (query.error) return <ErrorView message={t('submissionsTabCouldNotLoadList')} onRetry={() => query.refetch()} />;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-ink2">
-          {all.length} submission{all.length !== 1 ? 's' : ''}
-          {toMarkCount > 0 && <span className="text-amber-300"> · {toMarkCount} need marking</span>}
+          {tp.submissionsTabCount(all.length)}
+          {toMarkCount > 0 && <span className="text-amber-300"> · {tp.submissionsTabNeedMarking(toMarkCount)}</span>}
         </p>
         <button
           onClick={() => setShowUpload((v) => !v)}
           className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition"
         >
-          + Upload homework
+          {t('submissionsTabUploadCta')}
         </button>
       </div>
 
@@ -476,7 +488,7 @@ export function SubmissionsTab({ orgId, classId, subject }: {
       >
         <summary className="px-5 py-3 cursor-pointer text-sm font-semibold text-ink2 hover:text-ink list-none flex items-center gap-2">
           <span className="text-ink3 text-xs transition-transform group-open:rotate-90">▶</span>
-          🎯 Marking assistant — train AI feedback on YOUR standard
+          {t('submissionsTabMarkingAssistantSummary')}
         </summary>
         <div className="px-5 pb-5 pt-1">
           <MarkingAssistantPanel orgId={orgId} classId={classId} subject={subject} />
@@ -519,11 +531,11 @@ export function SubmissionsTab({ orgId, classId, subject }: {
       {visible.length === 0 ? (
         <EmptyState
           icon="📥"
-          title={all.length === 0 ? 'No submissions yet' : 'Nothing in this view'}
+          title={all.length === 0 ? t('submissionsTabEmptyNoneTitle') : t('submissionsTabEmptyFilterTitle')}
           description={all.length === 0
-            ? 'When a student uploads homework — or you upload it for them — it lands here to mark.'
-            : 'Try a different filter.'}
-          {...(all.length === 0 ? { actionLabel: 'Upload homework', onAction: () => setShowUpload(true) } : {})}
+            ? t('submissionsTabEmptyNoneDescription')
+            : t('submissionsTabEmptyFilterDescription')}
+          {...(all.length === 0 ? { actionLabel: t('submissionsTabUploadHomework'), onAction: () => setShowUpload(true) } : {})}
         />
       ) : (
         <div className="space-y-3">
@@ -540,7 +552,7 @@ export function SubmissionsTab({ orgId, classId, subject }: {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-ink3">
                     {s.subject && <span>{s.subject}</span>}
-                    <span>{s.files.length} file{s.files.length !== 1 ? 's' : ''}</span>
+                    <span>{tp.fileCount(s.files.length)}</span>
                     <span>{new Date(s.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
