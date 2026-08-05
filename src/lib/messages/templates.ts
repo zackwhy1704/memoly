@@ -32,6 +32,18 @@ export interface Templates {
   submissionsTabReleasedTo: (date: string | null) => string;
   submissionsTabCount: (n: number) => string;
   submissionsTabNeedMarking: (n: number) => string;
+  rosterLevelBadge: (n: number) => string;
+  rosterXp: (n: number) => string;
+  /** Compact table-cell chip ("🔥 Nd") — no "streak" word, sits under a "Streak" column header. */
+  rosterStreakBadge: (n: number) => string;
+  /** Inline prose chip ("Nd streak") — used where there's no adjacent column header. */
+  rosterStreakDays: (n: number) => string;
+  studentsPageShowingCount: (shown: number, total: number) => string;
+  studentsPageRemoveConfirmHeading: (name: string) => string;
+  studentDetailExamInDays: (n: number) => string;
+  studentDetailAttemptsCount: (n: number) => string;
+  teachersPageAlreadyRegistered: (email: string) => string;
+  teachersPageInviteSent: (email: string) => string;
 }
 
 export const templatesEn: Templates = {
@@ -76,6 +88,19 @@ export const templatesEn: Templates = {
   submissionsTabReleasedTo: (date) => `Released to the student${date ? ` on ${date}` : ''}.`,
   submissionsTabCount: (n) => `${n} submission${n !== 1 ? 's' : ''}`,
   submissionsTabNeedMarking: (n) => `${n} need marking`,
+  // Shared across the student roster + student-detail pages — both render the
+  // exact same "Lv N" / "N XP" / "Nd streak" chips.
+  rosterLevelBadge: (n) => `Lv ${n}`,
+  rosterXp: (n) => `${n} XP`,
+  rosterStreakBadge: (n) => `🔥 ${n}d`,
+  rosterStreakDays: (n) => `${n}d streak`,
+  studentsPageShowingCount: (shown, total) => `Showing ${shown} of ${total} students`,
+  studentsPageRemoveConfirmHeading: (name) => `Remove ${name}?`,
+  studentDetailExamInDays: (n) => `Exam in ${n}d`,
+  studentDetailAttemptsCount: (n) => `${n} attempts`,
+  teachersPageAlreadyRegistered: (email) =>
+    `✓ ${email} was already registered and has been added to your centre.`,
+  teachersPageInviteSent: (email) => `✓ Invite sent to ${email}`,
 };
 
 export const templatesZh: Templates = {
@@ -117,4 +142,15 @@ export const templatesZh: Templates = {
   submissionsTabReleasedTo: (date) => `已发布给学生${date ? `（${date}）` : ''}。`,
   submissionsTabCount: (n) => `${n} 份作业`,
   submissionsTabNeedMarking: (n) => `${n} 份待批改`,
+  // "等级 N" mirrors pally's homeLevelBadge precedent ("⭐ 等级 {level}").
+  rosterLevelBadge: (n) => `等级 ${n}`,
+  rosterXp: (n) => `${n} XP`,
+  rosterStreakBadge: (n) => `🔥 ${n} 天`,
+  rosterStreakDays: (n) => `连续 ${n} 天`,
+  studentsPageShowingCount: (shown, total) => `显示 ${total} 名学生中的 ${shown} 名`,
+  studentsPageRemoveConfirmHeading: (name) => `移除 ${name}？`,
+  studentDetailExamInDays: (n) => `距考试还有 ${n} 天`,
+  studentDetailAttemptsCount: (n) => `${n} 次尝试`,
+  teachersPageAlreadyRegistered: (email) => `✓ ${email} 已注册，并已加入你的中心。`,
+  teachersPageInviteSent: (email) => `✓ 邀请已发送至 ${email}`,
 };
