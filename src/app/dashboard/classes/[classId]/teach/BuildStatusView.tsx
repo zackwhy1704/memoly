@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslation } from '@/lib/messages';
 
 // Honest render of the REAL compile pipeline state. The cardinal rule (see prompt):
 // never a stepper that lies. Numbers show ONLY when the backend actually reports
@@ -31,6 +32,7 @@ export function BuildStatusView({
   onReview?: () => void;
   onRetry?: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const { phase, pagesCompiled, pagesTotal, lessonCount, failedCount } = status;
 
   return (
@@ -38,7 +40,7 @@ export function BuildStatusView({
       {phase === 'checking' && (
         <>
           <Spinner />
-          <p className="text-sm text-ink2">Checking…</p>
+          <p className="text-sm text-ink2">{t('buildStatusChecking')}</p>
         </>
       )}
 
@@ -46,14 +48,14 @@ export function BuildStatusView({
         <>
           <Image src="/mochi-base-transparent.png" alt="Mochi" width={56} height={56}
             className="object-contain animate-bounce" />
-          <h3 className="text-base font-semibold text-ink">Mochi is building your lessons</h3>
+          <h3 className="text-base font-semibold text-ink">{t('buildStatusBuilding')}</h3>
           <p className="text-sm text-ink2 max-w-sm">
-            Usually 1–3 minutes. You can leave this page — we&apos;ll keep working.
+            {t('buildStatusBuildingBody')}
           </p>
           <p className="text-sm font-medium text-accent" data-testid="compile-progress">
             {pagesTotal && pagesTotal > 0
-              ? `Compiling ${pagesCompiled ?? 0}/${pagesTotal} pages…`
-              : 'Compiling…'}
+              ? tp.buildStatusCompilingProgress(pagesCompiled ?? 0, pagesTotal)
+              : t('buildStatusCompilingIndeterminate')}
           </p>
         </>
       )}
@@ -61,16 +63,16 @@ export function BuildStatusView({
       {phase === 'ready' && (
         <>
           <div className="text-3xl" aria-hidden="true">🎉</div>
-          <h3 className="text-base font-semibold text-ink">Lessons ready!</h3>
+          <h3 className="text-base font-semibold text-ink">{t('buildStatusReadyTitle')}</h3>
           {typeof lessonCount === 'number' && lessonCount > 0 && (
             <p className="text-sm text-ink2">
-              Mochi compiled {lessonCount} page{lessonCount === 1 ? '' : 's'} from your notes.
+              {tp.buildStatusLessonCount(lessonCount)}
             </p>
           )}
           {onPreview && (
             <button onClick={onPreview}
               className="mt-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent/80 transition">
-              Preview lessons →
+              {t('buildStatusPreviewLessons')}
             </button>
           )}
         </>
@@ -79,14 +81,14 @@ export function BuildStatusView({
       {phase === 'timeout' && (
         <>
           <div className="text-2xl" aria-hidden="true">⏳</div>
-          <h3 className="text-base font-semibold text-ink">This is taking longer than usual</h3>
+          <h3 className="text-base font-semibold text-ink">{t('buildStatusTimeoutTitle')}</h3>
           <p className="text-sm text-ink2 max-w-sm">
-            Mochi is still working. Check back shortly, or try again.
+            {t('buildStatusTimeoutBody')}
           </p>
           {onRetry && (
             <button onClick={onRetry}
               className="mt-1 px-4 py-2 rounded-lg border border-line text-sm font-semibold text-ink hover:bg-panel2 transition">
-              Retry
+              {t('buildStatusRetry')}
             </button>
           )}
         </>
@@ -96,12 +98,11 @@ export function BuildStatusView({
       {!!failedCount && failedCount > 0 && phase !== 'checking' && (
         <div className="mt-2 w-full rounded-lg bg-warn/10 border border-warn/30 px-3 py-2 text-xs text-warn flex items-center justify-between gap-2">
           <span>
-            {failedCount} page{failedCount === 1 ? ' was' : 's were'} hard to read — Mochi may have
-            missed some content.
+            {tp.buildStatusFailedCount(failedCount)}
           </span>
           {onReview && (
             <button onClick={onReview} className="underline font-semibold whitespace-nowrap">
-              Review
+              {t('buildStatusReview')}
             </button>
           )}
         </div>
@@ -111,8 +112,9 @@ export function BuildStatusView({
 }
 
 function Spinner() {
+  const { t } = useTranslation();
   return (
     <div className="h-6 w-6 rounded-full border-2 border-line border-t-accent animate-spin"
-      role="status" aria-label="Loading" />
+      role="status" aria-label={t('buildStatusCheckingAria')} />
   );
 }

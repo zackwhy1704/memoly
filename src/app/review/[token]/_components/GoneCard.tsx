@@ -1,23 +1,25 @@
 import { MessageCard } from './MessageCard';
+import { useTranslation } from '@/lib/messages';
 
 export function GoneCard({ status }: { status: string }) {
+  const { t } = useTranslation();
   const s = (status ?? '').toUpperCase();
   let emoji = '🔗';
-  let title = 'This review link is no longer active.';
-  let body = 'Ask the student to send a fresh link if you still need to review it.';
+  let title = t('goneCardDefaultTitle');
+  let body = t('goneCardDefaultBody');
 
   if (s === 'EXPIRED') {
     emoji = '⏳';
-    title = 'This link has expired';
-    body = 'Ask them to send a fresh one.';
+    title = t('goneCardExpiredTitle');
+    body = t('goneCardExpiredBody');
   } else if (s === 'APPROVED' || s === 'FLAGGED' || s === 'REVIEWED') {
     emoji = '✅';
-    title = 'This guide has already been reviewed';
-    body = 'Thank you!';
+    title = t('goneCardReviewedTitle');
+    body = t('goneCardReviewedBody');
   } else if (s === 'REVOKED') {
     emoji = '🔗';
-    title = 'This review link is no longer active.';
-    body = 'Ask the student to send a fresh link if you still need to review it.';
+    title = t('goneCardDefaultTitle');
+    body = t('goneCardDefaultBody');
   }
 
   return <MessageCard emoji={emoji} title={title} body={body} />;

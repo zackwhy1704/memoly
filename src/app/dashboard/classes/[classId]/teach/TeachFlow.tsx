@@ -8,6 +8,7 @@ import { TeachStepper, type StepNo } from './TeachStepper';
 import { BuildStatusView } from './BuildStatusView';
 import { TrainingTipsPanel } from './TrainingTipsPanel';
 import { useBuildStatus } from './useBuildStatus';
+import { useTranslation } from '@/lib/messages';
 
 /**
  * The guided Teach flow: Add material → Mochi builds (REAL status) → Preview & assign.
@@ -24,13 +25,14 @@ export function TeachFlow({
   classId: string;
   orgId: string;
 }) {
+  const { t } = useTranslation();
   const { status, refetch } = useBuildStatus(corpusAvatarId);
   const [manualStep, setManualStep] = useState<StepNo | null>(null);
 
   if (!corpusAvatarId) {
     return (
       <div className="bg-panel border border-line rounded-2xl p-6 text-sm text-ink2">
-        This class doesn&apos;t have a Mochi brain yet. Create the class avatar to start adding material.
+        {t('teachFlowNoAvatar')}
       </div>
     );
   }
@@ -46,7 +48,7 @@ export function TeachFlow({
       {step === 1 && (
         <div className="space-y-4">
           <p className="text-sm text-ink2">
-            Add your notes, worksheets or PDFs — Mochi turns them into lessons for this class.
+            {t('teachFlowAddMaterialHint')}
           </p>
           <TrainingTipsPanel />
           <MochiUploader
@@ -74,23 +76,23 @@ export function TeachFlow({
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-ink">Preview &amp; assign</h3>
+              <h3 className="text-base font-semibold text-ink">{t('teachFlowPreviewAssignHeading')}</h3>
               <p className="text-sm text-ink3">
-                Review the lessons Mochi built, then assign them to your students.
+                {t('teachFlowPreviewAssignSubtitle')}
               </p>
             </div>
             <button
               onClick={() => setManualStep(1)}
               className="px-3 py-1.5 rounded-lg border border-line text-sm font-medium text-ink2 hover:bg-panel2 transition whitespace-nowrap"
             >
-              ← Add more material
+              {t('teachFlowAddMoreMaterial')}
             </button>
           </div>
 
           <ModulesTab orgId={orgId} classId={classId} corpusAvatarId={corpusAvatarId} />
 
           <div className="border-t border-line pt-6">
-            <h4 className="text-sm font-semibold text-ink mb-3">Assign to students</h4>
+            <h4 className="text-sm font-semibold text-ink mb-3">{t('teachFlowAssignHeading')}</h4>
             <AssignmentsTab orgId={orgId} classId={classId} />
           </div>
         </div>

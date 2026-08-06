@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@/lib/messages';
 
 /** Prominent, one-tap-copy class join code shown in the class header. */
 export function ClassCodeBox({ code }: { code: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -19,15 +21,15 @@ export function ClassCodeBox({ code }: { code: string }) {
   return (
     <button
       onClick={copy}
-      title="Copy join code"
+      title={t('classCodeBoxTitle')}
       className="text-right shrink-0 rounded-xl border border-accent/30 bg-accent/5 px-4 py-2
         hover:bg-accent/10 transition-colors"
     >
-      <p className="text-[10px] uppercase tracking-wider text-ink3">Class code</p>
+      <p className="text-[10px] uppercase tracking-wider text-ink3">{t('classCodeBoxLabel')}</p>
       <p className="font-mono text-2xl font-extrabold text-accent tracking-[0.2em] leading-tight">
         {code}
       </p>
-      <p className="text-[10px] text-ink3 mt-0.5">{copied ? 'Copied! ✓' : 'Tap to copy'}</p>
+      <p className="text-[10px] text-ink3 mt-0.5">{copied ? t('classCodeBoxCopied') : t('classCodeBoxTapToCopy')}</p>
     </button>
   );
 }

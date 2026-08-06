@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { renderMarkdown } from '@/lib/markdown';
 import { respondReview, type ReviewContent } from '@/lib/review-api';
+import { useTranslation } from '@/lib/messages';
 
 const NOTE_MAX = 500;
 
@@ -19,6 +20,7 @@ export function ReviewBody({
   onGone: (status: string) => void;
   onNotFound: () => void;
 }) {
+  const { t } = useTranslation();
   // 'idle' = buttons shown; 'approve'/'flag' = form revealed for that verdict.
   const [mode, setMode] = useState<'idle' | 'approve' | 'flag'>('idle');
   const [note, setNote] = useState('');
@@ -34,7 +36,7 @@ export function ReviewBody({
     setError('');
     if (mode === 'idle') return;
     if (noteInvalid) {
-      setError('Please add a quick note on what to double-check.');
+      setError(t('reviewBodyNoteRequired'));
       return;
     }
     setSubmitting(true);
@@ -50,10 +52,10 @@ export function ReviewBody({
         onDone(res.status);
         break;
       case 'conflict':
-        setError('This guide has already been reviewed — thank you!');
+        setError(t('reviewBodyAlreadyReviewed'));
         break;
       case 'ratelimited':
-        setError('Too many attempts — please wait a moment and try again.');
+        setError(t('reviewBodyRateLimited'));
         break;
       case 'gone':
         onGone(res.status);
@@ -62,10 +64,10 @@ export function ReviewBody({
         onNotFound();
         break;
       case 'network':
-        setError('You appear to be offline. Check your connection and try again.');
+        setError(t('reviewBodyOffline'));
         break;
       default:
-        setError('Something went wrong submitting your review. Please try again.');
+        setError(t('reviewBodySubmitErrorFallback'));
     }
   }
 
@@ -85,7 +87,7 @@ export function ReviewBody({
       {/* Action card */}
       <div className="bg-panel rounded-2xl border border-line p-6">
         <h3 className="text-base font-semibold text-ink">
-          Does this look accurate?
+          {t('reviewBodyAccurateHeading')}
         </h3>
 
         {mode === 'idle' && (
@@ -99,7 +101,7 @@ export function ReviewBody({
               className="py-3 px-4 rounded-xl bg-ok text-white text-sm font-semibold
                 hover:opacity-90 active:opacity-80 transition-opacity"
             >
-              ✓ Looks good
+              {t('reviewBodyLooksGood')}
             </button>
             <button
               type="button"
@@ -110,7 +112,7 @@ export function ReviewBody({
               className="py-3 px-4 rounded-xl bg-panel2 border border-line text-ink text-sm font-semibold
                 hover:bg-bad/10 hover:border-bad/40 transition-colors"
             >
-              ✗ Something&apos;s off
+              {t('reviewBodySomethingsOff')}
             </button>
           </div>
         )}
@@ -123,7 +125,7 @@ export function ReviewBody({
                   htmlFor="review-note"
                   className="block text-sm font-medium text-ink2 mb-1.5"
                 >
-                  What should they double-check?
+                  {t('reviewBodyDoubleCheckLabel')}
                 </label>
                 <textarea
                   id="review-note"
@@ -131,7 +133,7 @@ export function ReviewBody({
                   maxLength={NOTE_MAX}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="e.g. The date for the second event is wrong…"
+                  placeholder={t('reviewBodyNotePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink text-sm
                     focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
                     placeholder:text-ink3 transition-colors resize-none"
@@ -147,15 +149,15 @@ export function ReviewBody({
                 htmlFor="review-name"
                 className="block text-sm font-medium text-ink2 mb-1.5"
               >
-                Your name{' '}
-                <span className="text-ink3 font-normal">(optional)</span>
+                {t('reviewBodyYourNameLabel')}{' '}
+                <span className="text-ink3 font-normal">{t('reviewBodyOptional')}</span>
               </label>
               <input
                 id="review-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Ms Tan"
+                placeholder={t('reviewBodyNamePlaceholder')}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink text-sm
                   focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
                   placeholder:text-ink3 transition-colors"
@@ -179,7 +181,7 @@ export function ReviewBody({
                 className="flex-1 py-2.5 px-4 rounded-lg bg-panel2 border border-line text-ink2 text-sm font-semibold
                   hover:text-ink transition-colors disabled:opacity-60"
               >
-                Back
+                {t('reviewBodyBack')}
               </button>
               <button
                 type="button"
@@ -190,10 +192,10 @@ export function ReviewBody({
                   disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {submitting
-                  ? 'Sending…'
+                  ? t('reviewBodySending')
                   : mode === 'approve'
-                    ? 'Confirm — looks good'
-                    : 'Send feedback'}
+                    ? t('reviewBodyConfirmLooksGood')
+                    : t('reviewBodySendFeedback')}
               </button>
             </div>
           </div>

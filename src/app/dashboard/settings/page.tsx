@@ -11,19 +11,20 @@ import { APP_LANGUAGES } from '@/lib/app-languages';
 import { resetTour } from '@/app/dashboard/classes/[classId]/tourStorage';
 
 export default function SettingsPage() {
+  const { t, tp } = useTranslation();
   const org = useOrg();
 
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink">Settings</h1>
-        <p className="text-ink3 text-sm mt-1">Organisation and account settings</p>
+        <h1 className="text-2xl font-bold text-ink">{t('settingsPageHeading')}</h1>
+        <p className="text-ink3 text-sm mt-1">{t('settingsPageSubtitle')}</p>
       </div>
 
       <div className="bg-panel border border-line rounded-2xl p-6 space-y-5">
         <div>
           <label className="block text-xs font-medium uppercase tracking-wider text-ink3 mb-2">
-            Centre
+            {t('settingsPageCentreLabel')}
           </label>
           <div className="px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink text-sm">
             {org?.orgName ?? '—'}
@@ -31,10 +32,10 @@ export default function SettingsPage() {
         </div>
         <div>
           <label className="block text-xs font-medium uppercase tracking-wider text-ink3 mb-2">
-            Seats
+            {t('settingsPageSeatsLabel')}
           </label>
           <div className="px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink2 text-sm">
-            {org ? `${org.seatsUsed} of ${org.seatLimit} used` : '—'}
+            {org ? tp.settingsPageSeatsUsed(org.seatsUsed, org.seatLimit) : '—'}
           </div>
         </div>
       </div>
@@ -47,14 +48,14 @@ export default function SettingsPage() {
       <ReplayTourPanel />
 
       <div className="bg-panel border border-bad/30 rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-ink mb-1">Sign out</h2>
-        <p className="text-ink3 text-xs mb-4">You will be redirected to the login page.</p>
+        <h2 className="text-sm font-semibold text-ink mb-1">{t('settingsPageSignOut')}</h2>
+        <p className="text-ink3 text-xs mb-4">{t('settingsPageSignOutBody')}</p>
         <button
           onClick={logout}
           className="px-4 py-2 rounded-lg bg-bad/20 text-bad text-sm font-semibold
             hover:bg-bad/30 transition-colors"
         >
-          Sign out
+          {t('settingsPageSignOut')}
         </button>
       </div>
 
@@ -94,6 +95,7 @@ function LanguagePanel() {
 }
 
 function DeleteAccountPanel() {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [phase, setPhase] = useState<
     'idle' | 'loading' | 'scheduled' | 'centre' | 'error'
@@ -120,7 +122,7 @@ function DeleteAccountPanel() {
         setError(err.userMessage);
         setPhase('error');
       } else {
-        setError('Something went wrong. Please try again.');
+        setError(t('answerReleaseErrorFallback'));
         setPhase('error');
       }
     }
@@ -130,17 +132,16 @@ function DeleteAccountPanel() {
     return (
       <div className="bg-panel border border-bad/30 rounded-2xl p-6">
         <h2 className="text-sm font-semibold text-ink mb-1">
-          Account scheduled for deletion
+          {t('settingsPageAccountScheduledTitle')}
         </h2>
         <p className="text-ink3 text-xs mb-4">
-          Your account will be permanently deleted after a 14-day restore window.
-          Sign back in before then to restore it.
+          {t('settingsPageAccountScheduledBody')}
         </p>
         <button
           onClick={logout}
           className="px-4 py-2 rounded-lg bg-bad/20 text-bad text-sm font-semibold hover:bg-bad/30 transition-colors"
         >
-          Sign out
+          {t('settingsPageSignOut')}
         </button>
       </div>
     );
@@ -152,24 +153,22 @@ function DeleteAccountPanel() {
       className="bg-panel border border-bad/30 rounded-2xl p-6 space-y-3"
     >
       <div>
-        <h2 className="text-sm font-semibold text-ink mb-1">Delete account</h2>
+        <h2 className="text-sm font-semibold text-ink mb-1">{t('settingsPageDeleteAccountHeading')}</h2>
         <p className="text-ink3 text-xs">
-          Permanently deletes your account. You have 14 days to restore it by
-          signing back in. Confirm your password to continue.
+          {t('settingsPageDeleteAccountBody')}
         </p>
       </div>
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Your password"
-        aria-label="Password"
+        placeholder={t('settingsPagePasswordPlaceholder')}
+        aria-label={t('settingsPagePasswordAriaLabel')}
         className="w-full px-3.5 py-2.5 rounded-lg border border-line bg-panel2 text-ink text-sm"
       />
       {phase === 'centre' && (
         <p className="text-bad text-xs">
-          Please transfer or close your centre before deleting your account — it
-          still has classes, students, or staff.
+          {t('settingsPageCentreNotEmptyError')}
         </p>
       )}
       {phase === 'error' && error && <p className="text-bad text-xs">{error}</p>}
@@ -178,20 +177,21 @@ function DeleteAccountPanel() {
         disabled={phase === 'loading'}
         className="px-4 py-2 rounded-lg bg-bad/20 text-bad text-sm font-semibold hover:bg-bad/30 transition-colors disabled:opacity-50"
       >
-        {phase === 'loading' ? 'Working…' : 'Delete my account'}
+        {phase === 'loading' ? t('createClassModalWorking') : t('settingsPageDeleteMyAccount')}
       </button>
     </form>
   );
 }
 
 function ReplayTourPanel() {
+  const { t } = useTranslation();
   const [armed, setArmed] = useState(false);
   return (
     <div className="bg-panel border border-line rounded-2xl p-6 space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-ink">Feature tour</h2>
+        <h2 className="text-sm font-semibold text-ink">{t('tourAriaLabel')}</h2>
         <p className="text-ink3 text-xs mt-1 leading-relaxed">
-          The 60-second guided tour of the class dashboard. Replay it the next time you open a class.
+          {t('settingsPageFeatureTourBody')}
         </p>
       </div>
       <button
@@ -201,29 +201,27 @@ function ReplayTourPanel() {
         }}
         className="inline-block px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
       >
-        {armed ? 'Tour re-armed — open a class to see it' : 'Replay tour'}
+        {armed ? t('settingsPageTourRearmed') : t('settingsPageReplayTour')}
       </button>
     </div>
   );
 }
 
 function InvitePanel() {
+  const { t } = useTranslation();
   return (
     <div className="bg-panel border border-line rounded-2xl p-6 space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-ink">Invite students</h2>
+        <h2 className="text-sm font-semibold text-ink">{t('settingsPageInviteStudentsHeading')}</h2>
         <p className="text-ink3 text-xs mt-1 leading-relaxed">
-          Every class has its own <span className="font-semibold text-ink2">join code</span>. Students
-          enter it in the Apalchi app (Home → &ldquo;Got a class code?&rdquo;) to join that class — it
-          adds them to your centre and gives them the class&apos;s Mochi automatically. One code per
-          class, nothing else to generate.
+          {t('settingsPageInvitePrefix')}<span className="font-semibold text-ink2">{t('classDetailJoinCodeBold')}</span>{t('settingsPageInviteMid')}{t('classDetailGotClassCodeBold')}{t('settingsPageInviteSuffix')}
         </p>
       </div>
       <Link
         href="/dashboard/classes"
         className="inline-block px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
       >
-        View class codes →
+        {t('settingsPageViewClassCodes')}
       </Link>
     </div>
   );

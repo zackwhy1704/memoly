@@ -7,12 +7,14 @@ import { getToken } from '@/lib/auth';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import { OrgProvider } from '@/lib/org-context';
+import { useTranslation } from '@/lib/messages';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
@@ -51,8 +53,8 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/mochi-base-transparent.png" alt="Loading…" width={36} height={36} className="object-contain animate-bounce" />
-          <p className="text-ink3 text-sm">Loading…</p>
+          <Image src="/mochi-base-transparent.png" alt={t('dashboardLayoutLoading')} width={36} height={36} className="object-contain animate-bounce" />
+          <p className="text-ink3 text-sm">{t('dashboardLayoutLoading')}</p>
         </div>
       </div>
     );

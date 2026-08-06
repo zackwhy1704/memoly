@@ -4,8 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { api, asArray, ApiError, type AssignmentType, type CreateAssignmentBody, type ClassModule } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
-
-const FALLBACK_CREATE_ERROR = 'Failed to create assignment. Please try again.';
+import { useTranslation } from '@/lib/messages';
 
 /**
  * Surface the REAL backend message. apiFetch throws an ApiError whose
@@ -13,12 +12,12 @@ const FALLBACK_CREATE_ERROR = 'Failed to create assignment. Please try again.';
  * like "No modules below mastery threshold 60.0%"). Show that to the teacher;
  * fall back to the generic copy only when there's no specific message.
  */
-function createAssignmentErrorMessage(error: unknown): string {
+function createAssignmentErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
     const msg = error.message.trim();
     if (msg) return msg;
   }
-  return FALLBACK_CREATE_ERROR;
+  return fallback;
 }
 
 export function CreateAssignmentModal({
@@ -32,6 +31,7 @@ export function CreateAssignmentModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t, tp } = useTranslation();
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AssignmentType>('POST_CLASS');
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
@@ -109,38 +109,38 @@ export function CreateAssignmentModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
-          <h2 className="text-sm font-bold text-ink">Create Assignment</h2>
+          <h2 className="text-sm font-bold text-ink">{t('createAssignmentHeading')}</h2>
           <button onClick={onClose} className="text-ink3 hover:text-ink text-lg leading-none">&times;</button>
         </div>
 
         <div className="px-5 py-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-ink2 mb-1.5">Title</label>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">{t('createAssignmentTitleLabel')}</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Chapter 5 Review"
+              placeholder={t('createAssignmentTitlePlaceholder')}
               className="w-full px-3 py-2 rounded-lg bg-panel2 border border-line text-sm text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-accent/40"
             />
           </div>
 
           {/* Type */}
           <div>
-            <label className="block text-xs font-medium text-ink2 mb-1.5">Type</label>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">{t('createAssignmentTypeLabel')}</label>
             <div className="flex flex-wrap gap-2">
-              {(['PRE_CLASS', 'POST_CLASS', 'REVISION', 'CUSTOM'] as AssignmentType[]).map((t) => (
+              {(['PRE_CLASS', 'POST_CLASS', 'REVISION', 'CUSTOM'] as AssignmentType[]).map((at) => (
                 <button
-                  key={t}
-                  onClick={() => setType(t)}
+                  key={at}
+                  onClick={() => setType(at)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    type === t
+                    type === at
                       ? 'bg-accent text-white'
                       : 'bg-panel2 text-ink3 hover:text-ink2'
                   }`}
                 >
-                  {t.replace('_', ' ')}
+                  {at.replace('_', ' ')}
                 </button>
               ))}
             </div>
@@ -148,11 +148,11 @@ export function CreateAssignmentModal({
 
           {/* Modules */}
           <div>
-            <label className="block text-xs font-medium text-ink2 mb-1.5">Modules</label>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">{t('createAssignmentModulesLabel')}</label>
             {modulesQuery.isLoading ? (
-              <p className="text-ink3 text-xs">Loading modules...</p>
+              <p className="text-ink3 text-xs">{t('createAssignmentLoadingModules')}</p>
             ) : modules.length === 0 ? (
-              <p className="text-ink3 text-xs">No modules available.</p>
+              <p className="text-ink3 text-xs">{t('createAssignmentNoModules')}</p>
             ) : (
               <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {modules.map((m) => (
@@ -179,13 +179,13 @@ export function CreateAssignmentModal({
                 onChange={(e) => setPersonalized(e.target.checked)}
                 className="w-4 h-4 rounded border-line text-accent focus:ring-accent/40"
               />
-              <span className="text-xs font-semibold text-ink2">Personalize per student</span>
+              <span className="text-xs font-semibold text-ink2">{t('createAssignmentPersonalizeLabel')}</span>
             </label>
             {personalized && (
               <p className="text-[11px] text-ink3 mt-1">
                 {type === 'PRE_CLASS'
-                  ? 'Everyone gets the primer; each student also gets a diagnostic on the prerequisites they’re weakest on.'
-                  : 'Each student gets homework targeted to the concepts they’re below threshold on, within the selected topics.'}
+                  ? t('createAssignmentPersonalizePreClassHint')
+                  : t('createAssignmentPersonalizeOtherHint')}
               </p>
             )}
           </div>
@@ -194,10 +194,10 @@ export function CreateAssignmentModal({
           {personalized && type === 'PRE_CLASS' && (
             <div>
               <label className="block text-xs font-medium text-ink2 mb-1.5">
-                Diagnose prerequisites (prior topics)
+                {t('createAssignmentDiagnosePrereqsLabel')}
               </label>
               {modules.length === 0 ? (
-                <p className="text-ink3 text-xs">No modules available.</p>
+                <p className="text-ink3 text-xs">{t('createAssignmentNoModules')}</p>
               ) : (
                 <div className="space-y-1.5 max-h-32 overflow-y-auto">
                   {modules.map((m) => (
@@ -218,7 +218,7 @@ export function CreateAssignmentModal({
 
           {/* Due date */}
           <div>
-            <label className="block text-xs font-medium text-ink2 mb-1.5">Due date (optional)</label>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">{t('createAssignmentDueDateLabel')}</label>
             <input
               type="date"
               value={dueDate}
@@ -232,7 +232,7 @@ export function CreateAssignmentModal({
           {(type === 'REVISION' || personalized) && (
             <div>
               <label className="block text-xs font-medium text-ink2 mb-1.5">
-                Mastery threshold: {masteryThreshold}%
+                {tp.createAssignmentMasteryThreshold(masteryThreshold)}
               </label>
               <input
                 type="range"
@@ -251,19 +251,19 @@ export function CreateAssignmentModal({
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold bg-panel2 hover:bg-panel2/80 rounded-lg text-ink transition"
           >
-            Cancel
+            {t('createAssignmentCancel')}
           </button>
           <button
             onClick={() => create.mutate()}
             disabled={!title.trim() || selectedModules.length === 0 || create.isPending}
             className="px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition disabled:opacity-40"
           >
-            {create.isPending ? 'Creating...' : 'Create'}
+            {create.isPending ? t('createAssignmentCreating') : t('createAssignmentCreate')}
           </button>
         </div>
         {create.error && (
           <div className="px-5 pb-4">
-            <p className="text-xs text-bad">{createAssignmentErrorMessage(create.error)}</p>
+            <p className="text-xs text-bad">{createAssignmentErrorMessage(create.error, t('createAssignmentFallbackError'))}</p>
           </div>
         )}
       </div>

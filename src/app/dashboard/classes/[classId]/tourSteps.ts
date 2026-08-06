@@ -11,6 +11,7 @@
 // fake 0% (ModuleExamReadinessService trust-weighting).
 
 import type { Tab } from './sections';
+import type { MessageKey } from '@/lib/messages/en';
 
 export interface TourStep {
   id: string;
@@ -20,9 +21,11 @@ export interface TourStep {
   /** data-tour attribute value to anchor the highlight ring to; null = centered
    *  card. Missing anchors also fall back to centered (see TourOverlay). */
   anchor: string | null;
-  title: string;
-  body: string;
-  cta?: string;
+  /** MessageKeys, not strings — this file has no component context to call
+   *  t() from; TourOverlay resolves them at render time. */
+  titleKey: MessageKey;
+  bodyKey: MessageKey;
+  ctaKey?: MessageKey;
 }
 
 export const TOUR_STEPS: TourStep[] = [
@@ -30,67 +33,57 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'welcome',
     tab: null,
     anchor: null,
-    title: 'Two loops run this class',
-    body: 'Teach it, then mark it — Mochi helps with both, from your own material. '
-      + 'Sixty seconds.',
-    cta: 'Show me',
+    titleKey: 'tourWelcomeTitle',
+    bodyKey: 'tourWelcomeBody',
+    ctaKey: 'tourWelcomeCta',
   },
   {
     id: 'teach',
     tab: 'content',
     anchor: 'teach-stepper',
-    title: 'Teach: add material, build, assign',
-    body: 'One guided flow: add your notes and worksheets, Mochi builds them into '
-      + 'this class’s brain, then you preview the Learn → Test → Prove '
-      + 'lessons it made from YOUR material and assign them. Students play in the '
-      + 'Apalchi app.',
-    cta: 'Next',
+    titleKey: 'tourTeachTitle',
+    bodyKey: 'tourTeachBody',
+    ctaKey: 'tourNext',
   },
   {
     id: 'insights-mastery',
     tab: 'concepts',
     anchor: 'subtab-concepts',
-    title: 'Insights: what’s actually landing',
-    body: 'As students work, their results flow back here as real signal — concept '
-      + 'by concept, weakest first. It reflects graded work, not a guess.',
-    cta: 'Next',
+    titleKey: 'tourInsightsMasteryTitle',
+    bodyKey: 'tourInsightsMasteryBody',
+    ctaKey: 'tourNext',
   },
   {
     id: 'insights-readiness',
     tab: 'readiness',
     anchor: 'subtab-readiness',
-    title: 'Exam readiness, honestly',
-    body: 'The weakest-first view for exam prep. A concept a student hasn’t been '
-      + 'assessed on shows as “not assessed” — never a fake 0%.',
-    cta: 'Next',
+    titleKey: 'tourInsightsReadinessTitle',
+    bodyKey: 'tourInsightsReadinessBody',
+    ctaKey: 'tourNext',
   },
   {
     id: 'mark-submissions',
     tab: 'submissions',
     anchor: 'nav-mark',
-    title: 'Mark: an AI draft, your call',
-    body: 'Add a marked paper or rubric, then generate an AI feedback draft. You '
-      + 'edit it — and nothing reaches a student until YOU release it.',
-    cta: 'Next',
+    titleKey: 'tourMarkSubmissionsTitle',
+    bodyKey: 'tourMarkSubmissionsBody',
+    ctaKey: 'tourNext',
   },
   {
     id: 'mark-corrections',
     tab: 'submissions',
     anchor: 'mark-corrections',
-    title: 'It learns your marking standard',
-    body: 'Your substantive edits are captured as corrections that shape future '
-      + 'drafts toward how you mark. Remove one here and it stops shaping future '
-      + 'drafts — it won’t instantly un-learn.',
-    cta: 'Next',
+    titleKey: 'tourMarkCorrectionsTitle',
+    bodyKey: 'tourMarkCorrectionsBody',
+    ctaKey: 'tourNext',
   },
   {
     id: 'close',
     tab: null,
     anchor: null,
-    title: 'That’s the loop',
-    body: 'Teach it, mark it, and Mochi keeps both matched to your class. Replay '
-      + 'this tour anytime from Settings.',
-    cta: 'Upload your first file',
+    titleKey: 'tourCloseTitle',
+    bodyKey: 'tourCloseBody',
+    ctaKey: 'tourCloseCta',
   },
 ];
 

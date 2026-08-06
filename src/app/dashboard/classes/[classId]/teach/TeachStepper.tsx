@@ -1,16 +1,19 @@
 'use client';
 
 import { Fragment } from 'react';
+import { useTranslation } from '@/lib/messages';
+import type { MessageKey } from '@/lib/messages/en';
 
 export type StepNo = 1 | 2 | 3;
 
 // Exported so the feature tour's Teach-loop copy can be pinned to this exact
 // stage sequence (a reorder here fails the tour test instead of silently
-// desyncing the narration).
-export const STEPS: { n: StepNo; label: string }[] = [
-  { n: 1, label: 'Add material' },
-  { n: 2, label: 'Mochi builds' },
-  { n: 3, label: 'Preview & assign' },
+// desyncing the narration). labelKey, not label — this file has no component
+// context to call t() from; resolution happens at render time.
+export const STEPS: { n: StepNo; labelKey: MessageKey }[] = [
+  { n: 1, labelKey: 'teachStepAddMaterial' },
+  { n: 2, labelKey: 'teachStepMochiBuilds' },
+  { n: 3, labelKey: 'teachStepPreviewAssign' },
 ];
 
 /** Persistent 3-step header for the Teach flow. Done steps show ✓ and stay clickable. */
@@ -21,8 +24,9 @@ export function TeachStepper({
   current: StepNo;
   onNavigate?: (n: StepNo) => void;
 }) {
+  const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-1 sm:gap-2" role="list" aria-label="Teach steps" data-tour="teach-stepper">
+    <div className="flex items-center gap-1 sm:gap-2" role="list" aria-label={t('teachStepperAriaLabel')} data-tour="teach-stepper">
       {STEPS.map((s, i) => {
         const state = s.n < current ? 'done' : s.n === current ? 'current' : 'upcoming';
         return (
@@ -51,7 +55,7 @@ export function TeachStepper({
                   state === 'current' ? 'text-ink' : state === 'done' ? 'text-ink2' : 'text-ink3'
                 }`}
               >
-                {s.label}
+                {t(s.labelKey)}
               </span>
             </button>
             {i < STEPS.length - 1 && (

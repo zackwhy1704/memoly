@@ -5,10 +5,12 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { api, ApiError } from '@/lib/api';
 import { getToken } from '@/lib/auth';
+import { useTranslation } from '@/lib/messages';
 
 type State = 'loading' | 'ok' | 'owner-only';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const [state, setState] = useState<State>('loading');
@@ -42,7 +44,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   if (state === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
-        <Image src="/mochi-base-transparent.png" alt="Loading…" width={36} height={36} className="object-contain animate-bounce" />
+        <Image src="/mochi-base-transparent.png" alt={t('accountLayoutLoadingAlt')} width={36} height={36} className="object-contain animate-bounce" />
       </div>
     );
   }
@@ -52,16 +54,15 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="max-w-sm text-center space-y-4">
           <p className="text-4xl">🔐</p>
-          <h1 className="text-xl font-bold text-ink">Owner access only</h1>
+          <h1 className="text-xl font-bold text-ink">{t('accountLayoutOwnerOnlyTitle')}</h1>
           <p className="text-ink3 text-sm leading-relaxed">
-            Only the centre owner can manage the subscription.
-            Ask your centre owner to make billing changes.
+            {t('accountLayoutOwnerOnlyBody')}
           </p>
           <a
             href="/dashboard"
             className="inline-block px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:opacity-90 transition"
           >
-            Back to dashboard
+            {t('accountLayoutBackToDashboard')}
           </a>
         </div>
       </div>

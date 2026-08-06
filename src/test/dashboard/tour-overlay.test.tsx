@@ -2,15 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TourOverlay, computeCardStyle } from '@/app/dashboard/classes/[classId]/TourOverlay';
 import { TOUR_STEPS } from '@/app/dashboard/classes/[classId]/tourSteps';
+import { en } from '@/lib/messages/en';
 
 describe('TourOverlay', () => {
   beforeEach(() => localStorage.clear());
 
   it('renders the first step, then advances in order on Next', () => {
     render(<TourOverlay onNavigate={vi.fn()} onClose={vi.fn()} />);
-    expect(screen.getByText(TOUR_STEPS[0].title)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(TOUR_STEPS[0].cta!));
-    expect(screen.getByText(TOUR_STEPS[1].title)).toBeInTheDocument();
+    expect(screen.getByText(en[TOUR_STEPS[0].titleKey])).toBeInTheDocument();
+    fireEvent.click(screen.getByText(en[TOUR_STEPS[0].ctaKey!]));
+    expect(screen.getByText(en[TOUR_STEPS[1].titleKey])).toBeInTheDocument();
   });
 
   it('Skip closes with reason "skipped"', () => {
@@ -31,7 +32,7 @@ describe('TourOverlay', () => {
     const onClose = vi.fn();
     const steps = TOUR_STEPS.slice(0, 1); // single step → its CTA completes
     render(<TourOverlay onNavigate={vi.fn()} onClose={onClose} steps={steps} />);
-    fireEvent.click(screen.getByText(steps[0].cta!));
+    fireEvent.click(screen.getByText(en[steps[0].ctaKey!]));
     expect(onClose).toHaveBeenCalledWith('completed');
   });
 
@@ -39,7 +40,7 @@ describe('TourOverlay', () => {
     const onNavigate = vi.fn();
     // Step 2 has tab "content"; advancing should call onNavigate with it.
     render(<TourOverlay onNavigate={onNavigate} onClose={vi.fn()} />);
-    fireEvent.click(screen.getByText(TOUR_STEPS[0].cta!));
+    fireEvent.click(screen.getByText(en[TOUR_STEPS[0].ctaKey!]));
     expect(onNavigate).toHaveBeenCalledWith('content');
   });
 

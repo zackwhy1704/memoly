@@ -7,6 +7,7 @@ import { QualityBadge, extractionBadge, NOTES_TIPS_HREF } from '@/components/Qua
 import { pollBrainReady } from '@/lib/upload-pipeline';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
+import { useTranslation } from '@/lib/messages';
 
 function TrashIcon() {
   return (
@@ -22,6 +23,7 @@ function TrashIcon() {
  * student's Mochi in the class, so a delete is destructive and confirmed.
  */
 export function FilesPanel({ avatarId }: { avatarId: string }) {
+  const { t, tp } = useTranslation();
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ['classFiles', avatarId],
@@ -60,7 +62,7 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
       setBrainUpdating(true);
       await pollBrainReady(avatarId);
     } catch (e) {
-      setError(e instanceof ApiError ? e.userMessage : 'Could not delete this file. Please try again.');
+      setError(e instanceof ApiError ? e.userMessage : t('filesPanelDeleteErrorFallback'));
     } finally {
       setDeletingId(null);
       setBrainUpdating(false);
@@ -71,11 +73,11 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
   return (
     <div className="bg-panel border border-line rounded-2xl overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-line">
-        <h3 className="text-sm font-semibold text-ink">Uploaded files</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('filesPanelHeading')}</h3>
         {brainUpdating && (
           <span className="inline-flex items-center gap-1.5 text-xs text-accent">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            Updating brain…
+            {t('filesPanelUpdatingBrain')}
           </span>
         )}
       </div>
@@ -84,7 +86,7 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
         <div className="px-5 pt-4">
           <div className="bg-bad/10 border border-bad/30 rounded-xl px-4 py-3 text-sm text-bad flex items-center justify-between gap-3">
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-bad/70 hover:text-bad text-lg leading-none" aria-label="Dismiss">
+            <button onClick={() => setError(null)} className="text-bad/70 hover:text-bad text-lg leading-none" aria-label={t('filesPanelDismiss')}>
               &times;
             </button>
           </div>
@@ -92,17 +94,17 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
       )}
 
       {query.isLoading ? (
-        <p className="text-ink3 text-sm p-5">Loading files...</p>
+        <p className="text-ink3 text-sm p-5">{t('filesPanelLoading')}</p>
       ) : query.error ? (
         <div className="p-4">
-          <ErrorView message="Could not load uploaded files." onRetry={() => query.refetch()} />
+          <ErrorView message={t('filesPanelCouldNotLoad')} onRetry={() => query.refetch()} />
         </div>
       ) : files.length === 0 ? (
         <div className="p-8">
           <EmptyState
             icon="📭"
-            title="No content uploaded yet"
-            description="Upload teaching material to build this class's knowledge base."
+            title={t('filesPanelEmptyTitle')}
+            description={t('filesPanelEmptyDescription')}
           />
         </div>
       ) : (
@@ -113,7 +115,7 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
               return (
                 <tr key={f.id} className="border-b border-line last:border-0">
                   <td className="px-5 py-3.5 font-medium text-ink">{f.fileName}</td>
-                  <td className="px-5 py-3.5 text-ink3 text-xs">{f.pageCount} pages</td>
+                  <td className="px-5 py-3.5 text-ink3 text-xs">{tp.filesPanelPageCount(f.pageCount)}</td>
                   <td className="px-5 py-3.5 text-xs">
                     <span className="px-2 py-1 rounded-full bg-panel2 text-ink2">{f.status}</span>
                     {f.status === 'READY' && (
@@ -126,11 +128,11 @@ export function FilesPanel({ avatarId }: { avatarId: string }) {
                     <button
                       onClick={() => setConfirmFile(f)}
                       disabled={busy || !!deletingId}
-                      title={`Delete ${f.fileName}`}
-                      aria-label={`Delete ${f.fileName}`}
+                      title={`${t('filesPanelConfirmDeletePrefix')}${f.fileName}`}
+                      aria-label={`${t('filesPanelConfirmDeletePrefix')}${f.fileName}`}
                       className="inline-flex items-center gap-1.5 text-ink3 hover:text-bad transition disabled:opacity-40 disabled:hover:text-ink3"
                     >
-                      {busy ? <span className="text-xs">Deleting…</span> : <TrashIcon />}
+                      {busy ? <span className="text-xs">{t('filesPanelDeleting')}</span> : <TrashIcon />}
                     </button>
                   </td>
                 </tr>
@@ -160,6 +162,7 @@ function ConfirmDeleteDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -171,23 +174,22 @@ function ConfirmDeleteDialog({
         className="bg-panel border border-line rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-bold text-ink">Delete this file?</h3>
+        <h3 className="text-base font-bold text-ink">{t('filesPanelConfirmDeleteTitle')}</h3>
         <p className="text-sm text-ink2">
-          Delete <span className="font-semibold text-ink">{fileName}</span>? This removes its
-          pages from the class brain and regenerates content for every student.
+          {t('filesPanelConfirmDeletePrefix')}<span className="font-semibold text-ink">{fileName}</span>{t('filesPanelConfirmDeleteSuffix')}
         </p>
         <div className="flex items-center justify-end gap-3 pt-1">
           <button
             onClick={onCancel}
             className="px-4 py-2 rounded-lg text-sm font-medium text-ink2 hover:text-ink border border-line bg-panel2 transition"
           >
-            Cancel
+            {t('filesPanelCancel')}
           </button>
           <button
             onClick={onConfirm}
             className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-bad hover:opacity-90 transition"
           >
-            Delete
+            {t('filesPanelDelete')}
           </button>
         </div>
       </div>

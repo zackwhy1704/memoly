@@ -406,6 +406,656 @@ export const en = {
   teachersPageInviteExplainer:
     "If the email belongs to an existing Apalchi user, they're added immediately. Otherwise an " +
     'invite link is generated — they click it after signing up to join your centre.',
+
+  // ── ClassesPage (dashboard/classes) ───────────────────────────────────
+  classesPageNoSubjectSet: 'No subject set',
+  classesPageOptionsTitle: 'Class options',
+  classesPageEditClass: '✏️ Edit class',
+  classesPageDeleteClass: '🗑 Delete class',
+  classesPageHeading: 'Classes',
+  classesPageSubtitle: 'Each class has its own join code, shared corpus, and branded Mochi.',
+  classesPageNewClass: '+ New class',
+  classesPageLoading: 'Loading classes...',
+  classesPageCouldNotLoad: 'Could not load classes.',
+  classesPageEmptyTitle: 'No classes yet',
+  classesPageEmptyDescription: 'Create your first class to get a join code and start adding students.',
+  classesPageDeleteWarningBody:
+    'This permanently deletes the class, its corpus brain, all modules, and all student memberships. ' +
+    'Students lose access immediately.',
+  classesPageDeleteWarningBold: 'This cannot be undone.',
+  classesPageDeleteError: 'Could not delete. Please try again.',
+  classesPageCancel: 'Cancel',
+  classesPageDeleting: 'Deleting…',
+  classesPageDeleteClassButton: 'Delete class',
+
+  // ── Shared class-form fields (CreateClassModal + EditClassModal) ──────
+  classFormNameLabel: 'Class name *',
+  classFormNamePlaceholder: 'P4 Math',
+  classFormSubjectLabel: 'Subject',
+  classFormLevelLabel: 'Level',
+  classFormLevelPlaceholder: 'P4',
+  classFormTeachingLanguageLabel: 'Teaching language',
+  classFormCancel: 'Cancel',
+
+  // ── CreateClassModal ───────────────────────────────────────────────────
+  createClassModalCompile1: 'Mochi is reading your notes carefully… 📚',
+  createClassModalCompile2: 'Building lessons from your content… ✏️',
+  createClassModalCompile3: 'Crafting quiz questions for your students… 🧠',
+  createClassModalCompile4: 'Organising everything into chapters… 📖',
+  createClassModalCompile5: 'Distilling your notes into the best study material… 🌟',
+  createClassModalCompile6: 'Nearly done — Mochi is a very fast learner! ⚡',
+  createClassModalCompile7: 'This usually takes 1–3 minutes. Worth the wait! ☕',
+  createClassModalCompile8: 'Great notes make great lessons — almost there… 🎓',
+  createClassModalStepClass: 'Class',
+  createClassModalStepMochi: 'Mochi',
+  createClassModalStepUpload: 'Upload',
+  createClassModalStepReview: 'Review',
+  createClassModalStepShare: 'Share',
+  createClassModalCopied: 'Copied!',
+  createClassModalCopyCode: 'Copy code',
+  createClassModalNameYourClass: 'Name your class',
+  createClassModalDesignNextStep: "You'll design the Mochi in the next step.",
+  createClassModalTeachingLanguageHelper:
+    'The Mochi generates lessons, quizzes and chat in this language for material compiled from now on. ' +
+    'Changing it later affects only new material.',
+  createClassModalDesignMochi: 'Design your class Mochi',
+  createClassModalStudentsLearnFrom: 'Students will learn from this Mochi — make it theirs.',
+  createClassModalChooseStyle: 'Choose a style or customise ↗',
+  createClassModalCreateFailedFallback: 'Could not create the class. Please try again.',
+  createClassModalLangErrorFallback:
+    'Could not set the teaching language — retry before uploading, or this class will generate English content.',
+  createClassModalLangRetryErrorFallback: 'Could not set the teaching language — please try again.',
+  createClassModalLangErrorSuffix:
+    'The class was created, but its teaching language isn’t set yet — use “Retry & continue” below before uploading.',
+  createClassModalJoinCodeLabel: 'Join code:',
+  createClassModalCustomiseMochi: 'Customise Mochi ↗',
+  createClassModalUploadInstructionsPrefix:
+    'Upload your teaching notes, worksheets, or PDFs below. Mochi will compile them into ' +
+    'lessons and quiz questions — this typically takes ',
+  createClassModalUploadInstructionsBold: '1–3 minutes',
+  createClassModalUploadInstructionsSuffix: '. Larger files may occasionally take longer.',
+  createClassModalReviewReadyTitle: "Review Mochi's lessons",
+  createClassModalReviewReadySubtitle: 'Approve or reject what Mochi generated from your notes.',
+  createClassModalCompileFailedTitle: 'Compiling failed',
+  createClassModalChaptersReadyTitle: 'Chapters ready to pick',
+  createClassModalStillWorkingTitle: 'Still working on it',
+  createClassModalCompilingTitle: 'Compiling your notes…',
+  createClassModalCompileFailedBodySuffix:
+    'Your files are saved — reopen this class from the dashboard to recompile, or skip to finish setup for now.',
+  createClassModalChaptersBody:
+    'Your upload was large, so Mochi split it into chapters. Open this class from the dashboard ' +
+    'to choose which chapters to compile into lessons.',
+  createClassModalCompilingSubtext: 'Compilation usually takes 1–3 minutes. This tab will update automatically.',
+  createClassModalTimeoutHeading: '⏱ This is taking longer than usual',
+  createClassModalTimeoutBody:
+    'The brain is still compiling in the background — it may be processing a large file. ' +
+    "You can skip to finish setup now and check the Review tab from the class page once it's done.",
+  createClassModalClassLive: 'Your class is live! 🎉',
+  createClassModalJoinCodeHeading: 'Join code',
+  createClassModalStudentsJoinPrefix: 'Students open the Apalchi app → Home → ',
+  createClassModalStudentsJoinBold: '“Got a class code?”',
+  createClassModalStudentsJoinSuffix: ' and enter the code above to join instantly.',
+  createClassModalBack: '← Back',
+  createClassModalClassCreatedPrefix: 'Class created · join code',
+  createClassModalSkipForNow: 'Skip for now',
+  createClassModalNext: 'Next →',
+  createClassModalWorking: 'Working…',
+  createClassModalRetryContinue: 'Retry & continue →',
+  createClassModalCreateContinue: 'Create class & continue →',
+  createClassModalUploadFirstTitle: 'Upload at least one file first',
+  createClassModalContinueToReview: 'Continue to review →',
+  createClassModalLooksGoodContinue: 'Looks good — continue →',
+  createClassModalDone: 'Done',
+
+  // ── EditClassModal ─────────────────────────────────────────────────────
+  editClassModalHeading: 'Edit class',
+  editClassModalTeachingLanguageHelper:
+    'Changing this affects only material compiled from now on — existing lessons and quizzes ' +
+    'keep the language they were created in.',
+  editClassModalSaveError: 'Could not save. Please try again.',
+  editClassModalRetry: 'Retry',
+  editClassModalSaving: 'Saving…',
+  editClassModalSaveChanges: 'Save changes',
+
+  // ── [classId] sections/subtabs (sections.ts) ──────────────────────────
+  classIdSectionTeach: 'Teach',
+  classIdSectionMark: 'Mark',
+  classIdSectionInsights: 'Insights',
+  classIdSectionStudents: 'Students',
+  classIdSubtabRoster: 'Roster',
+  classIdSubtabModules: 'Modules',
+  classIdSubtabHeatmap: 'Heatmap',
+  classIdSubtabConcepts: 'Concept Mastery',
+  classIdSubtabBrain: 'Brain',
+  classIdSubtabAssignments: 'Assignments',
+  classIdSubtabSubmissions: 'Submissions',
+  classIdSubtabChallenges: 'Challenges',
+  classIdSubtabReview: 'Review',
+  classIdSubtabReadiness: 'Exam Readiness',
+  classIdSubtabBrief: 'Class Brief',
+  classIdSubtabReport: 'AI Report',
+  classIdSubtabAdd: 'Add students',
+
+  // ── [classId]/page.tsx ─────────────────────────────────────────────────
+  classDetailBackToClasses: '← Back to classes',
+  classDetailNotFound: 'Class not found.',
+  classDetailEditClass: 'Edit class',
+  classDetailDeleteClass: 'Delete class',
+  classDetailJoinInstructionsPrefix: 'Share the ',
+  classDetailJoinCodeBold: 'join code',
+  classDetailJoinInstructionsMid: ' above. Students open the Apalchi app → Home → ',
+  classDetailGotClassCodeBold: '“Got a class code?”',
+  classDetailJoinInstructionsSuffix:
+    ' and enter it. They join this class instantly and get its Mochi — no separate centre code needed.',
+  classDetailEmptyBrainBannerPrefix: 'This class has no content yet — upload notes so the Mochi can teach.',
+  classDetailOpenBrain: 'Open Brain →',
+  classDetailDeleteWarningBody:
+    'This permanently deletes the class, its brain, all modules, and all student memberships. ' +
+    'Students lose access immediately.',
+
+  // ── TourOverlay + tourSteps ────────────────────────────────────────────
+  tourAriaLabel: 'Feature tour',
+  tourSkipAriaLabel: 'Skip tour',
+  tourSkip: 'Skip',
+  tourDone: 'Done',
+  tourNext: 'Next',
+  tourWelcomeTitle: 'Two loops run this class',
+  tourWelcomeBody:
+    'Teach it, then mark it — Mochi helps with both, from your own material. Sixty seconds.',
+  tourWelcomeCta: 'Show me',
+  tourTeachTitle: 'Teach: add material, build, assign',
+  tourTeachBody:
+    'One guided flow: add your notes and worksheets, Mochi builds them into this class’s brain, ' +
+    'then you preview the Learn → Test → Prove lessons it made from YOUR material and assign them. ' +
+    'Students play in the Apalchi app.',
+  tourInsightsMasteryTitle: 'Insights: what’s actually landing',
+  tourInsightsMasteryBody:
+    'As students work, their results flow back here as real signal — concept by concept, ' +
+    'weakest first. It reflects graded work, not a guess.',
+  tourInsightsReadinessTitle: 'Exam readiness, honestly',
+  tourInsightsReadinessBody:
+    'The weakest-first view for exam prep. A concept a student hasn’t been assessed on shows as ' +
+    '“not assessed” — never a fake 0%.',
+  tourMarkSubmissionsTitle: 'Mark: an AI draft, your call',
+  tourMarkSubmissionsBody:
+    'Add a marked paper or rubric, then generate an AI feedback draft. You edit it — and nothing ' +
+    'reaches a student until YOU release it.',
+  tourMarkCorrectionsTitle: 'It learns your marking standard',
+  tourMarkCorrectionsBody:
+    'Your substantive edits are captured as corrections that shape future drafts toward how you ' +
+    'mark. Remove one here and it stops shaping future drafts — it won’t instantly un-learn.',
+  tourCloseTitle: 'That’s the loop',
+  tourCloseBody:
+    'Teach it, mark it, and Mochi keeps both matched to your class. Replay this tour anytime from Settings.',
+  tourCloseCta: 'Upload your first file',
+
+  // ── BrainPagesSection ──────────────────────────────────────────────────
+  brainPagesHeading: 'Brain pages',
+  brainPagesSubtitle: "The compiled notes every student's Mochi teaches from.",
+  brainPagesReadOnlyPrefix:
+    'Centre class material is managed centrally, so pages are read-only here. To change what ' +
+    'students learn, open a page and ',
+  brainPagesReadOnlyRegenerate: 'regenerate its lessons',
+  brainPagesReadOnlyMid: ' — that creates a draft for the ',
+  brainPagesReadOnlySuffix: ' tab without touching what students currently see.',
+  brainPagesLoading: 'Loading brain pages…',
+  brainPagesCouldNotLoad: 'Could not load brain pages.',
+  brainPagesEmpty: "No brain pages yet — upload content above and they'll appear once it compiles.",
+  brainPagesViewEdit: 'View / Edit',
+  brainPagesView: 'View',
+  brainPagesConflictTitle: 'Sources disagree — correcting or regenerating this page will resolve it',
+  brainPagesConflict: 'Conflict',
+  brainPagesTeacherReviewed: 'Teacher-reviewed',
+  brainPagesFlagged: 'Flagged',
+  brainPagesLowConfidence: 'Low confidence',
+  brainPagesUnverified: 'Unverified',
+  brainPagesReadOnlyModalSubtitle: 'Read-only — regenerate to create a reviewable draft.',
+  brainPagesEditableModalSubtitle: 'Edits are saved as your verified version and override the AI draft.',
+  brainPagesClose: 'Close',
+  brainPagesLoadingPage: 'Loading page…',
+  brainPagesEmptyContentError: 'Content cannot be empty.',
+  brainPagesReadOnlyFallback: 'This material is read-only.',
+  brainPagesSaveErrorFallback: 'Could not save your changes. Please try again.',
+  brainPagesRegenErrorFallback: 'Could not regenerate. Please try again.',
+  brainPagesSavedNotice:
+    'Correction saved and the page is now teacher-reviewed. Students still see the previously ' +
+    'generated lessons until you regenerate.',
+  brainPagesDraftCreatedPrefix: 'Draft created — review & approve it in the ',
+  brainPagesDraftCreatedSuffix: ' tab. Student-facing lessons are unchanged until you approve it.',
+  brainPagesGuidancePlaceholder: "Optional guidance for the regeneration (e.g. 'use simpler examples')",
+  brainPagesHideGuidance: 'Hide guidance',
+  brainPagesAddGuidance: 'Add guidance',
+  brainPagesRegenerating: 'Regenerating…',
+  brainPagesRegenerateLessons: 'Regenerate lessons from this page',
+  brainPagesSaving: 'Saving…',
+  brainPagesSaveCorrection: 'Save correction',
+  brainPagesCertainty: 'Certainty:',
+  brainPagesQualityColon: 'Quality:',
+  brainPagesFrom: 'From:',
+  brainPagesPrerequisites: 'Prerequisites:',
+
+  // ── ContentReviewPanel ─────────────────────────────────────────────────
+  contentReviewContradicts: 'Contradicts your notes',
+  contentReviewNeedsReview: 'Needs your review',
+  contentReviewSourceLabel: 'source: ',
+  contentReviewSourceVerified: 'teacher-verified',
+  contentReviewSourceUnverified: 'unverified',
+  contentReviewClaimLabel: 'Claim: ',
+  contentReviewAnswerLabel: 'Answer: ',
+  contentReviewUntitled: 'Untitled',
+  contentReviewTypeLearn: 'LEARN',
+  contentReviewTypeHotTake: 'HOT TAKE',
+  contentReviewTypeQuiz: 'QUIZ',
+  contentReviewTypeFlashcard: 'FLASHCARD',
+  contentReviewRegenerateWithFeedback: 'Regenerate with feedback',
+  contentReviewGuidancePlaceholder: 'Optional: tell Mochi what to focus on, fix, or change…',
+  contentReviewRegenFailedFallback: 'Regeneration failed — please try again.',
+  contentReviewRetry: 'Retry',
+  contentReviewRegenerating: 'Regenerating…',
+  contentReviewRegenerate: 'Regenerate',
+  contentReviewCancel: 'Cancel',
+  contentReviewLoading: 'Loading content for review…',
+  contentReviewCouldNotLoad: 'Could not load content review items.',
+  contentReviewAllDoneTitle: 'All content reviewed',
+  contentReviewAllDoneDescription:
+    'No draft items pending review. New content will appear here after upload and compilation.',
+  contentReviewApproving: 'Approving…',
+  contentReviewApprove: 'Approve',
+  contentReviewReject: 'Reject',
+  contentReviewApprovedNoticePrefix: 'Approved ',
+  contentReviewApprovedNoticeSuffix: ' items.',
+
+  // ── CreateAssignmentModal ──────────────────────────────────────────────
+  createAssignmentFallbackError: 'Failed to create assignment. Please try again.',
+  createAssignmentHeading: 'Create Assignment',
+  createAssignmentTitleLabel: 'Title',
+  createAssignmentTitlePlaceholder: 'e.g. Chapter 5 Review',
+  createAssignmentTypeLabel: 'Type',
+  createAssignmentModulesLabel: 'Modules',
+  createAssignmentLoadingModules: 'Loading modules...',
+  createAssignmentNoModules: 'No modules available.',
+  createAssignmentPersonalizeLabel: 'Personalize per student',
+  createAssignmentPersonalizePreClassHint:
+    'Everyone gets the primer; each student also gets a diagnostic on the prerequisites ' +
+    'they’re weakest on.',
+  createAssignmentPersonalizeOtherHint:
+    'Each student gets homework targeted to the concepts they’re below threshold on, ' +
+    'within the selected topics.',
+  createAssignmentDiagnosePrereqsLabel: 'Diagnose prerequisites (prior topics)',
+  createAssignmentDueDateLabel: 'Due date (optional)',
+  createAssignmentCancel: 'Cancel',
+  createAssignmentCreating: 'Creating...',
+  createAssignmentCreate: 'Create',
+
+  // ── FilesPanel ─────────────────────────────────────────────────────────
+  filesPanelHeading: 'Uploaded files',
+  filesPanelUpdatingBrain: 'Updating brain…',
+  filesPanelDismiss: 'Dismiss',
+  filesPanelDeleteErrorFallback: 'Could not delete this file. Please try again.',
+  filesPanelLoading: 'Loading files...',
+  filesPanelCouldNotLoad: 'Could not load uploaded files.',
+  filesPanelEmptyTitle: 'No content uploaded yet',
+  filesPanelEmptyDescription: "Upload teaching material to build this class's knowledge base.",
+  filesPanelDeleting: 'Deleting…',
+  filesPanelConfirmDeleteTitle: 'Delete this file?',
+  filesPanelConfirmDeletePrefix: 'Delete ',
+  filesPanelConfirmDeleteSuffix:
+    '? This removes its pages from the class brain and regenerates content for every student.',
+  filesPanelCancel: 'Cancel',
+  filesPanelDelete: 'Delete',
+
+  // ── ModulePreviewModal ─────────────────────────────────────────────────
+  modulePreviewStageLearn: 'Learn',
+  modulePreviewStageTest: 'Test',
+  modulePreviewStageProve: 'Prove',
+  modulePreviewSubtitle: 'Preview — what students see. No answers shown.',
+  modulePreviewClose: 'Close',
+  modulePreviewContentUnreadable: '(content could not be read)',
+  modulePreviewNoText: '(no text)',
+  modulePreviewLoading: 'Loading preview…',
+  modulePreviewLoadError: "Couldn't load this module's content. Try again.",
+  modulePreviewEmpty: 'This module has no content items yet.',
+  modulePreviewRegenerating: 'Regenerating…',
+  modulePreviewRegenerateModule: '↻ Regenerate this module',
+  modulePreviewRegenFailed: 'Regenerate failed — try again.',
+  modulePreviewCloseButton: 'Close',
+
+  // ── BuildStatusView ────────────────────────────────────────────────────
+  buildStatusChecking: 'Checking…',
+  buildStatusCheckingAria: 'Loading',
+  buildStatusBuilding: 'Mochi is building your lessons',
+  buildStatusBuildingBody: "Usually 1–3 minutes. You can leave this page — we'll keep working.",
+  buildStatusCompilingIndeterminate: 'Compiling…',
+  buildStatusReadyTitle: 'Lessons ready!',
+  buildStatusPreviewLessons: 'Preview lessons →',
+  buildStatusTimeoutTitle: 'This is taking longer than usual',
+  buildStatusTimeoutBody: 'Mochi is still working. Check back shortly, or try again.',
+  buildStatusRetry: 'Retry',
+  buildStatusReview: 'Review',
+
+  // ── NarrationAction ────────────────────────────────────────────────────
+  narrationStarting: 'Starting...',
+  narrationGenerate: 'Generate narration',
+  narrationGenerating: 'Generating...',
+  narrationRetrying: 'Retrying...',
+  narrationRetry: 'Retry',
+  narrationPreview: 'Preview',
+  narrationPreviewTitle: 'Narration Preview',
+  narrationClose: 'Close',
+  narrationPrev: 'Prev',
+  narrationNext: 'Next',
+  narrationRegenerate: 'Re-generate',
+  narrationCloseButton: 'Close',
+
+  // ── AnswerReleasePanel ─────────────────────────────────────────────────
+  answerReleaseHeading: 'Model answer',
+  answerReleaseNotReleased: 'Not released',
+  answerReleasePlaceholder: 'Write the model answer students will see after release…',
+  answerReleaseSaving: 'Saving…',
+  answerReleaseSaved: 'Saved ✓',
+  answerReleaseSaveButton: 'Save model answer',
+  answerReleaseReleasing: 'Releasing…',
+  answerReleaseNow: 'Release now',
+  answerReleaseScheduling: 'Scheduling…',
+  answerReleaseScheduleButton: 'Schedule release',
+  answerReleaseAtDueDate: 'Release at due date',
+  answerReleaseErrorFallback: 'Something went wrong. Please try again.',
+
+  // ── ReadinessModal ─────────────────────────────────────────────────────
+  readinessModalHeading: 'Pre-class readiness',
+  readinessModalSubtitle: 'Where each student is shaky on the prerequisites — teach to the gaps.',
+  readinessModalLoading: 'Loading readiness…',
+  readinessModalCouldNotLoad: 'Could not load readiness.',
+  readinessModalEmpty: 'No prerequisite data yet — students need attempted modules on the selected prior topics.',
+  readinessModalReady: 'ready',
+  readinessModalNoAttempted: 'No attempted prerequisites yet.',
+
+  // ── TeachFlow / TeachStepper / TrainingTipsPanel ──────────────────────
+  teachFlowNoAvatar: "This class doesn't have a Mochi brain yet. Create the class avatar to start adding material.",
+  teachFlowAddMaterialHint: 'Add your notes, worksheets or PDFs — Mochi turns them into lessons for this class.',
+  teachFlowPreviewAssignHeading: 'Preview & assign',
+  teachFlowPreviewAssignSubtitle: 'Review the lessons Mochi built, then assign them to your students.',
+  teachFlowAddMoreMaterial: '← Add more material',
+  teachFlowAssignHeading: 'Assign to students',
+  teachStepperAriaLabel: 'Teach steps',
+  teachStepAddMaterial: 'Add material',
+  teachStepMochiBuilds: 'Mochi builds',
+  teachStepPreviewAssign: 'Preview & assign',
+  trainingTipsHeading: 'What trains Mochi best',
+  trainingTip1: 'Typed or printed notes give the best lessons.',
+  trainingTip2: 'Neat handwriting works; cursive or messy is hard — print or type it.',
+  trainingTip3: 'Photos: good light, no glare, don’t shoot a screen — lay the page flat.',
+  trainingTip4: 'Keep files under ~30 pages — split a textbook by chapter.',
+  trainingTip5: 'One topic per file → one clean lesson.',
+
+  // ── ClassCodeBox ───────────────────────────────────────────────────────
+  classCodeBoxTitle: 'Copy join code',
+  classCodeBoxLabel: 'Class code',
+  classCodeBoxCopied: 'Copied! ✓',
+  classCodeBoxTapToCopy: 'Tap to copy',
+
+  // ── account/page.tsx ───────────────────────────────────────────────────
+  accountPageRedirecting: 'Redirecting to sign in…',
+  accountPageDefaultName: 'Your account',
+  accountPageHeading: 'Account',
+  accountPageSubtitle: 'Manage your Apalchi account and plan.',
+  accountPageSignedInAs: 'Signed in as',
+  accountPageLoading: 'Loading…',
+  accountPageSignOut: 'Sign out',
+  accountPageCurrentPlan: 'Current plan',
+  accountPageContinueInApp: 'Continue in the app',
+  accountPageContinueInAppBody:
+    'Studying happens in the Apalchi app. Grab it for your phone — your plan comes with you.',
+  accountPageIosLabel: 'Download on the',
+  accountPageAndroidLabel: 'Get it on',
+
+  // ── account/layout.tsx ─────────────────────────────────────────────────
+  accountLayoutLoadingAlt: 'Loading…',
+  accountLayoutOwnerOnlyTitle: 'Owner access only',
+  accountLayoutOwnerOnlyBody:
+    'Only the centre owner can manage the subscription. Ask your centre owner to make billing changes.',
+  accountLayoutBackToDashboard: 'Back to dashboard',
+
+  // ── account/billing/page.tsx ───────────────────────────────────────────
+  billingPageUnavailable:
+    "Payments aren't available right now. Please try again later or contact support.",
+  billingPageCheckoutErrorFallback: 'Could not start checkout.',
+  billingPagePortalErrorFallback: 'Could not open billing portal.',
+  billingPageBackToAccount: '← Account',
+  billingPageHeading: 'Billing & Subscription',
+  billingPageSubtitle: 'Manage your Apalchi plan.',
+  billingPageOpening: 'Opening…',
+  billingPageManageBilling: 'Manage billing',
+  billingPageSubscribeToKeepPremium: 'Subscribe to keep premium',
+  billingPageUpgradeToUnlockMore: 'Upgrade to unlock more',
+  billingPageCurrent: 'Current',
+  billingPageOrPrefix: 'or ',
+  billingPageSaveSuffix: ' (save ~17%)',
+  billingPageUpgrade: 'Upgrade',
+
+  // ── dashboard/page.tsx ─────────────────────────────────────────────────
+  dashboardPageHeading: 'Overview',
+  dashboardPageSubtitle: 'Centre performance at a glance',
+  dashboardPageLoading: 'Loading overview...',
+  dashboardPageCouldNotLoad: 'Could not load overview data.',
+  dashboardPageEmptyTitle: 'No data yet',
+  dashboardPageEmptyDescription: "Once students start using the app, their progress will appear here.",
+  dashboardPageKpiActiveThisWeek: 'Active this week',
+  dashboardPageKpiAvgGrasp: 'Avg Grasp',
+  dashboardPageKpiAtRisk: 'At-risk students',
+  dashboardPageNeedAttention: 'need attention',
+  dashboardPageKpiTopicsLive: 'Topics live',
+  dashboardPageInKnowledgeBase: 'in knowledge base',
+  dashboardPageGraspTrendHeading: 'Class Grasp Trend (12 weeks)',
+  dashboardPageNoQuizActivity: 'No quiz activity yet — students need to take quizzes first.',
+  dashboardPageClassGraspHeading: 'Class Grasp (quiz accuracy)',
+  dashboardPageNoClassesYet: 'No classes yet.',
+  dashboardPageNeedsAttentionHeading: 'Needs Attention',
+  dashboardPageAllOnTrack: 'All students on track',
+  dashboardPageRecentActivityHeading: 'Recent Activity',
+  dashboardPageNoActivityYet: 'No activity yet.',
+  dashboardPageJustNow: 'just now',
+
+  // ── dashboard/layout.tsx ───────────────────────────────────────────────
+  dashboardLayoutLoading: 'Loading…',
+
+  // ── dashboard/error.tsx ────────────────────────────────────────────────
+  dashboardErrorHeading: 'Something went wrong on this page',
+  dashboardErrorBody: 'Your other tabs and data are unaffected.',
+  dashboardErrorTryAgain: 'Try again',
+
+  // ── dashboard/settings/page.tsx (remainder, LanguagePanel already wired) ─
+  settingsPageHeading: 'Settings',
+  settingsPageSubtitle: 'Organisation and account settings',
+  settingsPageCentreLabel: 'Centre',
+  settingsPageSeatsLabel: 'Seats',
+  settingsPageSignOut: 'Sign out',
+  settingsPageSignOutBody: 'You will be redirected to the login page.',
+  settingsPageAccountScheduledTitle: 'Account scheduled for deletion',
+  settingsPageAccountScheduledBody:
+    'Your account will be permanently deleted after a 14-day restore window. Sign back in before then to restore it.',
+  settingsPageDeleteAccountHeading: 'Delete account',
+  settingsPageDeleteAccountBody:
+    'Permanently deletes your account. You have 14 days to restore it by signing back in. ' +
+    'Confirm your password to continue.',
+  settingsPagePasswordPlaceholder: 'Your password',
+  settingsPagePasswordAriaLabel: 'Password',
+  settingsPageCentreNotEmptyError:
+    'Please transfer or close your centre before deleting your account — it still has classes, ' +
+    'students, or staff.',
+  settingsPageDeleteMyAccount: 'Delete my account',
+  settingsPageFeatureTourBody:
+    'The 60-second guided tour of the class dashboard. Replay it the next time you open a class.',
+  settingsPageTourRearmed: 'Tour re-armed — open a class to see it',
+  settingsPageReplayTour: 'Replay tour',
+  settingsPageInviteStudentsHeading: 'Invite students',
+  settingsPageInvitePrefix: 'Every class has its own ',
+  settingsPageInviteMid: '. Students enter it in the Apalchi app (Home → ',
+  settingsPageInviteSuffix:
+    ") to join that class — it adds them to your centre and gives them the class's Mochi " +
+    'automatically. One code per class, nothing else to generate.',
+  settingsPageViewClassCodes: 'View class codes →',
+
+  // ── accept-invite/[token]/page.tsx ────────────────────────────────────
+  acceptInviteLoading: 'Loading invite…',
+  acceptInviteLoadErrorFallback: 'Could not load invite details.',
+  acceptInviteAcceptErrorFallback: 'Could not accept invite.',
+  acceptInviteOwnerTitle: "You're invited to join Apalchi",
+  acceptInviteOwnerBodyPrefix: 'Set up ',
+  acceptInviteOwnerBodySuffix: ' as your centre on Apalchi.',
+  acceptInviteStaffBodyPrefix: "You've been invited to teach at ",
+  acceptInviteStaffBodySuffix: '.',
+  acceptInviteClickCreateCentre: 'Click below to create your centre.',
+  acceptInviteClickJoinCentre: 'Click below to join the centre.',
+  acceptInviteSignInFirst: 'Sign in first, then come back to this link.',
+  acceptInviteAcceptCreateCentre: 'Accept & create centre',
+  acceptInviteAcceptJoinCentre: 'Accept & join centre',
+  acceptInviteSignInToAccept: 'Sign in to accept',
+  acceptInviteCreatingCentre: 'Creating your centre…',
+  acceptInviteJoiningCentre: 'Joining centre…',
+  acceptInviteCentreCreated: 'Centre created!',
+  acceptInviteYoureIn: "You're in!",
+  acceptInviteOwnerDonePrefix: 'Your centre ',
+  acceptInviteOwnerDoneSuffix: ' is live — set up classes and invite students.',
+  acceptInviteStaffDonePrefix: "You've joined ",
+  acceptInviteStaffDoneSuffix: ' as a teacher. Head to your dashboard to get started.',
+  acceptInviteOrgIdLabel: 'org id: ',
+  acceptInviteGoToDashboard: 'Go to dashboard',
+  acceptInviteSomethingWrong: 'Something went wrong',
+  acceptInviteGoHome: 'Go home',
+
+  // ── delete-account/page.tsx ────────────────────────────────────────────
+  deleteAccountEmailEntryHeading: 'Delete your Apalchi account',
+  deleteAccountEmailEntryBody:
+    "Enter your account email and we'll send you a link to confirm. Deleting is permanent after " +
+    'a 14-day restore window.',
+  deleteAccountEmailPlaceholder: 'you@email.com',
+  deleteAccountEmailAriaLabel: 'Email address',
+  deleteAccountEmailMeButton: 'Email me a deletion link',
+  deleteAccountCheckEmailHeading: 'Check your email',
+  deleteAccountCheckEmailBody:
+    "If an account exists for that email, we've sent a link to confirm deletion. The link expires in 1 hour.",
+  deleteAccountRateLimitedHeading: 'Too many requests',
+  deleteAccountRateLimitedBody: "You've tried a few times — please wait a little while and try again.",
+  deleteAccountConfirmHeading: 'Confirm account deletion',
+  deleteAccountConfirmBody:
+    'This permanently deletes your Apalchi account and all your data. You have 14 days to restore ' +
+    'it by signing back in; after that it is gone for good.',
+  deleteAccountDeleteButton: 'Delete my account',
+  deleteAccountScheduledHeading: 'Your account is scheduled for deletion',
+  deleteAccountScheduledBodyNoDate: 'It will be permanently deleted after the 14-day restore window. ',
+  deleteAccountScheduledSuffix: 'Changed your mind? Sign back in before then to restore it.',
+  deleteAccountCentreFirstHeading: 'Close your centre first',
+  deleteAccountCentreFirstBody:
+    'This account owns a centre that still has classes, students, or staff. Please transfer or ' +
+    'close your centre before deleting your account.',
+  deleteAccountLinkExpiredHeading: 'Link expired',
+  deleteAccountLinkExpiredBody:
+    'This deletion link is invalid or has expired. Request a new one from the delete-account page.',
+  deleteAccountGenericErrorFallback: 'Please try again in a moment.',
+  deleteAccountUnexpectedErrorFallback: 'An unexpected error occurred.',
+  deleteAccountMascotAlt: 'Mochi, the Apalchi mascot',
+
+  // ── signup/page.tsx ────────────────────────────────────────────────────
+  signupNameRequired: 'Please enter your name.',
+  signupOrgRequired: 'Please enter your centre or organisation name.',
+  signupPhoneRequired: 'Please enter a contact number.',
+  signupGoogleFailedFallback: 'Google sign-in failed. Please try again.',
+  signupEmailRequired: 'Please enter your work email.',
+  signupPasswordTooShort: 'Password must be at least 8 characters.',
+  signupEmailExistsError: 'An account with this email already exists. Try logging in.',
+  signupCreateAccountErrorFallback: 'Could not create account. Please try again.',
+  signupHeading: 'Set up your centre on Apalchi',
+  signupSubtitle: '30-day pilot, no card required. Takes two minutes.',
+  signupYourName: 'Your name',
+  signupNamePlaceholder: 'Jane Smith',
+  signupOrgLabel: 'Centre / organisation name',
+  signupOrgPlaceholder: 'Bright Stars Tuition',
+  signupContactNumber: 'Contact number',
+  signupContinueWithEmail: 'Continue with email',
+  signupOr: 'or',
+  signupWorkEmail: 'Work email',
+  signupPasswordLabel: 'Password',
+  signupPasswordHint: '(min 8 characters)',
+  signupCreatingAccount: 'Creating account…',
+  signupCreateAccount: 'Create account →',
+  signupBackToSignIn: '← Back to sign-in options',
+  signupAlreadyHaveAccount: 'Already have an account?',
+  signupSignIn: 'Sign in',
+
+  // ── Shared brand name (identical in every locale — a proper noun, not a
+  // translation gap; wired through t() so the coverage guard's scan of these
+  // pages stays accurate rather than needing a baseline exception). ────────
+  appName: 'Apalchi',
+
+  // ── consent/approve/page.tsx ───────────────────────────────────────────
+  consentApproveHeadingApprove: "Approve your child's account?",
+  consentApproveBody:
+    'Your child wants to use Apalchi to study. Approving activates their account and starts a ' +
+    '7-day free trial. You can manage or cancel anytime.',
+  consentApproveButton: 'Approve',
+  consentApproveProcessing: 'Processing consent…',
+  consentApproveAllDoneTitle: 'All done!',
+  consentApproveAllDoneBody:
+    "Your child's account is now active. Their app unlocks automatically — they'll get a " +
+    "notification, or it'll be ready the next time they open Apalchi.",
+  consentApproveAlreadyUsedTitle: 'Already approved',
+  consentApproveAlreadyUsedBody:
+    "This consent link has already been used. Your child's account should already be active.",
+  consentApproveExpiredTitle: 'Link expired',
+  consentApproveExpiredBody:
+    'This consent link expired after 7 days. Ask your child to open Apalchi and request a new link.',
+  consentApproveInvalidTitle: 'Link not found',
+  consentApproveInvalidBody:
+    "We couldn't find this consent link. Double-check the link, or ask your child to send you a new one.",
+
+  // ── review/[token]/page.tsx ────────────────────────────────────────────
+  reviewPageNotFoundTitle: 'Review link not found',
+  reviewPageNotFoundBody:
+    "We couldn't find this review. Double-check the link, or ask the student to send it again.",
+  reviewPageOfflineTitle: "Couldn't connect",
+  reviewPageOfflineBody: 'You appear to be offline. Check your connection and try again.',
+  reviewPageErrorBody: 'We hit a snag loading this review. Please try again in a moment.',
+
+  // ── review/[token]/_components/GoneCard.tsx ───────────────────────────
+  goneCardDefaultTitle: 'This review link is no longer active.',
+  goneCardDefaultBody: 'Ask the student to send a fresh link if you still need to review it.',
+  goneCardExpiredTitle: 'This link has expired',
+  goneCardExpiredBody: 'Ask them to send a fresh one.',
+  goneCardReviewedTitle: 'This guide has already been reviewed',
+  goneCardReviewedBody: 'Thank you!',
+
+  // ── review/[token]/_components/Header.tsx ─────────────────────────────
+  reviewHeaderBody: 'A student asked you to check this study guide.',
+
+  // ── review/[token]/_components/LoadingCard.tsx ────────────────────────
+  reviewLoadingCardAlt: 'Loading…',
+  reviewLoadingCardBody: 'Loading the study guide…',
+
+  // ── review/[token]/_components/ReviewBody.tsx ─────────────────────────
+  reviewBodyNoteRequired: 'Please add a quick note on what to double-check.',
+  reviewBodyAlreadyReviewed: 'This guide has already been reviewed — thank you!',
+  reviewBodyRateLimited: 'Too many attempts — please wait a moment and try again.',
+  reviewBodyOffline: 'You appear to be offline. Check your connection and try again.',
+  reviewBodySubmitErrorFallback: 'Something went wrong submitting your review. Please try again.',
+  reviewBodyAccurateHeading: 'Does this look accurate?',
+  reviewBodyLooksGood: '✓ Looks good',
+  reviewBodySomethingsOff: "✗ Something's off",
+  reviewBodyDoubleCheckLabel: 'What should they double-check?',
+  reviewBodyNotePlaceholder: 'e.g. The date for the second event is wrong…',
+  reviewBodyYourNameLabel: 'Your name',
+  reviewBodyOptional: '(optional)',
+  reviewBodyNamePlaceholder: 'e.g. Ms Tan',
+  reviewBodyBack: 'Back',
+  reviewBodySending: 'Sending…',
+  reviewBodyConfirmLooksGood: 'Confirm — looks good',
+  reviewBodySendFeedback: 'Send feedback',
+
+  // ── review/[token]/_components/SuccessCard.tsx ────────────────────────
+  successCardThanksTitle: "Thanks — we've let them know!",
+  successCardBody: 'Your feedback has been sent to the student.',
+  successCardFooterPrefix: "Apalchi turns students' own notes into study material — adult-checked.",
+  successCardLearnMore: 'Learn more →',
 };
 
 export type MessageKey = keyof typeof en;

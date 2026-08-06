@@ -44,6 +44,40 @@ export interface Templates {
   studentDetailAttemptsCount: (n: number) => string;
   teachersPageAlreadyRegistered: (email: string) => string;
   teachersPageInviteSent: (email: string) => string;
+  classesPageStudentCount: (n: number) => string;
+  classesPageDeleteConfirmHeading: (name: string) => string;
+  createClassModalReady: (name: string) => string;
+  createClassModalChaptersReady: (n: number) => string;
+  createClassModalPagesCompiled: (completed: number, total: number) => string;
+  createClassModalReadyForStudents: (name: string) => string;
+  brainPagesQuality: (score: number) => string;
+  brainPagesQuizUseCount: (n: number) => string;
+  contentReviewClaimCount: (n: number) => string;
+  contentReviewItemsPendingReview: (n: number) => string;
+  contentReviewApproveAllButton: (n: number) => string;
+  filesPanelPageCount: (n: number) => string;
+  narrationCardsDuration: (count: number, duration: string) => string;
+  narrationCardDuration: (cardNum: number, duration: string) => string;
+  answerReleaseReleased: (date: string | null) => string;
+  answerReleaseScheduleDefaultLabel: (dueDate: string | null) => string;
+  readinessModalStudentFallback: (id: string) => string;
+  readinessModalWeakCount: (n: number) => string;
+  readinessModalMasteryTitle: (pct: number) => string;
+  buildStatusCompilingProgress: (completed: number, total: number) => string;
+  buildStatusLessonCount: (n: number) => string;
+  buildStatusFailedCount: (n: number) => string;
+  modulePreviewAriaLabel: (title: string) => string;
+  createAssignmentMasteryThreshold: (pct: number) => string;
+  accountPageStoreSoon: (store: string) => string;
+  billingPagePriceMonthly: (price: string) => string;
+  billingPagePriceAnnual: (price: string) => string;
+  dashboardPageOfStudents: (n: number) => string;
+  dashboardPageVsLastWeek: (deltaStr: string) => string;
+  dashboardPageMinutesAgo: (m: number) => string;
+  dashboardPageHoursAgo: (h: number) => string;
+  settingsPageSeatsUsed: (used: number, limit: number) => string;
+  acceptInviteStaffTitle: (centreName: string) => string;
+  deleteAccountScheduledBodyWithDate: (date: string) => string;
 }
 
 export const templatesEn: Templates = {
@@ -101,6 +135,42 @@ export const templatesEn: Templates = {
   teachersPageAlreadyRegistered: (email) =>
     `✓ ${email} was already registered and has been added to your centre.`,
   teachersPageInviteSent: (email) => `✓ Invite sent to ${email}`,
+  classesPageStudentCount: (n) => `${n} student${n !== 1 ? 's' : ''}`,
+  classesPageDeleteConfirmHeading: (name) => `Delete "${name}"?`,
+  createClassModalReady: (name) => `${name} is ready!`,
+  createClassModalChaptersReady: (n) => (n > 0 ? `${n} chapters ready to pick` : 'Chapters ready to pick'),
+  createClassModalPagesCompiled: (completed, total) => `${completed} / ${total} pages compiled`,
+  createClassModalReadyForStudents: (name) => `${name} is ready for students to join.`,
+  brainPagesQuality: (score) => `Quality ${score}/100`,
+  brainPagesQuizUseCount: (n) => `Used in ${n} quiz item${n !== 1 ? 's' : ''}`,
+  contentReviewClaimCount: (n) => `${n} claim${n !== 1 ? 's' : ''}`,
+  contentReviewItemsPendingReview: (n) => `${n} item${n !== 1 ? 's' : ''} pending review`,
+  contentReviewApproveAllButton: (n) => `Approve all (${n})`,
+  filesPanelPageCount: (n) => `${n} pages`,
+  narrationCardsDuration: (count, duration) => `${count} cards · ${duration} total`,
+  narrationCardDuration: (cardNum, duration) => `Card ${cardNum} · ${duration}`,
+  answerReleaseReleased: (date) => (date ? `✓ Released at ${date}` : '✓ Released'),
+  answerReleaseScheduleDefaultLabel: (dueDate) =>
+    dueDate ? `Schedule release (default: due ${dueDate})` : 'Schedule release (default: due date)',
+  readinessModalStudentFallback: (id) => `Student ${id}`,
+  readinessModalWeakCount: (n) => `${n} weak`,
+  readinessModalMasteryTitle: (pct) => `${pct}% mastery`,
+  buildStatusCompilingProgress: (completed, total) => `Compiling ${completed}/${total} pages…`,
+  buildStatusLessonCount: (n) => `Mochi compiled ${n} page${n === 1 ? '' : 's'} from your notes.`,
+  buildStatusFailedCount: (n) =>
+    `${n} page${n === 1 ? ' was' : 's were'} hard to read — Mochi may have missed some content.`,
+  modulePreviewAriaLabel: (title) => `Preview: ${title}`,
+  createAssignmentMasteryThreshold: (pct) => `Mastery threshold: ${pct}%`,
+  accountPageStoreSoon: (store) => `${store} — soon`,
+  billingPagePriceMonthly: (price) => `${price} / month`,
+  billingPagePriceAnnual: (price) => `${price} / year`,
+  dashboardPageOfStudents: (n) => `of ${n} students`,
+  dashboardPageVsLastWeek: (deltaStr) => `${deltaStr} vs last week`,
+  dashboardPageMinutesAgo: (m) => `${m}m ago`,
+  dashboardPageHoursAgo: (h) => `${h}h ago`,
+  settingsPageSeatsUsed: (used, limit) => `${used} of ${limit} used`,
+  acceptInviteStaffTitle: (centreName) => `Join ${centreName} as a teacher`,
+  deleteAccountScheduledBodyWithDate: (date) => `It will be permanently deleted on ${date}. `,
 };
 
 export const templatesZh: Templates = {
@@ -153,4 +223,39 @@ export const templatesZh: Templates = {
   studentDetailAttemptsCount: (n) => `${n} 次尝试`,
   teachersPageAlreadyRegistered: (email) => `✓ ${email} 已注册，并已加入你的中心。`,
   teachersPageInviteSent: (email) => `✓ 邀请已发送至 ${email}`,
+  classesPageStudentCount: (n) => `${n} 名学生`,
+  classesPageDeleteConfirmHeading: (name) => `删除"${name}"？`,
+  createClassModalReady: (name) => `${name} 已就绪！`,
+  createClassModalChaptersReady: (n) => (n > 0 ? `${n} 个章节可供选择` : '章节可供选择'),
+  createClassModalPagesCompiled: (completed, total) => `已编译 ${completed} / ${total} 页`,
+  createClassModalReadyForStudents: (name) => `${name} 已可供学生加入。`,
+  brainPagesQuality: (score) => `质量 ${score}/100`,
+  brainPagesQuizUseCount: (n) => `已用于 ${n} 道测验题`,
+  contentReviewClaimCount: (n) => `${n} 条论述`,
+  contentReviewItemsPendingReview: (n) => `${n} 项待复核`,
+  contentReviewApproveAllButton: (n) => `全部批准（${n}）`,
+  filesPanelPageCount: (n) => `${n} 页`,
+  narrationCardsDuration: (count, duration) => `${count} 张卡片 · 共 ${duration}`,
+  narrationCardDuration: (cardNum, duration) => `第 ${cardNum} 张 · ${duration}`,
+  answerReleaseReleased: (date) => (date ? `✓ 已于${date}发布` : '✓ 已发布'),
+  answerReleaseScheduleDefaultLabel: (dueDate) =>
+    dueDate ? `安排发布时间（默认：截止日期 ${dueDate}）` : '安排发布时间（默认：截止日期）',
+  readinessModalStudentFallback: (id) => `学生 ${id}`,
+  readinessModalWeakCount: (n) => `${n} 项薄弱`,
+  readinessModalMasteryTitle: (pct) => `掌握度 ${pct}%`,
+  buildStatusCompilingProgress: (completed, total) => `正在编译 ${completed}/${total} 页…`,
+  buildStatusLessonCount: (n) => `小伴已根据你的笔记编译了 ${n} 页内容。`,
+  buildStatusFailedCount: (n) => `${n} 页内容难以识别——小伴可能遗漏了部分内容。`,
+  modulePreviewAriaLabel: (title) => `预览：${title}`,
+  createAssignmentMasteryThreshold: (pct) => `掌握度阈值：${pct}%`,
+  accountPageStoreSoon: (store) => `${store}——即将上线`,
+  billingPagePriceMonthly: (price) => `${price} / 月`,
+  billingPagePriceAnnual: (price) => `${price} / 年`,
+  dashboardPageOfStudents: (n) => `共 ${n} 名学生中`,
+  dashboardPageVsLastWeek: (deltaStr) => `较上周 ${deltaStr}`,
+  dashboardPageMinutesAgo: (m) => `${m} 分钟前`,
+  dashboardPageHoursAgo: (h) => `${h} 小时前`,
+  settingsPageSeatsUsed: (used, limit) => `已用 ${used}，共 ${limit} 个席位`,
+  acceptInviteStaffTitle: (centreName) => `作为教师加入${centreName}`,
+  deleteAccountScheduledBodyWithDate: (date) => `账户将于${date}被永久删除。`,
 };
