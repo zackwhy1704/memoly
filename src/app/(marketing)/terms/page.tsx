@@ -62,14 +62,23 @@ export default function TermsPage() {
         </Section>
 
         <Section title="5. Acceptable Use">
-          <p>You agree not to:</p>
+          <p>
+            <strong>Apalchi has zero tolerance for objectionable content and abusive behaviour.</strong>{' '}
+            This is a platform built for students, including minors, and we enforce this standard
+            strictly. You agree not to:
+          </p>
           <ul style={listStyle}>
             <li>Upload content that is unlawful, harmful, or sexually explicit</li>
+            <li>Send abusive, harassing, hateful, or threatening messages to Apalchi or through the platform</li>
             <li>Attempt to reverse-engineer the AI system</li>
             <li>Use the platform to cheat in formal examinations</li>
             <li>Scrape or copy the platform&apos;s content at scale</li>
             <li>Impersonate another person or organisation</li>
           </ul>
+          <p>
+            Violating this policy may result in immediate suspension or termination of your account,
+            without refund.
+          </p>
         </Section>
 
         <Section title="6. AI Disclosure">
