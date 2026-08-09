@@ -982,6 +982,10 @@ export const en = {
   signupBackToSignIn: '← Back to sign-in options',
   signupAlreadyHaveAccount: 'Already have an account?',
   signupSignIn: 'Sign in',
+  signupTermsCheckboxLabel:
+    'I agree to the Terms of Use — including zero tolerance for objectionable content or abusive behaviour.',
+  signupViewFullTerms: 'Read the full Terms of Use',
+  signupTermsRequired: 'Please accept the Terms of Use to create your account.',
 
   // ── Shared brand name (identical in every locale — a proper noun, not a
   // translation gap; wired through t() so the coverage guard's scan of these

@@ -85,7 +85,10 @@ function LoginInner() {
     setError('');
     setLoading(true);
     try {
-      const res = await api.google(response.credential);
+      // acceptedTerms:true — the notice under the Google button below is the
+      // affirmative tap for a first-time Google user (this endpoint can also
+      // create a new account); it's a no-op server-side for a returning user.
+      const res = await api.google(response.credential, true);
       saveAuth(res.data.token, res.data.userId);
       try {
         const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
@@ -197,6 +200,11 @@ function LoginInner() {
                 auto_select={false}
               />
             </div>
+            <p style={{ fontSize: 11.5, color: '#A8A0BD', textAlign: 'center', marginTop: -8, marginBottom: 16 }}>
+              New here? Continuing with Google agrees to our{' '}
+              <a href="/terms" target="_blank" style={{ color: '#4C6FFF' }}>Terms of Use</a>
+              {' '}(zero tolerance for objectionable content or abusive behaviour).
+            </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ flex: 1, height: 1, background: '#E0DAF0' }} />
               <span style={{ fontSize: 12, color: '#A8A0BD', fontWeight: 600 }}>or sign in with email</span>
