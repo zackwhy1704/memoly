@@ -934,6 +934,9 @@ export const zh: Record<MessageKey, string> = {
   signupBackToSignIn: '← 返回登录选项',
   signupAlreadyHaveAccount: '已经有账户了？',
   signupSignIn: '登录',
+  signupTermsCheckboxLabel: '我同意《服务条款》——包括对不当内容或辱骂行为零容忍。',
+  signupViewFullTerms: '阅读完整服务条款',
+  signupTermsRequired: '请先同意服务条款才能创建账户。',
 
   // ── 共享品牌名称（各语言相同——专有名词，非翻译缺口）───────────
   appName: 'Apalchi',

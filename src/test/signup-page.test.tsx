@@ -62,6 +62,13 @@ async function fillEmailForm(user: ReturnType<typeof userEvent.setup>, opts: {
   await user.type(screen.getByLabelText(/Password/i), opts.password ?? 'securepassword');
 }
 
+// The Create account button is disabled until this is checked — every test that
+// expects a real submit (register() to fire, or a validation error further down
+// handleEmail) must check it first, same as filling any other required field.
+async function checkTerms(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByLabelText(/agree to the Terms of Use/i));
+}
+
 describe('SignupPage — centre admin form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,6 +96,7 @@ describe('SignupPage — centre admin form', () => {
   it('blocks submit and shows error when name is missing', async () => {
     const user = setup();
     await fillEmailForm(user);
+    await checkTerms(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
     expect(await screen.findByText(/Please enter your name/i)).toBeInTheDocument();
     expect(mockedRegister).not.toHaveBeenCalled();
@@ -98,6 +106,7 @@ describe('SignupPage — centre admin form', () => {
     const user = setup();
     await user.type(screen.getByLabelText(/Your name/i), 'Jane');
     await fillEmailForm(user);
+    await checkTerms(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
     expect(await screen.findByText(/centre or organisation name/i)).toBeInTheDocument();
     expect(mockedRegister).not.toHaveBeenCalled();
@@ -108,15 +117,28 @@ describe('SignupPage — centre admin form', () => {
     await user.type(screen.getByLabelText(/Your name/i), 'Jane');
     await user.type(screen.getByLabelText(/Centre \/ organisation name/i), 'Bright Stars');
     await fillEmailForm(user);
+    await checkTerms(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
     expect(await screen.findByText(/Please enter a contact number/i)).toBeInTheDocument();
     expect(mockedRegister).not.toHaveBeenCalled();
   });
 
-  it('successful email submit calls register with email + password + displayName — no birthYear or parentEmail', async () => {
+  it('Create account button stays disabled until terms are accepted, even with a complete form', async () => {
+    const user = setup();
+    await fillProfile(user);
+    await fillEmailForm(user);
+    // Terms deliberately NOT checked.
+    expect(screen.getByRole('button', { name: /Create account/i })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+    expect(mockedRegister).not.toHaveBeenCalled();
+  });
+
+  it('successful email submit calls register with email + password + displayName + acceptedTerms:true — no birthYear or parentEmail', async () => {
     const user = setup();
     await fillProfile(user, { name: 'Jane Smith', org: 'Bright Stars', phone: '+65 9000 0000' });
     await fillEmailForm(user, { email: 'jane@bright.edu', password: 'securepassword' });
+    await checkTerms(user);
+    expect(screen.getByRole('button', { name: /Create account/i })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: /Create account/i }));
 
     await waitFor(() => expect(mockedRegister).toHaveBeenCalledTimes(1));
@@ -124,6 +146,7 @@ describe('SignupPage — centre admin form', () => {
     expect(arg.email).toBe('jane@bright.edu');
     expect(arg.password).toBe('securepassword');
     expect(arg.displayName).toBe('Jane Smith');
+    expect(arg.acceptedTerms).toBe(true);
     expect(arg).not.toHaveProperty('birthYear');
     expect(arg).not.toHaveProperty('parentEmail');
   });
@@ -132,6 +155,7 @@ describe('SignupPage — centre admin form', () => {
     const user = setup();
     await fillProfile(user, { org: 'Bright Stars Tuition' });
     await fillEmailForm(user);
+    await checkTerms(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
 
     await waitFor(() => expect(mockedOnboard).toHaveBeenCalledTimes(1));
@@ -142,6 +166,7 @@ describe('SignupPage — centre admin form', () => {
     const user = setup();
     await fillProfile(user);
     await fillEmailForm(user);
+    await checkTerms(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/dashboard'));
@@ -153,6 +178,7 @@ describe('SignupPage — centre admin form', () => {
     const user = setup();
     await fillProfile(user);
     await fillEmailForm(user);
+    await checkTerms(user);
     await user.click(screen.getByRole('button', { name: /Create account/i }));
 
     expect(await screen.findByText(/already exists/i)).toBeInTheDocument();

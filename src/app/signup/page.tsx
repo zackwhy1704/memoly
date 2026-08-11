@@ -28,6 +28,10 @@ export default function SignupPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
 
+  // Mandatory terms acceptance — gates account creation on BOTH the Google and
+  // email/password paths. Never defaults to true.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
   function validateProfile(): boolean {
     if (!contactName.trim()) { setError(t('signupNameRequired')); return false; }
     if (!orgName.trim())     { setError(t('signupOrgRequired')); return false; }
@@ -53,9 +57,10 @@ export default function SignupPage() {
     if (!response.credential) return;
     setError('');
     if (!validateProfile()) return;
+    if (!acceptedTerms) { setError(t('signupTermsRequired')); return; }
     setLoading(true);
     try {
-      const res = await api.google(response.credential);
+      const res = await api.google(response.credential, acceptedTerms);
       await finishSetup(res.data.token, res.data.userId, 'signup_google');
     } catch (err) {
       setError(err instanceof ApiError ? err.userMessage : t('signupGoogleFailedFallback'));
@@ -70,12 +75,14 @@ export default function SignupPage() {
     if (!validateProfile()) return;
     if (!email.trim())         { setError(t('signupEmailRequired')); return; }
     if (password.length < 8)   { setError(t('signupPasswordTooShort')); return; }
+    if (!acceptedTerms)        { setError(t('signupTermsRequired')); return; }
     setLoading(true);
     try {
       const res = await api.register({
         email: email.trim(),
         password,
         displayName: contactName.trim(),
+        acceptedTerms,
       });
       await finishSetup(res.data.token, res.data.userId, 'signup_email');
     } catch (err) {
@@ -170,6 +177,21 @@ export default function SignupPage() {
           </div>
         </div>
 
+        {/* ── Mandatory terms acceptance — gates BOTH auth methods below ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+          <input
+            id="su-terms" type="checkbox" checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: 'pointer' }}
+          />
+          <label htmlFor="su-terms" style={{ fontSize: 12.5, color: '#6B618A', lineHeight: 1.5, cursor: 'pointer' }}>
+            {t('signupTermsCheckboxLabel')}{' '}
+            <Link href="/terms" target="_blank" style={{ color: '#4C6FFF', fontWeight: 700 }}>
+              {t('signupViewFullTerms')}
+            </Link>
+          </label>
+        </div>
+
         {/* ── Auth methods ── */}
         {isGoogleEnabled && !showEmail && (
           <>
@@ -227,13 +249,13 @@ export default function SignupPage() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !acceptedTerms}
               style={{
                 marginTop: 4, padding: '13px 0', background: '#4C6FFF',
                 color: '#fff', borderRadius: 12, border: 'none',
                 fontSize: 15, fontWeight: 800,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.65 : 1,
+                cursor: (loading || !acceptedTerms) ? 'not-allowed' : 'pointer',
+                opacity: (loading || !acceptedTerms) ? 0.65 : 1,
               }}
             >
               {loading ? t('signupCreatingAccount') : t('signupCreateAccount')}

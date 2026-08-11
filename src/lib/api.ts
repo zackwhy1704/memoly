@@ -269,6 +269,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   displayName?: string;
+  /** Affirmative Terms-of-Use acceptance — REQUIRED (@AssertTrue server-side). */
+  acceptedTerms: boolean;
 }
 
 export interface LoginResponse {
@@ -1074,11 +1076,16 @@ export const api = {
   // Google social sign-in/sign-up. `idToken` is the credential JWT returned by
   // the Google Identity Services button (CredentialResponse.credential).
   // Persists auth the same way as login — call saveAuth() on the result.
-  google: (idToken: string) =>
+  // acceptedTerms is only enforced server-side when this sign-in is about to CREATE
+  // a new account (a returning user's login is never gated on it) — see
+  // AuthService.signInWithSocial. Always pass the real checkbox state, never a
+  // hardcoded true: a returning user's login page can legitimately call this with
+  // false/unset since it shows no checkbox.
+  google: (idToken: string, acceptedTerms: boolean) =>
     apiFetch<LoginResponse>('/auth/google', {
       method: 'POST',
       skipAuth: true,
-      body: JSON.stringify({ idToken }),
+      body: JSON.stringify({ idToken, acceptedTerms }),
     }),
 
   register: (req: RegisterRequest) =>
@@ -1091,6 +1098,7 @@ export const api = {
         // The web is adults-only (centre admins) — mark the account ADULT so the backend
         // never treats it as a student and forces the birth-year / under-13 age gate.
         role: 'adult',
+        acceptedTerms: req.acceptedTerms,
         ...(req.displayName ? { displayName: req.displayName } : {}),
       }),
     }),
