@@ -8,7 +8,7 @@ import {
 } from '@/app/dashboard/classes/[classId]/sections';
 
 /**
- * The 13 tab views regrouped into 4 sections. Guards the IA invariant: every old
+ * The 14 tab views regrouped into 4 sections. Guards the IA invariant: every old
  * tab key still resolves to exactly ONE section (so old ?tab= bookmarks land
  * correctly and no view is dropped or double-listed when the nav changes).
  */
@@ -19,9 +19,9 @@ describe('class detail information architecture', () => {
     expect(SECTIONS.map((s) => s.key)).toEqual(['teach', 'mark', 'insights', 'students']);
   });
 
-  it('every one of the 13 tabs is in exactly one section (none dropped, none duplicated)', () => {
+  it('every one of the 14 tabs is in exactly one section (none dropped, none duplicated)', () => {
     const grouped = SECTIONS.flatMap((s) => s.subtabs);
-    expect(grouped).toHaveLength(13);
+    expect(grouped).toHaveLength(14);
     expect([...grouped].sort()).toEqual([...ALL_TABS].sort()); // same set
     expect(new Set(grouped).size).toBe(grouped.length); // no duplicates
   });
@@ -32,7 +32,7 @@ describe('class detail information architecture', () => {
       submissions: 'mark',
       heatmap: 'insights', concepts: 'insights', readiness: 'insights',
       brief: 'insights', report: 'insights',
-      roster: 'students', add: 'students', challenges: 'students',
+      roster: 'students', add: 'students', challenges: 'students', classroom: 'students',
     };
     for (const t of ALL_TABS) {
       expect(sectionOf(t)).toBe(expected[t]);

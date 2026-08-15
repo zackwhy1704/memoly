@@ -78,6 +78,29 @@ export const en = {
   challengesTabEmptyTitle: 'No challenges yet',
   challengesTabEmptyDescription: 'Post a challenge above. Students answer it, and the correct answer reveals at the time you set.',
 
+  // ── ClassroomTab ─────────────────────────────────────────────────────────
+  classroomTabLaunch: 'Launch a boss battle',
+  classroomTabLaunchHint: 'Pick one topic from this class\'s material — every student joins with a code and attacks the same shared boss live.',
+  classroomTabLoadingPages: 'Loading topics...',
+  classroomTabCouldNotLoadPages: 'Could not load this class\'s material.',
+  classroomTabNoPages: 'This class has no compiled material yet.',
+  classroomTabPickTopic: 'Choose a topic',
+  classroomTabLaunchFailed: 'Could not launch the session.',
+  classroomTabLaunching: 'Launching…',
+  classroomTabLaunchButton: 'Launch',
+  classroomTabLoadingSession: 'Loading session...',
+  classroomTabCouldNotLoadSession: 'Could not load the live session.',
+  classroomTabSharedHp: 'Shared boss HP',
+  classroomTabDefeated: 'Boss defeated! 🎉',
+  classroomTabEnded: 'Session ended.',
+  classroomTabLaunchNew: 'Launch a new session',
+  classroomTabStarting: 'Starting…',
+  classroomTabStartButton: 'Start',
+  classroomTabEnding: 'Ending…',
+  classroomTabEndButton: 'End session',
+  classroomTabNoCorpusTitle: 'No material yet',
+  classroomTabNoCorpusDescription: 'This class has no compiled material yet — upload content in Teach first.',
+
   // ── ClassBrainTab ────────────────────────────────────────────────────────
   classBrainTabNoCorpusTitle: 'No corpus yet',
   classBrainTabNoCorpusDescription: 'This class has no content corpus. Contact support if this is unexpected.',
@@ -535,6 +558,7 @@ export const en = {
   classIdSubtabBrief: 'Class Brief',
   classIdSubtabReport: 'AI Report',
   classIdSubtabAdd: 'Add students',
+  classIdSubtabClassroom: 'Boss Battle',
 
   // ── [classId]/page.tsx ─────────────────────────────────────────────────
   classDetailBackToClasses: '← Back to classes',
