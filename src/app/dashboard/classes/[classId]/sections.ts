@@ -11,7 +11,7 @@ import type { MessageKey } from '@/lib/messages/en';
 export type Tab =
   | 'roster' | 'modules' | 'heatmap' | 'concepts' | 'content'
   | 'assignments' | 'submissions' | 'challenges' | 'review'
-  | 'readiness' | 'brief' | 'report' | 'add';
+  | 'readiness' | 'brief' | 'report' | 'add' | 'classroom';
 
 export type SectionKey = 'teach' | 'mark' | 'insights' | 'students';
 
@@ -27,7 +27,7 @@ export const SECTIONS: Section[] = [
   { key: 'teach', labelKey: 'classIdSectionTeach', subtabs: ['content', 'modules', 'assignments', 'review'] },
   { key: 'mark', labelKey: 'classIdSectionMark', subtabs: ['submissions'] },
   { key: 'insights', labelKey: 'classIdSectionInsights', subtabs: ['heatmap', 'concepts', 'readiness', 'brief', 'report'] },
-  { key: 'students', labelKey: 'classIdSectionStudents', subtabs: ['roster', 'add', 'challenges'] },
+  { key: 'students', labelKey: 'classIdSectionStudents', subtabs: ['roster', 'add', 'challenges', 'classroom'] },
 ];
 
 export const SUBTAB_LABEL_KEY: Record<Tab, MessageKey> = {
@@ -44,6 +44,7 @@ export const SUBTAB_LABEL_KEY: Record<Tab, MessageKey> = {
   brief: 'classIdSubtabBrief',
   report: 'classIdSubtabReport',
   add: 'classIdSubtabAdd',
+  classroom: 'classIdSubtabClassroom',
 };
 
 /** Landing tab when no ?tab= is present — preserves the prior default (roster). */

@@ -30,6 +30,7 @@ import { ChallengesTab } from './tabs/ChallengesTab';
 import { ExamReadinessTab } from './tabs/ExamReadinessTab';
 import { AddStudentsTab } from './tabs/AddStudentsTab';
 import { ClassBriefTab } from './tabs/ClassBriefTab';
+import { ClassroomTab } from './tabs/ClassroomTab';
 import { ReportTab } from './tabs/ReportTab';
 import TabErrorBoundary from '@/components/TabErrorBoundary';
 import { TeachFlow } from './teach/TeachFlow';
@@ -259,6 +260,9 @@ export default function ClassDetailPage() {
         {tab === 'concepts' && <ConceptMasteryTab orgId={org.orgId} classId={classId} />}
         {tab === 'submissions' && <SubmissionsTab orgId={org.orgId} classId={classId} subject={cls.subject} />}
         {tab === 'challenges' && <ChallengesTab orgId={org.orgId} classId={classId} />}
+        {tab === 'classroom' && (
+          <ClassroomTab orgId={org.orgId} classId={classId} corpusAvatarId={cls.corpusAvatarId} />
+        )}
         {tab === 'readiness' && <ExamReadinessTab orgId={org.orgId} classId={classId} />}
         {tab === 'brief' && <ClassBriefTab orgId={org.orgId} classId={classId} />}
         {tab === 'report' && <ReportTab orgId={org.orgId} classId={classId} />}
