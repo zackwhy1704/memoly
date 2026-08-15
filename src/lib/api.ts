@@ -824,6 +824,30 @@ export interface CreateChallengeBody {
   revealAt: string;
 }
 
+// ── Classroom Boss Sessions ─────────────────────────────────────────
+// Mirrors the backend's ClassroomStateResponse verbatim. Server-authoritative:
+// this is the WHOLE state, never derived client-side. currentQuestion is only
+// present while the session is CREATED/ACTIVE and undefeated; null once
+// defeated or ENDED. There is deliberately no participant list here — the
+// backend never returns one (nicknames are ephemeral, session-scoped).
+export interface ClassroomQuestion {
+  id: string;
+  question: string;
+  options: string[];
+}
+
+export interface ClassroomSessionState {
+  sessionId: string;
+  status: 'CREATED' | 'ACTIVE' | 'ENDED';
+  topicSlug: string;
+  joinCode: string;
+  hpRemaining: number;
+  hpMax: number;
+  defeated: boolean;
+  participantCount: number;
+  currentQuestion: ClassroomQuestion | null;
+}
+
 // ── Content Review ───────────────────────────────────────────────────
 export type ReviewItemStatus = 'DRAFT' | 'APPROVED' | 'REJECTED';
 
@@ -1503,6 +1527,32 @@ export const api = {
     apiFetch<void>(
       `/centre/organizations/${orgId}/classes/${classId}/challenges/${challengeId}`,
       { method: 'DELETE' }
+    ),
+
+  // ── Classroom Boss Sessions ────────────────────────────────────────
+  createClassroomSession: (orgId: string, classId: string, wikiPageId: string) =>
+    apiFetch<{ data: ClassroomSessionState }>(
+      `/centre/organizations/${orgId}/classes/${classId}/classroom-sessions`,
+      { method: 'POST', body: JSON.stringify({ wikiPageId }) }
+    ),
+
+  startClassroomSession: (orgId: string, classId: string, sessionId: string) =>
+    apiFetch<{ data: ClassroomSessionState }>(
+      `/centre/organizations/${orgId}/classes/${classId}/classroom-sessions/${sessionId}/start`,
+      { method: 'POST' }
+    ),
+
+  endClassroomSession: (orgId: string, classId: string, sessionId: string) =>
+    apiFetch<{ data: ClassroomSessionState }>(
+      `/centre/organizations/${orgId}/classes/${classId}/classroom-sessions/${sessionId}/end`,
+      { method: 'POST' }
+    ),
+
+  // Polled (not SSE) — see ClassroomTab: no teacher-scoped stream endpoint
+  // exists, and EventSource can't carry an Authorization header.
+  classroomSessionState: (orgId: string, classId: string, sessionId: string) =>
+    apiFetch<{ data: ClassroomSessionState }>(
+      `/centre/organizations/${orgId}/classes/${classId}/classroom-sessions/${sessionId}/state`
     ),
 
   // ── Content Review ─────────────────────────────────────────────────
