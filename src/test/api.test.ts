@@ -712,6 +712,36 @@ describe('api.listChallenges', () => {
 });
 
 // ── Classroom Boss Sessions ─────────────────────────────────────────
+describe('api.listLiveClassroomSessions', () => {
+  it('GETs the base path (no sessionId), unwraps { data } to an array', async () => {
+    const state: ClassroomSessionState = {
+      sessionId: 'sess-1', status: 'ACTIVE', topicSlug: 'fractions',
+      joinCode: 'ABC123', hpRemaining: 2, hpMax: 3, defeated: false,
+      participantCount: 3, currentQuestion: null,
+    };
+    mockFetch(200, { data: [state] });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.listLiveClassroomSessions('org-1', 'cls-1');
+    expect(asArray<ClassroomSessionState>(result)).toHaveLength(1);
+    expect(asArray<ClassroomSessionState>(result)[0].sessionId).toBe('sess-1');
+
+    const fetchFn = vi.mocked(globalThis.fetch);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain('/centre/organizations/org-1/classes/cls-1/classroom-sessions');
+    expect(url).not.toMatch(/classroom-sessions\/[^/]+$/); // no sessionId suffix
+    expect(fetchFn.mock.calls[0][1]?.method).toBeUndefined(); // GET
+  });
+
+  it('empty when the class has no live session', async () => {
+    mockFetch(200, { data: [] });
+    localStorageMock.setItem('memoly_token', 'tok');
+
+    const result = await api.listLiveClassroomSessions('org-1', 'cls-1');
+    expect(asArray<ClassroomSessionState>(result)).toHaveLength(0);
+  });
+});
+
 describe('api.createClassroomSession', () => {
   it('POSTs the picked wikiPageId, unwraps { data }', async () => {
     const state: ClassroomSessionState = {

@@ -1530,6 +1530,15 @@ export const api = {
     ),
 
   // ── Classroom Boss Sessions ────────────────────────────────────────
+  // Every non-ENDED session for this class, newest first — lets ClassroomTab
+  // recover its session pointer on mount/refresh instead of losing track of
+  // a session that's still running server-side. Bare array or {data:[...]}
+  // depending on the caller's asArray usage (matches listChallenges' shape).
+  listLiveClassroomSessions: (orgId: string, classId: string) =>
+    apiFetch<{ data: ClassroomSessionState[] }>(
+      `/centre/organizations/${orgId}/classes/${classId}/classroom-sessions`
+    ),
+
   createClassroomSession: (orgId: string, classId: string, wikiPageId: string) =>
     apiFetch<{ data: ClassroomSessionState }>(
       `/centre/organizations/${orgId}/classes/${classId}/classroom-sessions`,
