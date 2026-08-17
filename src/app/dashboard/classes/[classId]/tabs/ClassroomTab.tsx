@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, asArray, type ClassroomSessionState, type WikiPage } from '@/lib/api';
+import { api, asArray, type WikiPage } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import ErrorView from '@/components/ErrorView';
 import EmptyState from '@/components/EmptyState';
@@ -207,28 +207,13 @@ export function ClassroomTab({
   corpusAvatarId: string | null;
 }) {
   const { t } = useTranslation();
+  // Not persisted across a refresh: the backend has no "list live sessions
+  // for this class" endpoint (Phase 2 shipped create/start/end/state only —
+  // see the classroom-boss-session report), so reloading this tab mid-session
+  // loses track of it here. The session itself keeps running server-side;
+  // the teacher would need to note the join code before refreshing, or end
+  // it and launch fresh. Documented scope gap, not silently papered over.
   const [sessionId, setSessionId] = useState<string | null>(null);
-
-  // Recovers the session pointer once on mount (page refresh, or opening the
-  // tab after the teacher already launched a session elsewhere): if the class
-  // has a live (non-ENDED) session, jump straight to it instead of showing
-  // the launcher again. `resumeChecked` makes this a ONE-SHOT check — once
-  // it's run, a teacher-initiated "launch new" (sessionId -> null) must show
-  // the launcher, not immediately re-resume the just-ended session.
-  const [resumeChecked, setResumeChecked] = useState(false);
-  const liveSessionsQuery = useQuery({
-    queryKey: ['classroomSessionsLive', orgId, classId],
-    queryFn: () => api.listLiveClassroomSessions(orgId, classId),
-    enabled: !!corpusAvatarId && !resumeChecked,
-  });
-  // Adjust state during render (React's documented pattern for deriving
-  // state from a value that just became available) rather than an effect —
-  // guarded by resumeChecked so it fires exactly once.
-  if (!resumeChecked && liveSessionsQuery.isSuccess) {
-    const live = asArray<ClassroomSessionState>(liveSessionsQuery.data);
-    setResumeChecked(true);
-    if (live.length > 0) setSessionId(live[0].sessionId);
-  }
 
   if (!corpusAvatarId) {
     return (
@@ -238,12 +223,6 @@ export function ClassroomTab({
         description={t('classroomTabNoCorpusDescription')}
       />
     );
-  }
-
-  // Avoid flashing the launcher before the one-shot resume check settles —
-  // that would briefly show "launch a session" then jump to a live one.
-  if (!resumeChecked && liveSessionsQuery.isLoading) {
-    return <p className="text-ink3 text-sm py-8">{t('classroomTabLoadingSession')}</p>;
   }
 
   return (
