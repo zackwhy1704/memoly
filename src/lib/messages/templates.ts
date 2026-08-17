@@ -50,7 +50,6 @@ export interface Templates {
   createClassModalChaptersReady: (n: number) => string;
   createClassModalPagesCompiled: (completed: number, total: number) => string;
   createClassModalReadyForStudents: (name: string) => string;
-  classroomTabParticipantCount: (n: number) => string;
   brainPagesQuality: (score: number) => string;
   brainPagesQuizUseCount: (n: number) => string;
   contentReviewClaimCount: (n: number) => string;
@@ -142,7 +141,6 @@ export const templatesEn: Templates = {
   createClassModalChaptersReady: (n) => (n > 0 ? `${n} chapters ready to pick` : 'Chapters ready to pick'),
   createClassModalPagesCompiled: (completed, total) => `${completed} / ${total} pages compiled`,
   createClassModalReadyForStudents: (name) => `${name} is ready for students to join.`,
-  classroomTabParticipantCount: (n) => `${n} student${n !== 1 ? 's' : ''} joined`,
   brainPagesQuality: (score) => `Quality ${score}/100`,
   brainPagesQuizUseCount: (n) => `Used in ${n} quiz item${n !== 1 ? 's' : ''}`,
   contentReviewClaimCount: (n) => `${n} claim${n !== 1 ? 's' : ''}`,
@@ -231,7 +229,6 @@ export const templatesZh: Templates = {
   createClassModalChaptersReady: (n) => (n > 0 ? `${n} 个章节可供选择` : '章节可供选择'),
   createClassModalPagesCompiled: (completed, total) => `已编译 ${completed} / ${total} 页`,
   createClassModalReadyForStudents: (name) => `${name} 已可供学生加入。`,
-  classroomTabParticipantCount: (n) => `已有 ${n} 名学生加入`,
   brainPagesQuality: (score) => `质量 ${score}/100`,
   brainPagesQuizUseCount: (n) => `已用于 ${n} 道测验题`,
   contentReviewClaimCount: (n) => `${n} 条论述`,

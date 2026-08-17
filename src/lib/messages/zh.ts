@@ -76,29 +76,6 @@ export const zh: Record<MessageKey, string> = {
   challengesTabEmptyTitle: '暂无挑战',
   challengesTabEmptyDescription: '在上方发布一个挑战。学生作答后，正确答案将在你设定的时间揭晓。',
 
-  // ── ClassroomTab ─────────────────────────────────────────────────────────
-  classroomTabLaunch: '发起首领战',
-  classroomTabLaunchHint: '从班级内容库中选择一个主题——每位学生用同一个代码加入，实时攻击同一个共享首领。',
-  classroomTabLoadingPages: '正在加载主题…',
-  classroomTabCouldNotLoadPages: '无法加载此班级的内容。',
-  classroomTabNoPages: '此班级尚无编译好的内容。',
-  classroomTabPickTopic: '选择主题',
-  classroomTabLaunchFailed: '无法发起该场次。',
-  classroomTabLaunching: '正在发起…',
-  classroomTabLaunchButton: '发起',
-  classroomTabLoadingSession: '正在加载场次…',
-  classroomTabCouldNotLoadSession: '无法加载实时场次。',
-  classroomTabSharedHp: '共享首领血量',
-  classroomTabDefeated: '首领已被击败！🎉',
-  classroomTabEnded: '场次已结束。',
-  classroomTabLaunchNew: '发起新场次',
-  classroomTabStarting: '正在开始…',
-  classroomTabStartButton: '开始',
-  classroomTabEnding: '正在结束…',
-  classroomTabEndButton: '结束场次',
-  classroomTabNoCorpusTitle: '暂无内容',
-  classroomTabNoCorpusDescription: '此班级尚无编译好的内容——请先在"教学"中上传内容。',
-
   // ── ClassBrainTab ────────────────────────────────────────────────────────
   classBrainTabNoCorpusTitle: '暂无内容库',
   classBrainTabNoCorpusDescription: '此班级尚无内容库。如有异常，请联系支持团队。',
@@ -547,7 +524,6 @@ export const zh: Record<MessageKey, string> = {
   classIdSubtabBrief: '班级简报',
   classIdSubtabReport: 'AI报告',
   classIdSubtabAdd: '添加学生',
-  classIdSubtabClassroom: '首领战',
 
   // ── [classId]/page.tsx ─────────────────────────────────────────────
   classDetailBackToClasses: '← 返回班级列表',
