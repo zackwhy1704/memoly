@@ -62,17 +62,31 @@ describe('LoginPage — Google sign-in terms notice', () => {
     });
   });
 
-  it('shows a terms notice next to the Google button (this endpoint can create a new account)', () => {
+  it('still shows the terms notice next to the Google button', () => {
     render(<LoginPage />);
     expect(screen.getByText(/Terms of Use/i)).toBeInTheDocument();
     expect(screen.getByText(/zero tolerance/i)).toBeInTheDocument();
   });
 
-  it('clicking the Google button calls api.google with acceptedTerms:true', async () => {
+  /**
+   * REWRITTEN TO THE NEW CONTRACT, NOT WEAKENED TO PASS.
+   *
+   * This previously asserted acceptedTerms:TRUE. That hardcoded true was the defect:
+   * api.ts explicitly warns "always pass the real checkbox state, never a hardcoded
+   * true", and because /auth/google also CREATES an account for an unknown user, the
+   * sign-in page could mint accounts while never mentioning signing up. Deleting the
+   * /signup page alone would have left that path open.
+   *
+   * The login page shows no terms checkbox, so there is no affirmative acceptance to
+   * report and the honest value is false. Self-serve signup is now refused
+   * server-side as well, so the create branch is closed regardless — but the client
+   * must not claim a consent nobody gave.
+   */
+  it('clicking the Google button reports acceptedTerms:false — the page has no checkbox to accept with', async () => {
     const user = userEvent.setup();
     render(<LoginPage />);
     await user.click(screen.getByText('Mock Google Button'));
 
-    expect(mockedGoogle).toHaveBeenCalledWith('header.payload.sig', true);
+    expect(mockedGoogle).toHaveBeenCalledWith('header.payload.sig', false);
   });
 });

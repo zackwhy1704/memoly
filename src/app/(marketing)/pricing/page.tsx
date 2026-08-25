@@ -26,14 +26,14 @@ const CENTRE_TIERS = [
   {
     name: 'Solo', badge: null, price: 'US$99', per: '/mo', annual: 'US$990/yr',
     unit: '1 teacher · 1 class', studentCap: 'Up to 15 students',
-    cta: 'Start a 30-day pilot', ctaHref: '/signup', pilotNote: 'Full access, no card required',
+    cta: 'Request a demo', ctaHref: '/demo', pilotNote: 'Full access, no card required',
     featured: false,
   },
   {
     name: 'Centre', badge: 'Most popular', price: 'US$149', per: '/class/mo',
     annual: 'Volume: $129/class past 5 · annual default',
     unit: 'Per class · multi-teacher', studentCap: 'Up to 20 students/class',
-    cta: 'Start a 30-day pilot', ctaHref: '/signup', pilotNote: 'Full access on your real classes',
+    cta: 'Request a demo', ctaHref: '/demo', pilotNote: 'Full access on your real classes',
     featured: true,
   },
   {
