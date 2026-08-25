@@ -85,10 +85,15 @@ function LoginInner() {
     setError('');
     setLoading(true);
     try {
-      // acceptedTerms:true — the notice under the Google button below is the
-      // affirmative tap for a first-time Google user (this endpoint can also
-      // create a new account); it's a no-op server-side for a returning user.
-      const res = await api.google(response.credential, true);
+      // acceptedTerms:false — this is a SIGN-IN page and shows no terms checkbox,
+      // so there is no affirmative acceptance to report. It used to send a hardcoded
+      // true, directly against the warning in api.ts, which meant an unknown Google
+      // account could CREATE an account from a page that never mentions signing up.
+      // Self-serve signup is closed server-side now, so the create branch is refused
+      // regardless — but sending true here would be claiming consent nobody gave.
+      // A returning user is never gated on this flag (AuthService matches them by
+      // provider-sub or verified email before the terms check).
+      const res = await api.google(response.credential, false);
       saveAuth(res.data.token, res.data.userId);
       try {
         const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
@@ -271,7 +276,10 @@ function LoginInner() {
 
         <p className="mkt-alt">
           Want to bring Apalchi to your centre?{' '}
-          <a href="/signup">Request access</a>
+          {/* Points at the demo form, and says so. The old copy read "Request
+              access" while linking to a page that actually created accounts —
+              a label describing a gate that did not exist. */}
+          <a href="/demo">Request a demo</a>
         </p>
       </div>
     </div>

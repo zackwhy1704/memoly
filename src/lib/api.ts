@@ -1058,7 +1058,11 @@ export async function authedObjectUrl(path: string): Promise<string> {
 // ── API methods ────────────────────────────────────────────────────────
 export const api = {
   // Demo / lead capture
-  demoRequest: (body: { orgName: string; contactName: string; email: string; phone: string }) =>
+  demoRequest: (body: {
+    orgName: string; contactName: string; email: string; phone: string;
+    /** Optional free text; stored in demo_leads.notes. */
+    message?: string;
+  }) =>
     apiFetch<{ data: { ok: boolean } }>('/demo-request', {
       method: 'POST',
       skipAuth: true,

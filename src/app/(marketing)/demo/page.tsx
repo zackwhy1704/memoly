@@ -12,6 +12,7 @@ export default function DemoPage() {
   const [contactName, setContactName] = useState('');
   const [email, setEmail]           = useState('');
   const [phone, setPhone]           = useState('');
+  const [message, setMessage]       = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
   const [submitted, setSubmitted]   = useState(false);
@@ -29,7 +30,14 @@ export default function DemoPage() {
     setError('');
     setSubmitting(true);
     try {
-      await api.demoRequest({ orgName: orgName.trim(), contactName: contactName.trim(), email: email.trim(), phone: phone.trim() });
+      await api.demoRequest({
+        orgName: orgName.trim(),
+        contactName: contactName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        // Optional — omitted entirely when blank so the backend stores no note.
+        ...(message.trim() ? { message: message.trim() } : {}),
+      });
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.userMessage : 'Could not send your request. Please try again.');
@@ -89,6 +97,28 @@ export default function DemoPage() {
             <Field label="Your name"                  id="d-name" type="text"  value={contactName}  onChange={setContactName}  placeholder="Jane Smith"           />
             <Field label="Work email"                 id="d-em"   type="email" value={email}        onChange={setEmail}        placeholder="jane@brightstar.edu"  />
             <Field label="Contact number"             id="d-ph"   type="tel"   value={phone}        onChange={setPhone}        placeholder="+65 9123 4567"        />
+
+            <label htmlFor="d-msg" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#6B618A' }}>
+                Anything you&apos;d like us to know{' '}
+                <span style={{ fontWeight: 500, color: '#A8A0BD' }}>(optional)</span>
+              </span>
+              <textarea
+                id="d-msg"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={3}
+                placeholder="Subjects, year levels, how many classes…"
+                style={{
+                  padding: '11px 13px',
+                  borderRadius: 10,
+                  border: '1.5px solid #E0DAF0',
+                  fontSize: 14,
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                }}
+              />
+            </label>
 
             {error && (
               <div
